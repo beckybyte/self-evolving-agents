@@ -22,7 +22,7 @@ from .protect import EVALUATOR, PROTECTED, changed_files, violations
 
 ROOT = Path(__file__).resolve().parents[3]
 META_ROOT = Path(os.environ.get("SEA_META_ROOT", ROOT.parent / f"{ROOT.name}-meta"))
-INTEGRATION = "evolve/main"
+INTEGRATION = os.environ.get("SEA_META_BRANCH", "evolve/main")
 BASE_TREE = META_ROOT / "_integration"
 C_DEFAULT = {"learning": "on", "search": "on", "evaluator": "on", "expressiveness": "off", "infra": "off"}
 MAX_ATTEMPTS = 2
