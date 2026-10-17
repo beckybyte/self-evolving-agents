@@ -33,7 +33,8 @@ Any llm role may also
   - emit `<artifact name="prd">...</artifact>` blocks (stored as artifacts[prd]), and
   - emit lines `ASK_HUMAN: <question> | DEFAULT: <best guess>`: posted to the inbox, the run continues on the default,
     which is recorded as an assumption (max 3 per run).
-Per-role notes live in memory/<role>.md (injected into that role's prompt); memory/_shared.md is read by every llm role.
+Per-role notes live in memory/<role>.md (injected into that role's prompt); memory/_shared.md is read by every llm role
+(in its system message, unless the role already reads the task's human_answers context key, which carries the same text).
 
 v1 genomes (no `schema:` key; `final`, `input: native|transcript`, `{conversation}`) are adapted on load and run
 exactly as calevo.runner ran them.

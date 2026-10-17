@@ -82,3 +82,45 @@ def test_gated_learning_rejects_useless_notes(tmp_path):
     st = learn_round(task, ROOT / "genomes/v2/brief_P0", tmp_path / "out_g", "fake:worker", tmp_path / "learn")
     assert st["candidates"] == ["pm"] and st["accepted"] is False  # notes do not change the judged design
     assert not (tmp_path / "out_g/memory/pm.md").exists() and (tmp_path / "out_g/memory/_rejected.jsonl").exists()
+
+
+def test_shared_taste_single_source_with_comments_and_cap(tmp_path):
+    import shutil
+    from sea.executor import run_team
+    from sea.tasks.brief.task import TASTE_MAX_BULLETS, TASTE_MAX_CHARS
+    register_fake("framer", fake_framer)
+    register_fake("judge", fake_judge)
+    seen = []
+    register_fake("rec", lambda m: (seen.append(m), fake_worker(m))[1])
+    run = tmp_path / "run"
+    task = make_task(f"brief:{ROOT / 'briefs/day_planner.md'}", run, framer="fake:framer", judge="fake:judge")
+    task.human.answer("Q1", "students and freelancers")
+    task.human.rate("gen01a1_c2", 2, "too many features")
+    task.human.rate("gen01a1_c3", 4, "")  # a bare score adds no taste
+    taste = task.shared_notes()
+    assert "students and freelancers" in taste and "too many features" in taste and "gen01a1_c3" not in taste
+
+    # a role reading {human_answers} gets the taste exactly once (no system-message copy of memory/_shared.md);
+    # a role that does not read it still gets it in its system message
+    gd = tmp_path / "g"
+    shutil.copytree(ROOT / "genomes/v2/brief_P0", gd)
+    (gd / "memory").mkdir(exist_ok=True)
+    (gd / "memory" / "_shared.md").write_text(taste + "\n")
+    run_team(task.load(gd), task.episodes("fit")[0], "fake:rec", task.human)
+    prompt = "\n".join(m["content"] for m in seen[-1])
+    assert prompt.count("students and freelancers") == 1 and prompt.count("too many features") == 1
+    y = (gd / "genome.yaml").read_text()
+    (gd / "genome.yaml").write_text(y.replace(", human_answers]", "]").replace("{human_answers}", "(see system message)"))
+    run_team(task.load(gd), task.episodes("fit")[0], "fake:rec", task.human)
+    assert seen[-1][0]["role"] == "system" and "too many features" in seen[-1][0]["content"]
+    assert "too many features" not in seen[-1][-1]["content"]
+
+    # capped: many answers and comments -> at most TASTE_MAX_BULLETS bullets / TASTE_MAX_CHARS chars, newest kept
+    for i in range(30):
+        q = task.human.ask(f"question number {i}?", "d", asker="pm")
+        task.human.answer(q["qid"], f"answer {i} " + "x" * 150)
+        task.human.rate(f"g{i}", 3, f"comment {i}")
+    taste = task.shared_notes()
+    assert len(taste) <= TASTE_MAX_CHARS and len(taste.splitlines()) <= TASTE_MAX_BULLETS
+    assert "answer 29" in taste and "comment 29" in taste and "answer 0 " not in taste
+    assert task.shared_notes() == taste and task.context()["human_answers"] == taste  # deterministic, one source
