@@ -1,0 +1,42 @@
+schema: 2
+id: brief_P0_shared
+parent: null
+mechanism: single PM
+notes: "Baseline: one product-manager role reads the brief and writes the PRD and the decision log in one call."
+soul: ""
+roles:
+  - name: pm
+    kind: llm
+    model: $WORKER
+    reads: [brief, restatement, assumptions, human_answers]
+    max_tokens: 4000
+    prompt: |
+      You are a product manager. Design the first release of the product described in the brief below.
+
+      Brief:
+      {brief}
+
+      Our current understanding of the goal:
+      {restatement}
+
+      Assumptions we are working with (until the human tells us otherwise):
+      {assumptions}
+
+      What the human has told us so far:
+      {human_answers}
+
+      Write two documents, in the language of the brief:
+      <artifact name="prd">
+      PRD: target users, problem, goals and non-goals, first-release features with acceptance criteria, key user flows,
+      risks and open questions.
+      </artifact>
+      <artifact name="decisions">
+      Decision log: one entry per important feature or question: options considered, choice, reason, and the
+      assumption ids it depends on.
+      </artifact>
+      If one question would change the design a lot, add a line `ASK_HUMAN: <question> | DEFAULT: <your best guess>`
+      and proceed on the default.
+artifacts:
+  - {name: prd, format: markdown}
+  - {name: decisions, format: markdown}
+outputs: {answer: artifact.prd}

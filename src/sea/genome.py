@@ -1,0 +1,160 @@
+"""Genome v2: a team = roles (llm | tool | human) + workflow + communication channel + declared artifacts.
+
+genome.yaml (schema: 2)
+  id, parent, notes                 notes = what changed vs the parent and which evidence motivated it
+  mechanism: str                    optional short tag for the diversity archive (e.g. "draft-critique-loop")
+  soul: str                         shared system prompt for every llm role
+  channels: blackboard | messages   blackboard: every role reads/writes one shared dict (default)
+                                    messages: additionally each role has an inbox; writes: message:<role> delivers
+  roles:
+    - name: str                     unique
+      kind: llm | tool | human      (v1 spelling `type:` accepted)
+      # llm
+      model: $WORKER | qwen3-8b | qwen3-30b-a3b | qwen2.5-72b | claude:<alias>
+      reads: [selector, ...]        what the role sees; default [input, blackboard]. selectors:
+                                      input, blackboard, blackboard.<key>, artifacts, artifact.<name>, inbox, memory,
+                                      or any context key the task provides (brief mode: restatement, assumptions,
+                                      human_answers). A selector used as {placeholder} in the prompt is substituted
+                                      there; the others are appended as "## <selector>" sections.
+      prompt: str
+      writes: blackboard | artifact:<name> | message:<role>       (default blackboard; always also blackboard[name])
+      max_tokens: int = 2048, temperature: float = 0.0
+      # tool
+      tool: tools/<file>.py         run(ctx) -> {"text": str, "artifacts": {name: str}?}
+                                    ctx = {"blackboard", "artifacts", "input", "context"}; v1 run(blackboard, messages) also works
+      # human (never blocks)
+      question: str (template), default: str (template)  -> output = the human's answer if one exists, else the default
+  workflow: [step, ...]             step = role name, or {loop: {body: [names], max_rounds: int, stop_when: str}}
+                                    (loop stops early when the last body role's output contains stop_when). Default: roles in order.
+  artifacts: [{name, format: markdown|json|text, required: bool=true}]
+  outputs: {answer: blackboard.<key> | artifact.<name>}     what a benchmark scores (v1 `final: X` -> blackboard.X)
+
+Any llm role may also
+  - emit `<artifact name="prd">...</artifact>` blocks (stored as artifacts[prd]), and
+  - emit lines `ASK_HUMAN: <question> | DEFAULT: <best guess>`: posted to the inbox, the run continues on the default,
+    which is recorded as an assumption (max 3 per run).
+Per-role notes live in memory/<role>.md (injected into that role's prompt); memory/_shared.md is read by every llm role
+(in its system message, unless the role already reads the task's human_answers context key, which carries the same text).
+
+v1 genomes (no `schema:` key; `final`, `input: native|transcript`, `{conversation}`) are adapted on load and run
+exactly as calevo.runner ran them.
+"""
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+import yaml
+
+from .llm import known_model
+
+KINDS = ("llm", "tool", "human")
+BASE_SELECTORS = ("input", "blackboard", "artifacts", "inbox", "memory")
+
+
+def load_genome(gdir: str | Path, context_keys: tuple[str, ...] = ()) -> dict:
+    gdir = Path(gdir)
+    raw = yaml.safe_load(open(gdir / "genome.yaml")) or {}
+    g = normalize(raw)
+    g["_dir"] = str(gdir)
+    mdir = gdir / "memory"
+    g["_memory"] = {f.stem: f.read_text().strip() for f in mdir.glob("*.md")} if mdir.is_dir() else {}
+    validate(g, context_keys)
+    return g
+
+
+def normalize(raw: dict) -> dict:
+    legacy = "schema" not in raw
+    roles = []
+    for r in raw.get("roles") or []:
+        kind = r.get("kind", r.get("type", "llm"))
+        n = {"name": r.get("name"), "kind": kind}
+        if kind == "llm":
+            native = legacy and r.get("input", "native") == "native"
+            n.update(model=r.get("model", "$WORKER"), prompt=r.get("prompt", "") or "",
+                     max_tokens=int(r.get("max_tokens", 2048)), temperature=float(r.get("temperature", 0.0)),
+                     native=native, writes=r.get("writes", "blackboard"),
+                     reads=list(r.get("reads") or (["input", "blackboard"])))
+            if legacy:
+                n["_v1_input"] = r.get("input", "native")
+        elif kind == "tool":
+            n.update(tool=r.get("tool"), writes=r.get("writes", "blackboard"))
+        elif kind == "human":
+            n.update(question=r.get("question", ""), default=r.get("default", ""), writes=r.get("writes", "blackboard"),
+                     reads=list(r.get("reads") or ["blackboard"]))
+        roles.append(n)
+    if legacy:
+        outputs = {"answer": f"blackboard.{raw.get('final')}"}
+    else:
+        outputs = raw.get("outputs") or {}
+    return {"schema": 2, "id": raw.get("id"), "parent": raw.get("parent"), "notes": raw.get("notes", ""),
+            "mechanism": raw.get("mechanism", ""), "soul": raw.get("soul", "") or "",
+            "channels": raw.get("channels", "blackboard"), "roles": roles,
+            "workflow": raw.get("workflow") or [r["name"] for r in roles],
+            "artifacts": [{"name": a["name"], "format": a.get("format", "markdown"), "required": a.get("required", True)}
+                          for a in (raw.get("artifacts") or [])],
+            "outputs": outputs, "_legacy": legacy}
+
+
+def _selector_ok(s: str, names: set, context_keys) -> bool:
+    if s in BASE_SELECTORS or s in context_keys:
+        return True
+    head, _, tail = s.partition(".")
+    return head in ("blackboard", "artifact") and bool(tail)
+
+
+def validate(g: dict, context_keys: tuple[str, ...] = ()):
+    assert g["roles"], "roles must be a non-empty list"
+    names: set = set()
+    for r in g["roles"]:
+        assert r.get("name") and r["name"] not in names, f"bad/duplicate role name {r.get('name')}"
+        assert re.fullmatch(r"[A-Za-z_][A-Za-z0-9_\-]*", r["name"]), f"role name must be an identifier: {r['name']}"
+        names.add(r["name"])
+        assert r["kind"] in KINDS, f"unknown kind {r['kind']} (llm | tool | human)"
+        if r["kind"] == "llm":
+            assert known_model(r["model"]), f"unknown model {r['model']}"
+            if g["_legacy"]:
+                assert r["_v1_input"] in ("native", "transcript"), "v1 input must be native|transcript"
+            for s in r["reads"]:
+                assert _selector_ok(s, names, context_keys), f"role {r['name']}: unknown reads selector {s!r}"
+        if r["kind"] == "tool":
+            assert r.get("tool") and (Path(g["_dir"]) / r["tool"]).exists(), f"missing tool file {r.get('tool')}"
+        w = r.get("writes", "blackboard")
+        assert w == "blackboard" or re.fullmatch(r"(artifact|message):[A-Za-z0-9_\-]+", w), f"bad writes {w!r}"
+    for r in g["roles"]:
+        w = r.get("writes", "")
+        if w.startswith("message:"):
+            assert g["channels"] == "messages", "writes: message:<role> needs channels: messages"
+            assert w[8:] in names, f"message target {w[8:]} is not a role"
+    for step in g["workflow"]:
+        if isinstance(step, dict):
+            lp = step.get("loop") or {}
+            assert lp.get("body") and all(b in names for b in lp["body"]), f"bad loop {step}"
+            assert 1 <= int(lp.get("max_rounds", 2)) <= 6, "loop max_rounds must be 1..6"
+        else:
+            assert step in names, f"workflow step {step!r} is not a role"
+    ans = g["outputs"].get("answer")
+    if ans:
+        head, _, key = ans.partition(".")
+        assert head in ("blackboard", "artifact") and key, f"bad outputs.answer {ans!r}"
+        if head == "blackboard":
+            assert key in names, "outputs.answer must name a role (v1: final must name a role)"
+
+
+BANNED_TOOL_PATTERNS = re.compile(r"data/splits|\bgoal/|holdout|\.\./|/hot-data/|/home/|ratings\.jsonl")
+
+
+def check_tool_safety(gdir: str | Path, extra: re.Pattern | None = None):
+    """Evolver-written tool code must not reach evaluation data (static check; tools also run in a subprocess)."""
+    for f in Path(gdir).rglob("*.py"):
+        src = f.read_text()
+        for pat in filter(None, (BANNED_TOOL_PATTERNS, extra)):
+            m = pat.search(src)
+            assert not m, f"forbidden reference in {f.name}: {m.group(0)!r}"
+
+
+def structure_signature(g: dict) -> str:
+    """Coarse structural fingerprint (used by the radical-child rule and the archive)."""
+    kinds = "".join(r["kind"][0] for r in g["roles"])
+    loops = sum(isinstance(s, dict) for s in g["workflow"])
+    return f"{kinds}|{g['channels'][0]}|L{loops}|S{len(g['workflow'])}"

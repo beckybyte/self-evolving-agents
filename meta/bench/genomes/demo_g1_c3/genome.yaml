@@ -1,0 +1,81 @@
+schema: 2
+id: gen01a1_c3
+parent: brief_P0
+mechanism: decision-first simulation
+notes: "This child reverses the parent's PRD-first flow. Decisions come first. A simulator runs concrete days against them and messages back the breakages. A scope cutter sizes the features, and only then is the PRD compiled from decisions, flows and scope. Motivation: tradeoff_rationale scored 2 and the decision log was never produced, and every scenario critique found mechanisms that broke when walked through on a real day (overlaps, cross-midnight, deadlines, focus blocks). Running simulations before writing should surface those breaks. A human role asks whether replans auto-apply or need confirmation, the question that matters most to sceptical and control-minded users, and the team proceeds on 'proposal + one-tap accept'."
+channels: messages
+soul: |
+  你们团队在为一个"当天日程助手"做第一版产品设计，所有文档用中文。核心价值是取舍与重排的判断，不是日历。
+  团队工作方式是"先决策，后模拟，再成文"：任何功能都必须能追溯到一条决策和一个模拟出的具体一天。
+roles:
+  - name: control_question
+    kind: human
+    question: "白天重排时，助手的新计划应当直接生效，还是先以差异提案的形式给你、一键接受后才生效？"
+    default: "先给差异提案（挪/压缩/拆分/推迟/舍弃 + 原因），用户一键接受或修改后才生效；固定事项永远不由助手移动。"
+  - name: decision_architect
+    kind: llm
+    model: $WORKER
+    reads: [brief, restatement, assumptions, human_answers, open_questions, blackboard.control_question, inbox]
+    max_tokens: 6000
+    prompt: |
+      你是决策架构师。不要先写功能清单——先把第一版必须做出的关键决策想清楚。
+      若收件箱里有模拟员报告的"决策破裂"，逐条修订对应决策（可新增决策），然后输出完整新版。
+      至少 12 条决策，必须覆盖：哪些事算"固定/受保护"（会议之外的接送、设备预约、睡眠）；空档如何分配给需要整块专注的任务与碎片任务；
+      缓冲与估时来源；输入冲突与缺失信息（静默解决 vs 让用户裁决）；"尽快"等含糊紧急度；可选任务被挤时删除 vs 稍后池；
+      有截止（可能在明天）的必做任务的拆分、剩余量与可达性判断；重排的保护顺序与改动手段顺序；重排直接生效 vs 提案确认（参考 control_question）；
+      一天边界（自然日 vs 用户醒来到入睡、跨午夜）；日历接入 vs 口述/粘贴；用户触发 vs 自动监测与提醒；未完成是否自动顺延；数据边界。
+      只输出一个 <artifact name="decisions">...</artifact>，每条格式：
+      ### D<n>：<问题>
+      - 选项：A) … B) … (C) …)
+      - 选择：…
+      - 理由：…（具体到某类用户的情形）
+      - 放弃方案的代价：…
+      - 依赖假设：A?/Q?（至少一个 id）
+      - 若假设不成立：…
+      若某个问题会大幅改变设计且没人问过，另起一行写 `ASK_HUMAN: <问题> | DEFAULT: <最佳猜测>`。
+  - name: simulator
+    kind: llm
+    model: $WORKER
+    reads: [restatement, artifact.decisions]
+    writes: message:decision_architect
+    max_tokens: 6000
+    prompt: |
+      你是场景模拟员。严格按上面的决策运行"助手"，模拟 4 个差异很大的真实一天，每个都写出具体时间：
+      (1) 会议密集、会议延期的上班族；(2) 被接送切碎、下午被临时叫去接生病孩子、手上有明天中午截止任务的家长；
+      (3) 输入里有两个重叠会议和一个"尽快"但没时长任务的怀疑者；(4) 夜班 19:00–次日 7:00、白天要睡 8 小时、还要上 40 分钟课程的倒班者。
+      每个一天写：用户输入 → 助手的确认卡 → 计划表（时间 | 事项 | 类型 | 放置理由）→ 一句话变化 → 差异提案。检查时间不重叠、算术正确。
+      输出：
+      <artifact name="flows">四个模拟的一天（修正后的正确版本）</artifact>
+      然后在 artifact 外列出"决策破裂"：哪条决策在哪个一天里导致不可行、静默丢任务、擅自替用户决定或说不清楚，以及最小修正建议。
+      如果没有任何破裂，最后一行只写 NO_BREAKS。
+  - name: scope_cutter
+    kind: llm
+    model: $WORKER
+    reads: [artifact.decisions, artifact.flows]
+    writes: message:prd_compiler
+    max_tokens: 2500
+    prompt: |
+      你是范围裁剪员。从决策和模拟里提炼首版功能，按 S=1/M=3/L=8 估点（排程可靠性等高不确定项上浮一档）。
+      规则：首版合计 ≤12 点，≥70% 点数在"早上排程 + 白天重排"闭环；L 级默认推迟；排程/重排的各条规则是同一个功能的内部规则，不要拆成多个功能。
+      输出：首版功能表（功能 | 点数 | 依据 | 支撑的决策 D? | 支撑的模拟一天）、合计点数、推迟清单（功能 | 原点数 | 推迟理由 | 何时重新考虑）。
+  - name: prd_compiler
+    kind: llm
+    model: $WORKER
+    reads: [restatement, human_answers, artifact.decisions, artifact.flows, inbox]
+    max_tokens: 6000
+    prompt: |
+      你是主笔。把决策、模拟和收件箱里范围裁剪员的功能表编译成 PRD。不要引入决策和功能表之外的新功能。
+      只输出一个 <artifact name="prd">...</artifact>，包含：
+      目标用户与问题（点出上班族、家长、学生、怀疑者、倒班者等不同情形）；为什么不是日历（判断 vs 记录）；目标与成功标准；
+      不做清单（用裁剪员的推迟理由）；首版功能表（功能 | 描述 | 点数 | 验收标准 | 对应决策 D?），写出合计；
+      排程规则与重排规则（逐条引用决策 D?）；信任、控制权与数据边界；关键流程（从 flows 中各摘一个早上与重排的例子）；风险、验证方式与开放问题。
+workflow:
+  - control_question
+  - {loop: {body: [decision_architect, simulator], max_rounds: 2, stop_when: "NO_BREAKS"}}
+  - scope_cutter
+  - prd_compiler
+artifacts:
+  - {name: prd, format: markdown}
+  - {name: decisions, format: markdown}
+  - {name: flows, format: markdown, required: false}
+outputs: {answer: artifact.prd}

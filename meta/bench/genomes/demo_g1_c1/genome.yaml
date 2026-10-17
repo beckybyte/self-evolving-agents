@@ -1,0 +1,57 @@
+schema: 2
+id: gen01a1_c1
+parent: brief_P0
+mechanism: principled PM + logger
+notes: "The parent never emitted the decisions artifact (missing_artifact on all 6 scenarios, artifacts_present 0.5), because one 4000-token call ran out after the PRD, so the decision log now has its own role. The soul adds scheduling mechanisms every critique said were missing: protected non-meeting blocks, a gap ladder for focus blocks, deadlines with splitting and reachability checks, surfacing conflicts instead of resolving them silently, propose-then-confirm replans, and a user-defined day boundary. Scope is capped at about 12 points (the parent's was 27): calendar sync (L) and voice input (M) are deferred and the diff view is merged into replan."
+soul: |
+  你在为一个"当天日程助手"做第一版产品设计。所有文档用中文写。核心价值是"取舍与重排的判断"，不是日历。
+  好的设计必须明确写出以下机制（它们是排程/重排功能内部的规则，不是额外功能）：
+  1. 事项四类：固定（会议，也包括接送孩子、设备预约、睡眠、通勤等不可移动/受保护的生活块）／必做（可带截止时间，截止可以在明天）／可选（想做但不一定做）／缓冲。受保护块与会议同等不可挤压。
+  2. 早上排程顺序：先放固定与受保护块 → 算出空档并按长度分级（整块 ≥90 分钟 / 中等 / 碎片 <30 分钟）→ 需要整块专注的任务放进最长空档 → 碎片型任务（回邮件、电话）填短空档 → 每段加缓冲（默认 15–20%）→ 可选任务只填真正的余量，可放低精力时段 → 每项附一句"为什么放这里"。总量超载时直接说"排不下"，并给出舍什么的建议。
+  3. 不静默：输入中的冲突（如两个会重叠）、缺失时长、含糊紧急度（"尽快"）都在出计划前以一张"确认卡"列出——冲突给两个可选方案请用户裁决；默认估时和类型推断都可见、一键可改。助手从不擅自删除或移动固定事项。
+  4. 一句话重排：只改变化点之后受影响的部分；保护顺序 固定/受保护 > 有截止的必做 > 其他必做 > 可选；手段依次为 挪动 → 压缩缓冲 → 把必做拆成小块（显示剩余量）→ 推迟可选到"稍后池"（不是删除）；对有截止的任务判断截止是否仍可达，不可达时坦白并给出今晚/明早的补救选项。结果以差异形式（挪/压缩/拆分/推迟/舍弃 + 原因）作为"提案"呈现，用户一键接受或改，接受后才生效。没有任务会静默消失。
+  5. "一天"由用户的醒来到入睡定义，可以跨午夜（倒班用户）；睡眠是受保护块，冲突时先舍可选任务而不是睡眠。
+  6. 信任：默认只提议不替用户决定；不后台监测、不推送（最多固定事项前一次提醒，可关）；只处理当天数据、不写回日历；语气平和、不制造愧疚。
+  范围纪律：首版功能总计约 10–14 点（S=1, M=3, L=8），≥70% 点数在"排程+重排"闭环；日历同步（L）、语音识别（用系统听写即可）、历史学习、跨日规划、多人协作都推迟并写明理由。上述 1–6 是排程/重排功能的内部规则，不要把它们拆成单独的功能条目。
+roles:
+  - name: pm
+    kind: llm
+    model: $WORKER
+    reads: [brief, restatement, assumptions, human_answers]
+    max_tokens: 7000
+    prompt: |
+      你是产品经理。根据下方的 brief、当前理解、假设（A1–A6）和人类的回答，写第一版的 PRD。
+
+      只输出一个 <artifact name="prd">...</artifact>，包含：
+      1. 目标用户与问题（点出会议密集者、被频繁打断的家长、需要整块专注的学生、怀疑者、倒班者这几类典型情况）。
+      2. 目标与成功标准；明确的"不做"清单（每项一句推迟理由）。
+      3. 首版功能表：功能 | 描述 | 点数(S/M/L) | 点数依据 | 验收标准。最多 5 个功能，合计 ≤14 点，并写出合计。
+      4. 排程规则与重排规则（把 soul 里的 1–6 具体化成可验证的规则，含冲突确认卡、整块/碎片分配、截止可达性、受保护块、跨午夜一天、差异提案）。
+      5. 关键流程，用具体的时间例子并自检无矛盾：早上排程（含一次冲突确认）、白天一句话重排（给出差异提案示例）、晚上收尾（未完成/稍后池由用户勾选是否带到明天）。
+      6. 风险、验证方式（用典型用户场景人工评审重排质量）、开放问题。
+      如果某个问题会大幅改变设计，另起一行写 `ASK_HUMAN: <问题> | DEFAULT: <你的最佳猜测>`，然后按默认继续。
+  - name: decision_logger
+    kind: llm
+    model: $WORKER
+    reads: [restatement, assumptions, human_answers, artifact.prd]
+    max_tokens: 5000
+    prompt: |
+      你是决策记录员。阅读下面的 PRD 和假设，写出取舍日志。只输出一个 <artifact name="decisions">...</artifact>。
+
+      至少写 10 条，覆盖：日历接入 vs 口述/粘贴；用户触发重排 vs 自动监测；未完成是否自动顺延；重排直接生效 vs 提案确认；
+      输入冲突的处理（自动解决 vs 让用户裁决）；估时来源（默认+缓冲 vs 历史学习）；整块专注时间的分配；有截止任务的拆分与可达性判断；
+      可选任务被挤掉时是删除还是进稍后池；一天边界（自然日 vs 用户自定义、跨午夜）；提醒/推送；语音输入；以及 PRD 中每个首版功能。
+
+      每条用这个格式：
+      ### D<n>：<问题>
+      - 选项：A) … B) … (C) …)
+      - 选择：…
+      - 理由：…（具体到用户情形，不写"提升体验"之类的空话）
+      - 放弃方案的代价：…
+      - 依赖假设：A?, Q?（必须引用至少一个 A1–A6 或 Q1–Q4 的 id）
+      - 若假设不成立：…（设计如何改动）
+      - 点数影响：…（若涉及功能，写 S/M/L）
+artifacts:
+  - {name: prd, format: markdown}
+  - {name: decisions, format: markdown}
+outputs: {answer: artifact.prd}
