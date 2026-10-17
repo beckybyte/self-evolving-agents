@@ -52,6 +52,7 @@ def parse_artifacts(text: str, existing: dict | None = None) -> dict[str, str]:
 ASK_RE = re.compile(r"^\s*ASK_HUMAN:\s*(.+?)\s*\|\s*DEFAULT:\s*(.+?)\s*$", re.M)
 PH_RE = re.compile(r"\{(conversation|input|blackboard|artifacts|inbox|memory|[a-z_]+)(?:\.([A-Za-z0-9_\-]+))?\}")
 MAX_QUESTIONS_PER_RUN = 3
+REPEAT_TEMPERATURE = 0.7  # a role re-asked the identical question is sampled, not replayed
 SHARED_KEY = "human_answers"  # context key carrying the same team taste as memory/_shared.md
 
 
@@ -89,6 +90,7 @@ class _Run:
         self.assumptions: list = []
         self.trace: list = []
         self.messages = episode["input"].get("messages", [])
+        self._seen_calls: set = set()  # (role, hash of messages) already sent in this run
         self._lock = threading.RLock()  # parallel steps: state updates after each role's call are serialized
 
     # ------------------------------------------------------------ context selectors
@@ -187,7 +189,15 @@ class _Run:
                                             f"## What the team has learned from the human so far\n{shared}" if shared else ""] if x)
             msgs = ([{"role": "system", "content": system}] if system else []) + [
                 {"role": "user", "content": self.render(r["prompt"], name, r["reads"])}]
-        text, u = chat(model, msgs, max_tokens=r["max_tokens"], temperature=r["temperature"])
+        # a role called again on exactly the same messages (a fix loop whose check report did not change) would, at a
+        # low temperature, return the same answer again (evo_mixed_c gen02 child_2: the fixer re-emitted the same broken
+        # app.py twice). Such a repeat is sampled at temperature >= REPEAT_TEMPERATURE instead.
+        key = (name, hash(json.dumps(msgs, sort_keys=True)))
+        with self._lock:
+            repeat = key in self._seen_calls
+            self._seen_calls.add(key)
+        temperature = max(r["temperature"], REPEAT_TEMPERATURE) if repeat else r["temperature"]
+        text, u = chat(model, msgs, max_tokens=r["max_tokens"], temperature=temperature)
         with self._lock:
             add_usage(self.usage, u)
             if not g["_legacy"]:
@@ -196,7 +206,8 @@ class _Run:
             self.store(r, text)
             self.trace.append({"role": name, "kind": "llm", "tokens": u["prompt"] + u["completion"], "chars": len(text),
                                "model": model, "completion": u["completion"],
-                               **{k: u[k] for k in ("finish", "retries", "secs", "fallback") if k in u}})
+                               **{k: u[k] for k in ("finish", "retries", "secs", "fallback") if k in u},
+                               **({"repeat_temperature": temperature} if repeat else {})})
 
     def run_tool_role(self, r: dict):
         ctx = {"blackboard": {k: v for k, v in self.bb.items()}, "artifacts": dict(self.artifacts),

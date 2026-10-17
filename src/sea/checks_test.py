@@ -265,3 +265,20 @@ def test_smoke_names_typographic_quotes():
     bad = good().replace('ThreadingHTTPServer((', 'x = f“I’ve moved {1}”\nThreadingHTTPServer((')
     ok, rep = app_smoke({"app_py": bad})
     assert not ok and "compile errors" in rep and "typographic quotes" in rep and "line " in rep
+
+
+def test_identical_repeat_call_is_sampled_hotter(tmp_path, monkeypatch):
+    import sea.executor as ex
+    temps = []
+
+    def chat(model, msgs, max_tokens=2048, temperature=0.0):
+        temps.append((msgs[-1]["content"][:5], temperature))
+        return ("SMOKE: FAIL" if "check" in msgs[-1]["content"] else "same fix"), {"prompt": 1, "completion": 1, "calls": 1}
+    monkeypatch.setattr(ex, "chat", chat)
+    roles = [{"name": "chk", "kind": "llm", "model": "fake:x", "prompt": "check", "reads": ["input"]},
+             {"name": "fixer", "kind": "llm", "model": "fake:x", "prompt": "fix {blackboard.chk}", "reads": ["artifacts"]}]
+    g = load_genome(_genome(tmp_path, roles, [{"loop": {"body": ["chk", "fixer"], "max_rounds": 3, "stop_when": "PASS", "stop_on": "chk"}}]))
+    res = ex.run_team(g, {"id": "e", "input": {"text": "x"}}, "fake:x")
+    fix = [t for c, t in temps if c == "fix S"]
+    assert fix == [0.0, 0.7, 0.7]  # first call as configured, identical repeats sampled hotter
+    assert sum("repeat_temperature" in t for t in res["trace"]) == 4  # chk and fixer, rounds 2 and 3
