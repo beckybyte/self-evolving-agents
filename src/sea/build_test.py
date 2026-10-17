@@ -123,7 +123,7 @@ def test_build_p1_parallel_and_evolution(tmp_path, monkeypatch):
             return '<artifact name="agents_py">def parse(t): return []</artifact>'
         if "You write index.html" in u:
             return '<artifact name="index_html"><html></html></artifact>'
-        assert "### artifact: app_py" in u and "### artifact: agents_py" in u and "### artifact: index_html" in u
+        assert '<artifact name="app_py">' in u and '<artifact name="agents_py">' in u and '<artifact name="index_html">' in u
         return 'fixed\n<artifact name="agents_py">def parse(text): return []</artifact>'
     register_fake("team", team)
     task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")

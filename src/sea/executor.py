@@ -21,6 +21,34 @@ from .llm import add_usage, chat, strip_think
 
 ROOT = Path(__file__).resolve().parents[2]
 ART_RE = re.compile(r"<artifact\s+name=[\"']?([A-Za-z0-9_\-]+)[\"']?\s*>(.*?)</artifact>", re.S)
+# legacy emission: a model copying an older input format writes "### artifact: <name>" then the file (fenced or
+# not) up to the next such header or the end of the text
+LEGACY_ART_RE = re.compile(r"^###\s*artifact:\s*([A-Za-z0-9_\-]+)[ \t]*\n(.*?)(?=^###\s*artifact:|\Z)", re.S | re.M)
+FENCE_BLOCK_RE = re.compile(r"^```[^\n]*\n(.*?)\n?^```", re.S | re.M)
+LEGACY_MIN_RATIO = 0.5  # a legacy block replaces an existing artifact only if it is at least half as long (not a snippet)
+
+
+def render_artifact(name: str, body: str) -> str:
+    """The same format roles must emit, so a role that copies its input format writes a valid artifact."""
+    return f'<artifact name="{name}">\n{body}\n</artifact>'
+
+
+def parse_artifacts(text: str, existing: dict | None = None) -> dict[str, str]:
+    """<artifact name="x">...</artifact> blocks, plus legacy "### artifact: x" sections for names not given as tags.
+    A legacy section's body is its first fenced block, else the whole section; it does not replace an existing
+    artifact with something under LEGACY_MIN_RATIO of its length (a reviewer quoting a snippet)."""
+    existing = existing or {}
+    out = {an: body.strip() for an, body in ART_RE.findall(text)}
+    for an, sec in LEGACY_ART_RE.findall(ART_RE.sub("", text)):
+        if an in out:
+            continue
+        m = FENCE_BLOCK_RE.search(sec)
+        body = (m.group(1) if m else sec).strip()
+        if body and len(body) >= LEGACY_MIN_RATIO * len(existing.get(an, "")):
+            out[an] = body
+    return out
+
+
 ASK_RE = re.compile(r"^\s*ASK_HUMAN:\s*(.+?)\s*\|\s*DEFAULT:\s*(.+?)\s*$", re.M)
 PH_RE = re.compile(r"\{(conversation|input|blackboard|artifacts|inbox|memory|[a-z_]+)(?:\.([A-Za-z0-9_\-]+))?\}")
 MAX_QUESTIONS_PER_RUN = 3
@@ -77,9 +105,9 @@ class _Run:
         if head == "blackboard":
             return str(self.bb.get(key, ""))
         if sel == "artifacts":
-            return "\n\n".join(f"### artifact: {k}\n{v}" for k, v in self.artifacts.items()) or "(none yet)"
+            return "\n\n".join(render_artifact(k, v) for k, v in self.artifacts.items()) or "(none yet)"
         if head == "artifact":
-            return self.artifacts.get(key, "(not written yet)")
+            return render_artifact(key, self.artifacts[key]) if key in self.artifacts else "(not written yet)"
         if sel == "inbox":
             return "\n\n".join(self.inbox.get(role, [])) or "(no messages)"
         if sel == "memory":
@@ -109,11 +137,11 @@ class _Run:
     def store(self, role: dict, text: str):
         name = role["name"]
         self.bb[name] = text
-        for an, body in ART_RE.findall(text):
-            self.artifacts[an] = body.strip()
+        found = parse_artifacts(text, self.artifacts)
+        self.artifacts.update(found)
         w = role.get("writes", "blackboard")
         if w.startswith("artifact:"):
-            if w[9:] not in {an for an, _ in ART_RE.findall(text)}:
+            if w[9:] not in found:
                 self.artifacts[w[9:]] = ART_RE.sub("", text).strip() or text
         elif w.startswith("message:"):
             self.inbox[w[8:]].append(f"[from {name}]\n{text}")

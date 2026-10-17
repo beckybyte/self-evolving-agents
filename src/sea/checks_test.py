@@ -160,3 +160,38 @@ def test_loop_stop_on_first_body_role_and_literal_braces(tmp_path):
     assert calls == ["c", "f", "c", "f"]
     with pytest.raises(AssertionError, match="stop_on"):
         load_genome(_genome(tmp_path, roles, [{"loop": {"body": ["checker"], "stop_when": "X", "stop_on": "fixer"}}]))
+
+
+def test_rendered_artifacts_round_trip_and_legacy_emissions(tmp_path):
+    from sea.executor import parse_artifacts
+    big = "import os\n" + "x = 1\n" * 50
+
+    def writer(msgs):
+        return (f'<artifact name="app_py">{big}</artifact>\n<artifact name="index_html"><html>v1</html></artifact>\n'
+                '<artifact name="agents_py">def a(): pass</artifact>')
+    register_fake("w2", writer)
+
+    def echo(msgs):  # copies the rendered input format verbatim, changing only app_py
+        u = msgs[-1]["content"]
+        assert '<artifact name="app_py">' in u and "### artifact:" not in u
+        start = u.index('<artifact name="app_py">')
+        end = u.index("</artifact>", start) + len("</artifact>")
+        return "fixed:\n" + u[start:end].replace("x = 1", "x = 2")
+    register_fake("echo", echo)
+    roles = [{"name": "w", "kind": "llm", "model": "fake:w2", "prompt": "write"},
+             {"name": "fixer", "kind": "llm", "model": "fake:echo", "prompt": "fix {artifacts}"}]
+    g = load_genome(_genome(tmp_path, roles, ["w", "fixer"]))
+    res = run_team(g, {"id": "e", "input": {"text": "x"}}, "fake:w2")
+    assert "x = 2" in res["artifacts"]["app_py"] and "x = 1" not in res["artifacts"]["app_py"]
+    assert res["artifacts"]["index_html"] == "<html>v1</html>" and res["artifacts"]["agents_py"] == "def a(): pass"
+
+    # legacy "### artifact: name" + fence (ablation_p1_smoke r1) and without fence (r0)
+    fenced = f"### artifact: app_py\n```python\n{big}```\n\n### artifact: index_html\n```html\n<html>v2</html>\n```\n"
+    assert parse_artifacts(fenced) == {"app_py": big.strip(), "index_html": "<html>v2</html>"}
+    assert parse_artifacts(f"### artifact: app_py\n{big}") == {"app_py": big.strip()}
+    # a reviewer quoting a short snippet under the header does not overwrite the file
+    review = "### artifact: app_py\n```python\nx = 3\n```\nline 2 is wrong"
+    assert parse_artifacts(review, {"app_py": big}) == {}
+    # tags win over a legacy section for the same name
+    both = '<artifact name="a_py">tag</artifact>\n### artifact: a_py\n```\nlegacy\n```'
+    assert parse_artifacts(both) == {"a_py": "tag"}
