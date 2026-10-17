@@ -22,6 +22,8 @@ genome.yaml (schema: 2)
                                     {"ok": true}, is left as written (no str.format); soul is never templated
       writes: blackboard | artifact:<name> | message:<role>       (default blackboard; always also blackboard[name])
       max_tokens: int = 2048, temperature: float = 0.0
+      expects: [artifact names]     the role must emit these artifacts in its own answer; if one is missing (empty or
+                                    cut-short answer) the role is run once more (both calls counted)
       # tool
       tool: tools/<file>.py         run(ctx) -> {"text": str, "artifacts": {name: str}?}
                                     ctx = {"blackboard", "artifacts", "input", "context"}; v1 run(blackboard, messages) also works
@@ -101,7 +103,7 @@ def normalize(raw: dict) -> dict:
             n.update(model=r.get("model", "$WORKER"), prompt=r.get("prompt", "") or "",
                      max_tokens=int(r.get("max_tokens", 2048)), temperature=float(r.get("temperature", 0.0)),
                      native=native, writes=r.get("writes", "blackboard"),
-                     reads=list(r.get("reads") or (["input", "blackboard"])))
+                     reads=list(r.get("reads") or (["input", "blackboard"])), expects=list(r.get("expects") or []))
             if legacy:
                 n["_v1_input"] = r.get("input", "native")
         elif kind == "tool":
@@ -155,6 +157,8 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
                 assert r["_v1_input"] in ("native", "transcript"), "v1 input must be native|transcript"
             for s in r["reads"]:
                 assert _selector_ok(s, names, context_keys), f"role {r['name']}: unknown reads selector {s!r}"
+            assert all(re.fullmatch(r"[A-Za-z0-9_\-]+", a) for a in r.get("expects", [])), \
+                f"role {r['name']}: expects must list artifact names"
         if r["kind"] == "tool":
             assert r.get("tool") and (Path(g["_dir"]) / r["tool"]).exists(), f"missing tool file {r.get('tool')}"
         w = r.get("writes", "blackboard")

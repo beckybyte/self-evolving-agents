@@ -240,6 +240,7 @@ class _Run:
         with self._lock:
             self.store(r, text)
             self.trace.append({"role": r["name"], "kind": "check", "tokens": 0, "chars": len(text), "ok": ok,
+                               "report": text[:2000],  # the evolver reads team traces: show why a check failed
                                "secs": round(time.time() - t0, 1)})
 
     def run_human(self, r: dict):
@@ -259,7 +260,13 @@ class _Run:
     def step(self, name: str):
         r = next(x for x in self.g["roles"] if x["name"] == name)
         if r["kind"] == "llm":
-            return self.run_llm(r)  # takes the lock itself, after the model call
+            self.run_llm(r)  # takes the lock itself, after the model call
+            missing = [a for a in r.get("expects") or [] if a not in parse_artifacts(str(self.bb.get(name, "")))]
+            if missing:  # the role did not emit a file it must write: run it once more (counted)
+                with self._lock:
+                    self.trace.append({"role": name, "kind": "retry", "tokens": 0, "missing": missing})
+                self.run_llm(r)
+            return
         if r["kind"] == "check":
             return self.run_check_role(r)  # may take tens of seconds: not under the lock
         with self._lock:

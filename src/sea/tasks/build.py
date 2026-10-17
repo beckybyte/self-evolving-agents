@@ -196,7 +196,8 @@ class BuildTask(Task):
                 "rule-based where the harness checks fail on LLM flakiness, or add a smoke check (kind: check, check: app_smoke) "
                 "with a fixer loop so the team runs its own app and repairs crashes before it is scored (a reviewer-gated fix needs no "
                 "conditional step: {loop: {body: [reviewer, fixer, smoke], stop_on: reviewer, stop_when: ALL_CLEAR}} ends "
-                "as soon as the reviewer is clean, before the fixer reads anything). Tool roles are not "
+                "as soon as the reviewer is clean, before the fixer reads anything); give each writer `expects: [<its file artifact>]` "
+                "so an empty or file-less answer is re-run once; smoke reports appear in team_trace*.json (check entries). Tool roles are not "
                 "allowed and the genome may hold at most 25 lines of code: describe what to build, the models write it. Look at fit_rows.jsonl (failed checks) "
                 "and app/ (the parent's code) before changing anything.")
 

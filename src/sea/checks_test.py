@@ -335,3 +335,18 @@ def test_smoke_v2_calls():
     ok, rep = app_smoke({"app_py": v2_app("V2POST['/api/learn'] = {'beliefs': []}")}, calls="v2")
     assert not ok and "missing key 'proposal'" in rep
     assert "/api/log" not in app_smoke({"app_py": v2_app()}, calls="deep")[1]
+
+
+def test_expects_reruns_a_role_that_emitted_no_file_and_check_report_in_trace(tmp_path):
+    outs = iter(["sorry, here is a plan only", '<artifact name="v2_py">x = 1</artifact>'])
+    calls = []
+    register_fake("flaky", lambda m: calls.append(1) or next(outs))
+    roles = [{"name": "v2", "kind": "llm", "model": "fake:flaky", "prompt": "write v2", "expects": ["v2_py"]},
+             {"name": "smoke", "kind": "check", "check": "app_smoke"}]
+    res = run_team(load_genome(_genome(tmp_path, roles, ["v2", "smoke"])), {"id": "e", "input": {"text": "x"}}, "fake:flaky")
+    assert len(calls) == 2 and res["artifacts"]["v2_py"] == "x = 1"
+    assert [t for t in res["trace"] if t["kind"] == "retry"][0]["missing"] == ["v2_py"]
+    chk = [t for t in res["trace"] if t["kind"] == "check"][0]
+    assert chk["report"].startswith("SMOKE: FAIL (no app.py)")
+    with pytest.raises(AssertionError, match="expects"):
+        load_genome(_genome(tmp_path, [{"name": "a", "kind": "llm", "prompt": "p", "expects": ["bad name"]}], ["a"]))
