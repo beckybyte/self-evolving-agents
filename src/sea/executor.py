@@ -225,21 +225,26 @@ class _Run:
             for f in [ex.submit(self.step, n) for n in names]:
                 f.result()
 
+    def loop(self, lp: dict):
+        """Rounds of the body until stop_when appears in the output of stop_on (default: the last body role).
+        stop_on is tested right after that role runs, so a checker first in the body ends the loop before the fixer
+        reads anything; check_first also tests it before round 1."""
+        stop, on = lp.get("stop_when"), lp.get("stop_on", lp["body"][-1])
+        done = lambda: bool(stop) and stop in str(self.bb.get(on, ""))
+        if lp.get("check_first") and done():
+            return
+        for _ in range(int(lp.get("max_rounds", 2))):
+            for b in lp["body"]:
+                self.step(b)
+                if b == on and done():
+                    return
+
     def run(self) -> dict:
         for s in self.g["workflow"]:
             if isinstance(s, dict) and "parallel" in s:
                 self.parallel(list(s["parallel"]))
             elif isinstance(s, dict):
-                lp = s["loop"]
-                stop = lp.get("stop_when")
-                if lp.get("check_first") and stop and stop in str(self.bb.get(lp["body"][-1], "")):
-                    continue
-                for _ in range(int(lp.get("max_rounds", 2))):
-                    for b in lp["body"]:
-                        self.step(b)
-                    stop = lp.get("stop_when")
-                    if stop and stop in str(self.bb.get(lp["body"][-1], "")):
-                        break
+                self.loop(s["loop"])
             else:
                 self.step(s)
         ans_ref = self.g["outputs"].get("answer")

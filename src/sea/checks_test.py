@@ -131,3 +131,32 @@ def test_unknown_check_rejected_and_build_accepts_check_role(tmp_path):
     g = task.load_child(d)
     assert [r["kind"] for r in g["roles"]] == ["llm", "check"]
     assert "app_smoke" in task.describe() and "app_smoke" in task.moves() and "check_first" in task.schema_doc(False)
+
+
+def test_loop_stop_on_first_body_role_and_literal_braces(tmp_path):
+    calls = []
+    register_fake("chk", lambda m: calls.append("c") or "ALL_CLEAR")
+
+    def fix(msgs):
+        calls.append("f")
+        return "fixed"
+    register_fake("fix", fix)
+
+    def lit(msgs):
+        assert 'answer {"ok": true} and {unknown_word}' in msgs[-1]["content"]  # literal braces survive
+        return "x"
+    register_fake("lit", lit)
+    roles = [{"name": "lit", "kind": "llm", "model": "fake:lit", "prompt": 'answer {"ok": true} and {unknown_word}'},
+             {"name": "checker", "kind": "llm", "model": "fake:chk", "prompt": "check"},
+             {"name": "fixer", "kind": "llm", "model": "fake:fix", "prompt": "fix"}]
+    loop = {"loop": {"body": ["checker", "fixer"], "max_rounds": 3, "stop_when": "ALL_CLEAR", "stop_on": "checker"}}
+    g = load_genome(_genome(tmp_path, roles, ["lit", loop]))
+    run_team(g, {"id": "e", "input": {"text": "x"}}, "fake:lit")
+    assert calls == ["c"]  # fixer skipped
+    # default stop_on (last body role) keeps the old semantics: full rounds until the fixer says ALL_CLEAR
+    calls.clear()
+    g2 = load_genome(_genome(tmp_path, roles, [{"loop": {"body": ["checker", "fixer"], "max_rounds": 2, "stop_when": "ALL_CLEAR"}}]))
+    run_team(g2, {"id": "e", "input": {"text": "x"}}, "fake:lit")
+    assert calls == ["c", "f", "c", "f"]
+    with pytest.raises(AssertionError, match="stop_on"):
+        load_genome(_genome(tmp_path, roles, [{"loop": {"body": ["checker"], "stop_when": "X", "stop_on": "fixer"}}]))

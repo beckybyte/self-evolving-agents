@@ -16,7 +16,10 @@ genome.yaml (schema: 2)
                                       or any context key the task provides (brief mode: restatement, assumptions,
                                       human_answers). A selector used as {placeholder} in the prompt is substituted
                                       there; the others are appended as "## <selector>" sections.
-      prompt: str
+      prompt: str                   templating: ONLY {selector} with a known selector name (input, blackboard,
+                                    blackboard.<key>, artifacts, artifact.<name>, inbox, memory, conversation, or a
+                                    task context key) is replaced; every other brace, e.g. literal JSON
+                                    {"ok": true}, is left as written (no str.format); soul is never templated
       writes: blackboard | artifact:<name> | message:<role>       (default blackboard; always also blackboard[name])
       max_tokens: int = 2048, temperature: float = 0.0
       # tool
@@ -30,7 +33,9 @@ genome.yaml (schema: 2)
       # human (never blocks)
       question: str (template), default: str (template)  -> output = the human's answer if one exists, else the default
   workflow: [step, ...]             step = role name, or {loop: {body: [names], max_rounds: int, stop_when: str}}
-                                    (loop stops early when the last body role's output contains stop_when;
+                                    (loop stops early when the output of stop_on (a body role; default the last
+                                    one) contains stop_when, tested right after stop_on runs: body [checker, fixer]
+                                    with stop_on: checker skips the fixer once the checker says ALL_CLEAR;
                                     check_first: true also tests it BEFORE round 1, so the loop runs 0 rounds when
                                     e.g. a smoke check that ran just before the loop already passed)
                                     or {parallel: [names]}: 2..6 roles run concurrently, each starting from the state
@@ -150,6 +155,7 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
             lp = step.get("loop") or {}
             assert lp.get("body") and all(b in names for b in lp["body"]), f"bad loop {step}"
             assert 1 <= int(lp.get("max_rounds", 2)) <= 6, "loop max_rounds must be 1..6"
+            assert lp.get("stop_on", lp["body"][-1]) in lp["body"], f"loop stop_on must be a body role: {step}"
         else:
             assert step in names, f"workflow step {step!r} is not a role"
     ans = g["outputs"].get("answer")
