@@ -49,6 +49,8 @@ evidence supports: {moves}
 Make the children explore distinct hypotheses (e.g. one cheap prompt fix, one structural change).{radical}
 Each genome.yaml must set id: {gen_prefix}_c<N>, parent: {parent_id}, `mechanism:` (2-4 words naming the team's core
 mechanism) and `notes:` (2-4 sentences: what you changed and which evidence motivated it).
+If the genome schema or the framework cannot express a mechanism you want (and you had to work around it or give it
+up), describe it in FRAMEWORK_WISHES.md: what you wanted, why the evidence calls for it, what you did instead.
 Do not read anything outside this directory. When done, reply with one line per child: id - one-sentence summary.
 """
 RADICAL = """
@@ -135,9 +137,21 @@ class Evolution:
             if st["gen"] >= self.gens or st["stale"] >= self.patience or st["evolver_calls"] >= MAX_EVOLVER_CALLS:
                 st["done"] = True
                 self.save()
+                self.framework_signals()
                 break
             self.attempt()
         return st
+
+    def framework_signals(self):
+        """Detectors + evolver wishes -> framework proposal backlog (§8.2). Never fails the run."""
+        try:
+            from .meta.backlog import Backlog, detect
+            b = Backlog()
+            for kw in detect(self.run_dir):
+                p = b.add(**kw)
+                self.log_hist({"event": "framework_proposal", "id": p["id"], "title": p["title"]})
+        except Exception as e:
+            self.log_hist({"event": "framework_signals_error", "error": repr(e)[:300]})
 
     def maybe_refresh(self, tag: str) -> str:
         """Fold in human answers; if the evaluation changed, re-evaluate the parent on the new version."""
@@ -209,6 +223,7 @@ class Evolution:
                 children.append(dst)
             except Exception as e:
                 st["feedback"].append(f"### {tag}/{c.name}: INVALID genome, not evaluated: {e!r}"[:600])
+                self.log_hist({"event": "invalid_genome", "tag": tag, "child": c.name, "error": repr(e)[:300]})
         results = {}
         with cf.ThreadPoolExecutor(len(children) or 1) as ex:
             futs = {ex.submit(self.evaluate, c): c for c in children}

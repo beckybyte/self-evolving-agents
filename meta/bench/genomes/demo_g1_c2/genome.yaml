@@ -1,0 +1,82 @@
+schema: 2
+id: gen01a1_c2
+parent: brief_P0
+mechanism: draft-redteam-revise-check
+notes: "Every critique names a case the parent PRD never considered (overlapping meetings, sleep and child pickup as protected blocks, focus blocks, deadlines that move to tomorrow), and the decision log was never emitted. Pipeline: a drafter writes the PRD, a red-team critic walks five archetype users through a morning plan and a mid-day change and also points out features to cut, a reviser writes the final PRD and flows within a 14-point budget, and a decision logger loops with a tool checker until every entry cites assumption ids and covers the key trade-offs. The goal is replan_quality, plan_feasibility and tradeoff_rationale, the lowest criteria (2.0–2.3)."
+soul: |
+  你们团队在为一个"当天日程助手"做第一版产品设计，所有文档用中文。核心价值是取舍与重排的判断，不是日历。
+  首版范围纪律：功能合计 ≤14 点（S=1, M=3, L=8），≥70% 点数在"早上排程 + 白天重排"闭环；日历同步(L)、自研语音识别、历史学习、跨日规划、多人协作推迟。
+roles:
+  - name: drafter
+    kind: llm
+    model: $WORKER
+    reads: [brief, restatement, assumptions, human_answers]
+    max_tokens: 5000
+    prompt: |
+      你是产品经理。根据 brief、当前理解和假设，写一份第一版 PRD 草稿（写到黑板，不需要 artifact 标签）：
+      目标用户、问题、目标与不做清单、首版功能表（功能 | 点数 S/M/L | 验收标准）、排程规则、重排规则、关键流程。
+      排程/重排规则要具体：事项怎么分类、空档怎么分配、缓冲怎么加、超载时怎么办、重排先动什么后动什么、怎么展示变化。
+  - name: red_team
+    kind: llm
+    model: $WORKER
+    reads: [restatement, assumptions, blackboard.drafter]
+    max_tokens: 4000
+    prompt: |
+      你是挑剔的用户研究员。拿上面的 PRD 草稿，分别扮演下面 5 类用户，各自过一遍"早上倾倒→得到计划→白天一句话报告变化→看重排结果"：
+      (a) 一天 4–6 个会、会常延期、只用手机的上班族；(b) 被接送孩子切成几段、经常被临时打断、有硬截止（可能在明天）的家长；
+      (c) 有不可改的设备预约、需要 3 小时整块专注、软任务总被挤掉的学生；(d) 故意输入两个重叠会议和一个"尽快"但无时长任务的怀疑者；
+      (e) 夜班、一天从下午到次日清晨、睡眠必须受保护的倒班者。
+      对每类用户写：草稿在哪一步会让他失望（具体到规则缺失或流程矛盾），以及应补的**最小**规则。重点检查：
+      受保护的非会议固定块；整块/碎片空档分配与放置理由；输入冲突与缺失信息是否先让用户确认而非静默处理；
+      重排是否最小改动、按优先级保护、拆块并显示剩余量、判断截止可达性并给补救、以差异提案形式等用户确认、无任务静默消失；
+      跨午夜的一天边界；控制权与低打扰。
+      最后列出"建议砍掉或推迟的功能"（对核心闭环无贡献或超预算的），以及必须写进取舍日志的关键决策。
+  - name: reviser
+    kind: llm
+    model: $WORKER
+    reads: [restatement, assumptions, human_answers, blackboard.drafter, blackboard.red_team]
+    max_tokens: 7000
+    prompt: |
+      你是主笔产品经理。根据草稿和红队意见写最终文档。补上红队指出的规则，但把它们写成"排程/重排功能的内部规则"，
+      不要新增功能条目；采纳砍功能建议。首版最多 5 个功能、合计 ≤14 点，在功能表中写出每项点数、依据和合计。
+      输出两个产物：
+      <artifact name="prd">
+      目标用户与问题；目标与成功标准；不做清单（附推迟理由）；首版功能表（功能 | 描述 | 点数 | 依据 | 验收标准）；
+      排程规则；重排规则（保护顺序、手段顺序、截止可达性、差异提案、确认后生效）；信任与数据边界；风险、验证方式、开放问题。
+      </artifact>
+      <artifact name="flows">
+      3–5 个具体的时间例子（覆盖红队的不同用户类型），每个写：输入 → 确认卡（冲突/缺失/默认估时）→ 计划表（时间 | 事项 | 放置理由）
+      → 一句话变化 → 差异提案（挪/压缩/拆分/推迟/舍弃 + 原因）。逐项自检时间无重叠、算术正确。
+      </artifact>
+      若某个问题会大幅改变设计，另起一行写 `ASK_HUMAN: <问题> | DEFAULT: <最佳猜测>`，按默认继续。
+  - name: decision_logger
+    kind: llm
+    model: $WORKER
+    reads: [assumptions, human_answers, artifact.prd, blackboard.red_team, blackboard.checker]
+    max_tokens: 5000
+    prompt: |
+      你是决策记录员。根据最终 PRD 和红队列出的关键决策写取舍日志。如果黑板里有 checker 的 ISSUES，逐条修正后输出完整新版。
+      只输出一个 <artifact name="decisions">...</artifact>，至少 10 条，必须覆盖：日历接入 vs 口述/粘贴；用户触发重排 vs 自动监测；
+      未完成是否自动顺延；重排直接生效 vs 提案确认；输入冲突处理；估时来源；整块专注时间分配；有截止任务的拆分与可达性；
+      可选任务被挤掉时删除 vs 进稍后池；一天边界（自然日 vs 用户自定义、跨午夜）；以及每个首版功能与被砍掉的功能。
+      每条格式：
+      ### D<n>：<问题>
+      - 选项：A) … B) …
+      - 选择：…
+      - 理由：…（具体到用户情形）
+      - 放弃方案的代价：…
+      - 依赖假设：A?/Q?（至少一个 id）
+      - 若假设不成立：…
+  - name: checker
+    kind: tool
+    tool: tools/check_docs.py
+workflow:
+  - drafter
+  - red_team
+  - reviser
+  - {loop: {body: [decision_logger, checker], max_rounds: 2, stop_when: "PASS"}}
+artifacts:
+  - {name: prd, format: markdown}
+  - {name: decisions, format: markdown}
+  - {name: flows, format: markdown, required: false}
+outputs: {answer: artifact.prd}

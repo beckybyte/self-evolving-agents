@@ -77,8 +77,9 @@ def _ask(model, prompt, ids, tries=2):
     usage = {"prompt": 0, "completion": 0, "calls": 0}
     for _ in range(tries):
         text, u = chat(model, [{"role": "user", "content": prompt}], max_tokens=2000, temperature=0.0)
-        for k in usage:
-            usage[k] += u.get(k, 0)
+        for k, v in u.items():
+            if isinstance(v, (int, float)):
+                usage[k] = usage.get(k, 0) + v
         try:
             d = _json(text)
             sc = {i: min(5, max(1, int(round(float(d["scores"][i]))))) for i in ids}
