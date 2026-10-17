@@ -82,3 +82,24 @@ def test_crusoe_nothink_flag(monkeypatch):
     llm._crusoe("nvidia/x", [{"role": "user", "content": "hi"}], 100, 0.0, 30, post=post)
     assert bodies[0]["model"] == "nvidia/x" and bodies[0]["chat_template_kwargs"] == {"enable_thinking": False}
     assert "chat_template_kwargs" not in bodies[1]
+
+
+def test_crusoe_empty_thinking_answer_retries_nothink(monkeypatch):
+    monkeypatch.setenv("CRUSOE_API", "k")
+    bodies = []
+
+    def post(b):
+        bodies.append(b)
+        if "chat_template_kwargs" not in b:
+            return {"choices": [{"message": {"content": "<think>long</think>"}, "finish_reason": "length"}],
+                    "usage": {"prompt_tokens": 100, "completion_tokens": 16000}}
+        return {"choices": [{"message": {"content": "ISSUES: none"}, "finish_reason": "stop"}],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 20}}
+    text, u = llm._crusoe("nvidia/x", [{"role": "user", "content": "hi"}], 16000, 0.0, 30, post=post)
+    assert text == "ISSUES: none" and u["fallback"] == "nothink" and u["calls"] == 2
+    assert u["prompt"] == 200 and u["completion"] == 16020 and u["finish"] == "stop"
+    # a #nothink call or a non-empty answer is never retried
+    bodies.clear()
+    post2 = lambda b: bodies.append(b) or {"choices": [{"message": {"content": ""}, "finish_reason": "length"}], "usage": {}}
+    llm._crusoe("nvidia/x#nothink", [{"role": "user", "content": "hi"}], 100, 0.0, 30, post=post2)
+    assert len(bodies) == 1

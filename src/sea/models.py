@@ -62,4 +62,5 @@ def catalog_text() -> str:
     rows = [f"- crusoe:{mid}  (cost x{m['cost']}; probe thinking {m['think']}, #nothink {m['nothink']}): {m['good']}"
             for mid, m in CATALOG.items() if pool() == "all" or m["family"] == "nemotron"]
     return ("MODELS a role may pick (`model: crusoe:<id>` or `crusoe:<id>#nothink`; `$WORKER` = the run's default). "
-            "Team tokens are weighted by cost. Probe = 2 trials of one small coding task, a prior only:\n" + "\n".join(rows))
+            "Team tokens are weighted by cost. A thinking call that spends all of max_tokens thinking and answers nothing is "
+            "retried once with #nothink (both calls counted; trace shows fallback). Probe = 2 trials of one small coding task, a prior only:\n" + "\n".join(rows))

@@ -168,7 +168,7 @@ class _Run:
             self.store(r, text)
             self.trace.append({"role": name, "kind": "llm", "tokens": u["prompt"] + u["completion"], "chars": len(text),
                                "model": model, "completion": u["completion"],
-                               **{k: u[k] for k in ("finish", "retries", "secs") if k in u}})
+                               **{k: u[k] for k in ("finish", "retries", "secs", "fallback") if k in u}})
 
     def run_tool_role(self, r: dict):
         ctx = {"blackboard": {k: v for k, v in self.bb.items()}, "artifacts": dict(self.artifacts),

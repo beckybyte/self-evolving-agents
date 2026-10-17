@@ -113,7 +113,7 @@ def crusoe_key() -> str:
 
 
 def _crusoe(model: str, messages: list[dict], max_tokens: int, temperature: float, timeout: int,
-            post: Callable | None = None) -> tuple[str, dict]:
+            post: Callable | None = None, _retry_nothink: bool = False) -> tuple[str, dict]:
     """One call, at most CRUSOE_CONCURRENCY in flight per model, jittered backoff on 429/5xx for ~4 minutes."""
     import urllib.error
     import urllib.request
@@ -151,6 +151,20 @@ def _crusoe(model: str, messages: list[dict], max_tokens: int, temperature: floa
     choice = r["choices"][0]
     msg = choice["message"]
     u = r.get("usage") or {}
+    if (not strip_think(msg.get("content") or "") and choice.get("finish_reason") == "length"
+            and flag != "nothink" and not _retry_nothink):
+        # thinking used the whole max_tokens and no answer came out (evo_iris2 gen01: a Lightning checker spent 16k
+        # tokens thinking, emitted "", and the fixer took the silence for ALL_CLEAR). Retry once with thinking off;
+        # both calls are counted.
+        text, u2 = _crusoe(model + "#nothink", messages, max_tokens, temperature, timeout, post, _retry_nothink=True)
+        u2 = dict(u2)
+        u2["prompt"] += u.get("prompt_tokens", 0)
+        u2["completion"] += u.get("completion_tokens", 0)
+        u2["calls"] += 1
+        u2["retries"] += retries
+        u2["secs"] = round(time.time() - t0, 1)
+        u2["fallback"] = "nothink"
+        return text, u2
     # finish ("length" = cut off at max_tokens), retries (429/5xx/timeouts absorbed) and secs make truncation and
     # rate limiting visible per role in the team trace; add_usage only sums the numeric ones
     return strip_think(msg.get("content") or ""), {"prompt": u.get("prompt_tokens", 0),
