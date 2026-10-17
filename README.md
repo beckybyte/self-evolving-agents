@@ -5,6 +5,8 @@ A small workflow in which a frozen **evolver** (Claude, run headless via the `cl
 communication channel and the artifacts it must produce. Each generation the evolver reads the parent genome, its
 evaluation and its failures, and writes k child genomes; a child replaces the parent only if it is better.
 
+![system design](docs/system_design.svg)
+
 **v2 (branch `v2-open-ended`, package `src/sea/`)** generalises this from benchmarks to **open-ended product briefs**
 with no dataset: the system restates a vague brief, lists assumptions, asks the human (without waiting), builds its own
 evaluation (personas, scenarios, rubric, complexity model) and revises it when the human answers. Benchmarks
@@ -43,11 +45,22 @@ PYTHONPATH=src python -m sea.human --inbox runs/brief_demo/inbox rate gen01_a1_c
 PYTHONPATH=src python -m sea.run --task bench:calendar --genome genomes/S0 --split dev_in --limit 10 --out runs/x
 PYTHONPATH=src python -m sea.evolve --task bench:calendar --run runs/cal_v2 --start genomes/P0
 PYTHONPATH=src python -m pytest -q src/sea src/calevo/verifier_test.py
+PYTHONPATH=src python -m sea.meta.backlog list                    # framework proposals
+PYTHONPATH=src python -m sea.meta.improve prepare P002           # worktree + task file for a Claude Code improver
 ```
 
 A brief run writes `goal/v<N>/` (restatement, assumptions, personas, scenarios with fit/holdout split, rubric, cost
 model, changelog), `inbox/`, `evals/<genome>/<version>/` (team artifacts, judge rows), `rationale/`, `design_log.md`,
 `archive.json`, `history.jsonl`.
+
+**Demo (brief mode, `snapshots/v2_brief_demo/`)**: "a day-planning assistant" brief, worker qwen3-30b-a3b, Claude judge,
+3 generations: fitness 0.143 → 0.368 → 0.444 → 0.483. Gen 1 fixed a truncated single-PM team (decision log never emitted);
+a human answer then revised the evaluation v1 → v2 and the parent was re-scored; gens 2 and 3 were each won on the retry
+with condensed feedback (gen 2 by the radical child); the final team has 2 roles and uses 10.6k tokens. Single run, no repeats.
+
+**Framework-level evolution (`src/sea/meta/`)**: proposals P001-P006 in `runs/meta/backlog/`; P001 (shared-memory dedupe)
+was implemented by a separate Claude Code session and merged after tiers A/B passed; tier C failed on noise alone
+(see `docs/framework_log.md`), which is now proposal P006. Related work and how it differs: [`docs/related_work.md`](docs/related_work.md).
 
 **Judge choice matters**: on the same PRD, qwen2.5-72b scored 0.97 with the plain prompt ("design is perfect") and a
 flat 0.475 on every scenario with the calibrated prompt; Claude sonnet gave 0.31-0.40 with per-scenario,

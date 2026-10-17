@@ -1,6 +1,6 @@
 # Architecture v2：从 benchmark genome 进化到 open-ended 产品设计
 
-状态：§1-§6、§9 设计已确认并实现（分支 `v2-open-ended`，基于 commit 1517762）。**§2.1 能力（capability）、§7 瓶颈诊断 + 目标放大是确认后追加的设计，尚未实现；§8 框架层进化的管线已实现（sea/meta），P001 在元评测中**。
+状态：§1-§6、§8（框架层进化管线 `src/sea/meta/`）、§10 已实现并验证（分支 `v2-open-ended`）。**§2.1 能力（capability）和 §7 瓶颈诊断 + 目标放大只有设计，尚未实现**。第一条框架提案 P001 已合并（见 `docs/framework_log.md`）。系统总图：[`docs/system_design.svg`](system_design.svg)。
 
 ## 0. 一句话
 
@@ -132,7 +132,7 @@ AppWorld 上进化器自己给团队加了 api_catalog 工具角色，train TGC 
 从不调用 → 关掉（省掉工具说明的 token）；调用多但 LOO ≈ 0 → 关掉；LOO 显著为正 → 保留，考虑给其他角色也开。
 
 **相关提案**：P003（角色 LOO）扩展为“角色 + 能力”两级归因；P004（合并继承记忆）作用在 `notes_memory` 能力上；
-确认后新登记：P006 能力库 + 设计时开关（被动能力，tier B 不变）、P007 运行时工具循环 + 使用日志（主动能力）。
+确认后新登记：P007 能力库 + 设计时开关（被动能力，tier B 不变）、P008 运行时工具循环 + 使用日志（主动能力）。（P006 已用于修 C 档噪声。）
 
 ## 3. Task 插件接口
 
@@ -344,14 +344,25 @@ C 档噪声大（单次进化的方差），所以判定规则是：A、B 必须
 - **新奇性奖励**：`FitnessSpec` 可以加一项 `novelty`，本轮不加。
 - **benchmark 上的自动目标升级**：按你的要求**不做**（不自动造新 benchmark 目标）。brief 模式下的“目标放大”见 §7：只放大系统自建的代理评估，不改你的 brief，第 3 层改动会经 ask_human 告知你。
 
-## 10. 演示计划（交付 2）
+## 10. 演示（交付 2）：结果
 
-- brief：`briefs/day_planner.md` ——“帮忙安排一天的日程助手”，故意写得含糊（目标用户、平台、是否接日历都没说）。
-- 起始团队 `brief_P0`：单个 PM 角色，直接写 PRD + decisions。
-- 跑 2-3 代、k=2-3 子代，worker = qwen3-30b-a3b（:8101，小规模），Judge = 同一 worker 或 qwen2.5-72b（:8102），
-  Framer = Claude（每个评估版本只调一次），evolver = Claude opus（同 v1）。
-- 演示中我会手动往 `answers.jsonl` 写 1 条回答，展示评估改版 → 父代重评 → 取舍复查这条链路。
-- 预期产出：`goal/v1,v2`、`inbox/`、每代 artifacts、`rationale/genXX.md`、`design_log.md`。
+设置：brief `briefs/day_planner.md`（“帮忙安排一天的日程助手”，故意含糊）；起点 `brief_P0`（单个 PM 角色）；3 代、k=3、每代最多 2 轮、`--radical`；
+worker qwen3-30b-a3b，Framer 与 Judge 为 Claude sonnet，evolver 为 Claude opus。第 1 代后往 inbox 写了 1 条**标注为演示代答**的回答（Q2：主要面向学生和自由职业者）。
+完整记录在 `snapshots/v2_brief_demo/`（history、每轮 rationale、design_log、goal v1/v2、最终 genome 与 PRD/决策记录）。
+
+| 代 | 接受的子代 | fitness | 团队 | 团队 token | 复杂度点 | 备注 |
+|---|---|---|---|---|---|---|
+| 0 | brief_P0 | 0.143 | 1 角色（PM） | 5.2k | 27 | 4000 token 写完 PRD 就截断，决策记录从没产出（产出物缺失，分数 ×0.5） |
+| 1 | 小修：PM + 决策记录员 | 0.368 | 2 角色 | 16.8k | 23 | evolver 从“6 个场景都 missing_artifact”诊断出截断 |
+| — | 评估改版 v1→v2 | 父代重评 0.356 | | | | Q2 的回答 → Framer 修订 persona/rubric |
+| 2 | **激进子代**：LLM 写用例、代码跑排程 | 0.444 | 3 角色 | 12.4k | 22 | 第 1 轮 3 个子代全输，第 2 轮带压缩反馈重试后胜出 |
+| 3 | 固定原型引擎 + 一个写作者 | **0.483** | 2 角色 | 10.6k | 21 | 同样是第 2 轮胜出；更少角色、更少 token |
+
+观察：
+- judge 的选择决定一切：同一份 PRD，72B 原提示打 0.97、校准后对 6 个场景给完全相同的 0.475；Claude sonnet 给 0.31-0.40 且批评具体（§4 的默认已改为推荐 `--judge claude:sonnet`）。
+- iterative 机制起作用：第 2、3 代都是“第 1 轮全输 → 带失败子代的压缩反馈重试 → 胜出”。
+- 团队没有一味变大：最好的团队是 2-3 个角色，并把确定性部分（排程模拟）交给代码，和 v1 calendar 的“LLM + 代码角色”模式一致。
+- 局限：单次运行、无重复，fitness 差 0.04 量级可能在 judge 噪声内（P006 的 C 档实验测到同配置两次短进化差 0.07-0.11，见 `docs/framework_log.md`）。
 
 ## 11. 回归检查（交付 3）
 

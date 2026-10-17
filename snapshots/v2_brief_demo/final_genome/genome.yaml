@@ -1,0 +1,60 @@
+schema: 2
+id: gen03a2_c1
+parent: gen02a2_c3
+mechanism: fixed archetype engine, one writer
+notes: "Cheap fix of the parent's two concrete failure sources. (1) The LLM tester is fired: its cases pushed the meeting-dense, skeptic and night-shift archetypes out of flows (S1/S2/S6/S9 said 'my day is never shown'), so all 8 built-in days always run, with engine bugs from the critiques fixed (pickup replaces the 17:00 one and starts so the child is reached by 15:30; urgent +40% buffer is never compressed; sleep is an in-plan protected block with drop-the-course; energy peak window; deadline tasks never split past the deadline; optionals step aside, shrink to half, avoid the last hour; slack and remaining-buffer reports after every replan). (2) The writer must add a persona guarantee matrix and concrete if-assumption-flips changes, and must keep the 3 features while explicitly deferring reminder/midday calibration/calendar import, since the honest-sizing children ballooned to 34 points."
+soul: |
+  你在为一个"当天日程助手"做第一版产品设计。所有文档用中文写。核心价值是"取舍与重排的判断"，不是日历：
+  用户在日历里得自己算空档、自己决定先做什么、落后了自己一格格拖；本产品替用户做这些判断，并把理由和改动摆出来让用户拍板。
+  主要用户：自主时间多的学生、自由职业者（A1, A7）；次要但必须可用、不出错的：会议密集者、被打断的家长、倒班者、怀疑者、超载的人，以及其它非标准的一天。
+  团队流程：排程引擎（代码）把 8 类典型的一天（F1–F8）算成早上计划和白天重排，结果作为 `flows` 工件附在文档里，零重叠已由代码校验；
+  写作者据此写决策日志和 PRD。文档引用示例只写编号和它证明了什么，绝不自己编具体钟点或分钟算术。
+  首版正好 3 个功能：早上排程(M)、一句话重排差异提案(M)、稍后池与晚间收尾(S)；确认卡、缓冲、精力高峰、跨午夜、起步提示、"从现在重新开始"都只是这 3 个功能里的规则或文案，不是独立功能。
+  不进首版：日历导入/同步、提醒推送、午间校准、历史学习、多日规划、协作。假设引用写准确 id（如 A6、Q1）。
+roles:
+  - name: day_sim
+    kind: tool
+    tool: tools/day_sim.py
+  - name: writer
+    kind: llm
+    model: $WORKER
+    reads: [brief, restatement, assumptions, human_answers, blackboard.day_sim]
+    max_tokens: 8500
+    prompt: |
+      你同时是产品经理和决策记录员。先输出决策日志，再输出 PRD，两个工件都必须完整输出、写短句、不写空话。
+      day_sim 给出了引擎规则和 F1–F8 每个示例的关键结果，只能引用这些结果，不得编造钟点。
+
+      第一个：<artifact name="decisions">…</artifact>
+      开头"## 假设索引"：A1–A7 各一行（id + 一句话）。然后 12 条：
+      ### D<n>：<问题>
+      - 选项：A) … B) … C) …
+      - 选择 + 理由：具体到哪类用户、哪个示例（F 编号）证明它可行
+      - 放弃方案的代价：放弃的那个选项本来能给谁带来什么
+      - 依赖假设：准确 id
+      - 若假设不成立：写出具体改动（改哪条规则/哪个功能、改成什么、点数怎么变），禁止写"后续再支持""首版不为此设计"
+      - 若主要用户改回会议密集的上班族：这条决策是否改变、改成什么
+      - 点数：对应功能表哪一行；推迟写"0（推迟到 v1.1，原因…）"
+      12 条依次是：口述 vs 日历只读导入（与 Q1/Q8 的默认对照，说明为什么首版推迟导入）；用户触发重排 vs 后台监测；差异提案 vs 直接生效；
+      确认卡：阻塞 vs 草稿先出（怀疑者 F6：猜测可见可改、冲突时段留空）；估时缓冲（自估 +25%、急活 +40% 且不压缩，F2）；
+      整块专注放哪（精力高峰默认上午可改 vs 最早空档，F1）；截止任务的让位、拆分与坦白（F3、F8）；可选：删除 vs 缩小版 vs 稍后池（F4）；
+      未完成是否自动顺延（Q4）；一天边界与睡眠（F7：舍课保睡）；提醒/推送（Q3/Q9：首版不做提醒，理由）；只做 3 个功能（列出推迟项和各自点数）。
+
+      第二个：<artifact name="prd">…</artifact>
+      0. 一句话定位 + "为什么不是日历"：4 件用户在日历里要手动判断的事，各引一个 F 编号。
+      1. 用户与问题：主要用户的痛点（拖延、乐观估时、没有外部结构、硬截止）。
+      2. 人群保证表：| 人群 | 他最怕什么 | 我们保证什么（对应规则 R*） | 示例 | 剩下的风险与我们怎么说 |
+         至少 9 行：拖延的学生、赶交付的自由职业者、被打断的家长、有预约的研究生、会议密集者（次要：首版保证可用，不做深度优化）、
+         怀疑者（控制权、隐私：只用当天数据、不连日历）、倒班/跨午夜、一天排不下的人、其它非标准的一天（照护者、多份兼职等：靠自定义一天边界 + 固定块 + 坦白）。
+      3. 目标、可观察的成功标准、"不做"清单（每项：理由 + 假设 id + 何时重新考虑）。
+      4. 功能表：功能 | 包含的规则 | 点数 | 验收标准（可用 F 示例检验）。正好 3 行（M+M+S=7 点），写出合计；下面单列"推迟到 v1.1 的项及点数"。
+      5. 规则 R1…（"给定…当…则…"），覆盖：固定块与准备时间、确认卡草稿、缓冲、精力高峰、截止不越界、可选让位/缩小/稍后池、最小改动重排、
+         坦白不可达与补救、睡眠受保护、"从现在重新开始"的低压力文案。
+      6. 示例导读：F1–F8 每个一行"情形 → 证明了哪几条规则"。
+      7. 晚间收尾；8. 风险与验证（用哪些示例/哪类用户验证）、开放问题（引用 Q 编号）。
+workflow: [day_sim, writer]
+artifacts:
+  - {name: decisions, format: markdown}
+  - {name: prd, format: markdown}
+  - {name: flows, format: markdown}
+  - {name: assumptions, format: markdown, required: false}
+outputs: {answer: artifact.prd}

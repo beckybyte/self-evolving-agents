@@ -1,0 +1,98 @@
+{
+ "llm1|tok4|single PM": {
+  "id": "gen00",
+  "dir": "runs/brief_demo/genomes/gen00",
+  "fitness": 0.1429,
+  "radical": false
+ },
+ "llm2|tok6|principled PM + logger": {
+  "id": "gen01_a1_child_1",
+  "dir": "runs/brief_demo/genomes/gen01_a1_child_1",
+  "fitness": 0.3684,
+  "radical": false
+ },
+ "llm4|tok6|draft-redteam-revise-check": {
+  "id": "gen01_a1_child_2",
+  "dir": "runs/brief_demo/genomes/gen01_a1_child_2",
+  "fitness": 0.2759,
+  "radical": false
+ },
+ "llm4|tok7|decision-first simulation": {
+  "id": "gen01_a1_child_3",
+  "dir": "runs/brief_demo/genomes/gen01_a1_child_3",
+  "fitness": 0.1635,
+  "radical": true
+ },
+ "llm2|tok6|consistent-examples PM + logger": {
+  "id": "gen02_a1_child_1",
+  "dir": "runs/brief_demo/genomes/gen02_a1_child_1",
+  "fitness": 0.2959,
+  "radical": false
+ },
+ "llm4|tok7|draft-check-fix timelines": {
+  "id": "gen02_a1_child_2",
+  "dir": "runs/brief_demo/genomes/gen02_a1_child_2",
+  "fitness": 0.2829,
+  "radical": false
+ },
+ "llm2|tok6|executable-spec simulator": {
+  "id": "gen02_a1_child_3",
+  "dir": "runs/brief_demo/genomes/gen02_a1_child_3",
+  "fitness": 0.2406,
+  "radical": true
+ },
+ "llm2|tok6|no-arithmetic scenario playbook": {
+  "id": "gen02_a2_child_1",
+  "dir": "runs/brief_demo/genomes/gen02_a2_child_1",
+  "fitness": 0.4068,
+  "radical": false
+ },
+ "llm2|tok5|code-verified flows + PM/logger": {
+  "id": "gen02_a2_child_2",
+  "dir": "runs/brief_demo/genomes/gen02_a2_child_2",
+  "fitness": 0.3567,
+  "radical": false
+ },
+ "llm2|tok5|LLM-specified cases, code-run planner": {
+  "id": "gen02_a2_child_3",
+  "dir": "runs/brief_demo/genomes/gen02_a2_child_3",
+  "fitness": 0.4437,
+  "radical": true
+ },
+ "llm2|tok5|archetype engine, honest scope": {
+  "id": "gen03_a1_child_1",
+  "dir": "runs/brief_demo/genomes/gen03_a1_child_1",
+  "fitness": 0.425,
+  "radical": false
+ },
+ "llm2|tok5|engine plus persona advocate": {
+  "id": "gen03_a1_child_2",
+  "dir": "runs/brief_demo/genomes/gen03_a1_child_2",
+  "fitness": 0.4169,
+  "radical": false
+ },
+ "llm3|tok6|persona-panel debate, policy flows": {
+  "id": "gen03_a1_child_3",
+  "dir": "runs/brief_demo/genomes/gen03_a1_child_3",
+  "fitness": 0.3478,
+  "radical": true
+ },
+ "llm1|tok5|fixed archetype engine, one writer": {
+  "id": "gen03_a2_child_1",
+  "dir": "runs/brief_demo/genomes/gen03_a2_child_1",
+  "fitness": 0.4828,
+  "radical": false
+ },
+ "llm2|tok6|linted decision log, split writers": {
+  "id": "gen03_a2_child_2",
+  "dir": "runs/brief_demo/genomes/gen03_a2_child_2",
+  "fitness": 0.4613,
+  "radical": false
+ },
+ "llm2|tok5|code-assembled spec, LLM judgement only": {
+  "id": "gen03_a2_child_3",
+  "dir": "runs/brief_demo/genomes/gen03_a2_child_3",
+  "fitness": 0.3819,
+  "radical": true
+ }
+}
