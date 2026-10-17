@@ -132,7 +132,10 @@ def _crusoe(model: str, messages: list[dict], max_tokens: int, temperature: floa
     body = {"model": model, "messages": messages, "temperature": temperature,
             "max_tokens": max(max_tokens, CRUSOE_MIN_TOKENS)}
     if flag == "nothink":
-        body["chat_template_kwargs"] = {"enable_thinking": False}
+        # Nemotron/Qwen read enable_thinking; DeepSeek on Crusoe ignores it and reads `thinking` (probe 2026-10-17:
+        # enable_thinking=false still gave reasoning_tokens; evo_v2_b gen01 child_2's DeepSeek#nothink fixer spent
+        # 32000 tokens thinking and emitted nothing, 6 times). Send both.
+        body["chat_template_kwargs"] = {"enable_thinking": False, "thinking": False}
     elif flag:
         raise ValueError(f"unknown crusoe model flag #{flag}")
 

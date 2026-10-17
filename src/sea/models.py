@@ -29,11 +29,11 @@ CATALOG = {
         good="older Super: slow and less reliable than 3.5-Super-VL; rarely the right pick"),
     "openai/gpt-oss-120b": dict(
         family="other", cost=0.5, think="2/2 6s", nothink="2/2 7s",
-        good="fast and reliable at code and tool-style JSON (pool=all only)"),
+        good="fast and reliable at code and tool-style JSON (pool=all only); always reasons briefly, #nothink has no effect"),
     "deepseek-ai/DeepSeek-V4.1-Flash": dict(
-        family="other", cost=0.5, think="2/2 36s", nothink="2/2 73s", good="reliable coder (pool=all only)"),
+        family="other", cost=0.5, think="2/2 36s", nothink="2/2 73s", good="reliable coder (pool=all only); #nothink works since 2026-10-17 (before, it kept thinking and could emit nothing)"),
     "zai-org/GLM-5.3-Flash": dict(
-        family="other", cost=0.5, think="2/2 79s", nothink="2/2 144s", good="reliable but slow, very verbose (pool=all only)"),
+        family="other", cost=0.5, think="2/2 79s", nothink="2/2 144s", good="reliable but slow, very verbose (pool=all only); #nothink has no effect: its reasoning leaks into the answer text"),
     "Qwen/Qwen3.8-27B": dict(
         family="other", cost=0.5, think="2/2 46s", nothink="1/2 50s", good="decent coder with thinking (pool=all only)"),
     "google/gemma-4-31b-it": dict(

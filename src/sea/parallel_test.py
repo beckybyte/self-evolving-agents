@@ -80,7 +80,7 @@ def test_crusoe_nothink_flag(monkeypatch):
     post = lambda b: bodies.append(b) or {"choices": [{"message": {"content": "x"}}], "usage": {}}
     llm._crusoe("nvidia/x#nothink", [{"role": "user", "content": "hi"}], 100, 0.0, 30, post=post)
     llm._crusoe("nvidia/x", [{"role": "user", "content": "hi"}], 100, 0.0, 30, post=post)
-    assert bodies[0]["model"] == "nvidia/x" and bodies[0]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert bodies[0]["model"] == "nvidia/x" and bodies[0]["chat_template_kwargs"] == {"enable_thinking": False, "thinking": False}
     assert "chat_template_kwargs" not in bodies[1]
 
 
