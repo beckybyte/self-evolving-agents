@@ -1,6 +1,6 @@
 # Architecture v2：从 benchmark genome 进化到 open-ended 产品设计
 
-状态：§1-§6、§9 设计已确认并实现（分支 `v2-open-ended`，基于 commit 1517762）。**§7 瓶颈诊断 + 目标放大、§8 框架层进化是确认后追加的设计，尚未实现**。
+状态：§1-§6、§9 设计已确认并实现（分支 `v2-open-ended`，基于 commit 1517762）。**§2.1 能力（capability）、§7 瓶颈诊断 + 目标放大是确认后追加的设计，尚未实现；§8 框架层进化的管线已实现（sea/meta），P001 在元评测中**。
 
 ## 0. 一句话
 
@@ -95,6 +95,44 @@ outputs: {answer: blackboard.final}       # benchmark 插件读这个 (= v1 的 
   所以 `genomes/P0`、`genomes/S0`、`snapshots/` 里所有 v1 genome 不改一字就能在 v2 executor 上跑——这是回归检查的基础。
 - AppWorld 的环境循环（`act`、每步执行代码）**本轮不并入** v2 executor：AppWorldTask 声明 `executor: external`，
   继续用 `appworld/run_genome.py` 和它自己的 schema。将来要统一的话，环境循环 = `workflow.loop` + 一个 `kind: env` 角色。
+
+### 2.1 能力（capability）：记忆、学习、工具都可开关（追加设计，未实现）
+
+**现状问题**：记忆、学习、工具现在是写死的框架行为：只要 `memory/<role>.md` 存在就注入；学习是整次运行的开关 `--learn`；
+工具只能做成固定步骤的 tool 角色；`ASK_HUMAN` 对所有 v2 角色永远开着；spawn 不存在。进化器没法按任务、按角色关掉一个没用的机制。
+
+**证据（calendar-evo）**：MATH 上文字笔记记忆无效甚至有害（朴素版 0.719→0.653；门控版 0.711→0.694，团队 0.826→0.802，都在噪声内）；
+AppWorld 上进化器自己给团队加了 api_catalog 工具角色，train TGC 16.7%→43%（72B），token 62k→39k；同一能力在不同任务价值不同
+（MATH 上 Python 执行有用，DROP 上主要用于格式归一）。所以：**能力应由进化决定开关，“选对工具”是最大杠杆**。
+
+**能力库**（`src/sea/capabilities/`，每项写明用途、接口、成本，Task 插件声明本任务可用哪些）：
+
+| 能力 | 类型 | 接口 | 成本 |
+|---|---|---|---|
+| `notes_memory` | 被动注入 + 学习过程 | `memory/<role>.md` 注入；`learn: true` 时参加门控学习 | 每次调用 + 笔记 token；每代 + 一轮学习 |
+| `shared_taste` | 被动注入 | 人类回答与评语（P001 的提炼结果） | ≤1200 字 |
+| `examples` | 主动工具 | `search_examples(query, k)`：从经验 split 的成功案例里检索例题/技能 | 每次调用的结果 token |
+| `python_exec` | 主动工具 | `run_python(code)`：子进程沙箱、超时 | 结果 token + 延迟 |
+| `api_docs` | 主动工具（AppWorld） | `api_search / api_doc`（现有只读 docs helper） | 结果 token |
+| `verifier` | 主动工具 | Task 提供的**只看输入、不看参考答案**的自检（如 calendar 硬约束检查）；brief 模式不提供（会泄露 judge） | 结果 token |
+| `ask_human` | 协议 | `ASK_HUMAN:` 行 | 几乎为 0 |
+| `spawn` | 主动工具 | 有界 fan-out（related_work #7，一层、硬预算） | 子 agent 的全部 token |
+
+**两层开关**
+1. **设计时（genome 层，进化器开关）**：角色声明 `capabilities: [python_exec, notes_memory, ...]`（genome 顶层可给默认值）。
+   `genome.validate()` 检查能力存在且是本任务可用的。开启有真实成本：每个主动工具的说明会进 prompt，调用结果也算 token，都直接进 fitness。
+   **兼容性**：没写 `capabilities` 的 genome（含全部 v1 genome）= 现在的行为（notes_memory、shared_taste、ask_human 开，无主动工具），
+   tier B trace 必须不变。
+2. **运行时（每个样本，由 agent 自己选）**：开启的主动能力以工具集形式交给角色，角色自己决定调不调、调哪个。executor 把一次角色调用变成
+   有界小循环：LLM → 工具调用 → 结果 → LLM，直到给出最终输出或达到 `max_tool_calls`（默认 4）/ token 预算。
+   调用格式先用文本协议（`CALL: <name> <json>`，和 ASK_HUMAN 同样由 executor 解析），因为当前 vLLM 服务没确认开了原生 tool-call 解析；之后可切到原生 tools API。
+
+**信号进 evolver 报告**（`capabilities.json`）：每个能力的调用率、平均调用次数、token 占比；用了和没用的样本平均分（有混杂，只作参考）；
+以及**因果信号：能力级 LOO**（关掉该能力重评一小批 → Δscore / Δtokens，复用 P003 的机制）。给 evolver 的建议规则：
+从不调用 → 关掉（省掉工具说明的 token）；调用多但 LOO ≈ 0 → 关掉；LOO 显著为正 → 保留，考虑给其他角色也开。
+
+**相关提案**：P003（角色 LOO）扩展为“角色 + 能力”两级归因；P004（合并继承记忆）作用在 `notes_memory` 能力上；
+确认后新登记：P006 能力库 + 设计时开关（被动能力，tier B 不变）、P007 运行时工具循环 + 使用日志（主动能力）。
 
 ## 3. Task 插件接口
 
