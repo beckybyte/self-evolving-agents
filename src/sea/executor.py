@@ -20,6 +20,7 @@ ART_RE = re.compile(r"<artifact\s+name=[\"']?([A-Za-z0-9_\-]+)[\"']?\s*>(.*?)</a
 ASK_RE = re.compile(r"^\s*ASK_HUMAN:\s*(.+?)\s*\|\s*DEFAULT:\s*(.+?)\s*$", re.M)
 PH_RE = re.compile(r"\{(conversation|input|blackboard|artifacts|inbox|memory|[a-z_]+)(?:\.([A-Za-z0-9_\-]+))?\}")
 MAX_QUESTIONS_PER_RUN = 3
+SHARED_KEY = "human_answers"  # context key carrying the same team taste as memory/_shared.md
 
 
 def render_transcript(messages: list[dict]) -> str:
@@ -123,6 +124,10 @@ class _Run:
                 self.assumptions.append({"qid": res["qid"], "text": q, "assumed": d, "by": role})
 
     # ------------------------------------------------------------ roles
+    def reads_shared(self, r: dict) -> bool:
+        return SHARED_KEY in self.ep.get("context", {}) and (
+            SHARED_KEY in r["reads"] or re.search(r"\{" + SHARED_KEY + r"\}", r["prompt"]) is not None)
+
     def run_llm(self, r: dict):
         g, name = self.g, r["name"]
         model = self.worker if r["model"] == "$WORKER" else r["model"]
@@ -142,7 +147,9 @@ class _Run:
                     "{blackboard}", json.dumps({k: v for k, v in self.bb.items() if not k.endswith("_data")}, ensure_ascii=False))
                 msgs = ([{"role": "system", "content": g["soul"]}] if g["soul"] else []) + [{"role": "user", "content": prompt}]
         else:
-            shared = g["_memory"].get("_shared", "")
+            # one source of truth for human knowledge: a role that places the live context key itself does not also
+            # get the memory/_shared.md snapshot of the same answers in its system message
+            shared = "" if self.reads_shared(r) else g["_memory"].get("_shared", "")
             system = "\n\n".join(x for x in [g["soul"], mem_block,
                                             f"## What the team has learned from the human so far\n{shared}" if shared else ""] if x)
             msgs = ([{"role": "system", "content": system}] if system else []) + [

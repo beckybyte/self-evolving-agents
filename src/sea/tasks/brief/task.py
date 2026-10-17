@@ -19,13 +19,15 @@ from ..base import Task, summarize
 from . import framer, judge
 
 REQUIRED_ARTIFACTS = ("prd", "decisions")
+TASTE_MAX_BULLETS, TASTE_MAX_COMMENTS, TASTE_MAX_CHARS, TASTE_MAX_BULLET_CHARS = 12, 4, 1200, 200
 DESC = """TASK the team solves: design a product from a vague brief. There is NO dataset and NO ground truth. The team
 runs once per evaluation on the brief and must produce design documents, emitted by any llm role as
 <artifact name="prd">...</artifact> and <artifact name="decisions">...</artifact> (more artifacts, e.g. "flows",
 are welcome). `decisions` is the trade-off log: one entry per feature/question with options considered, the choice,
 the reason, and the assumption ids (A1, Q2, ...) it depends on.
-Context selectors available to roles: input (= the brief), brief, restatement, assumptions, human_answers,
-open_questions. Roles may ask the human with a line `ASK_HUMAN: <question> | DEFAULT: <best guess>`; the run never
+Context selectors available to roles: input (= the brief), brief, restatement, assumptions, human_answers (the
+team's taste: the human's answers and rating comments, capped; every llm role that does not read it gets it in its
+system message instead), open_questions. Roles may ask the human with a line `ASK_HUMAN: <question> | DEFAULT: <best guess>`; the run never
 waits, it proceeds on the default (recorded as an assumption); answers arrive in later generations.
 
 A judge scores the documents with the rubric (rubric.json), walking through scenarios as personas. You see the
@@ -105,9 +107,24 @@ class BriefTask(Task):
         return True
 
     def shared_notes(self) -> str:
-        """Human answers distilled for every role (written to memory/_shared.md by sea.evolve)."""
-        pairs = self.human.answered_pairs()
-        return "\n".join(f"- {p['question']} -> {p['answer']}" for p in pairs)
+        """The team's taste: human answers + rating comments, capped (written to memory/_shared.md by sea.evolve and
+        given to roles as human_answers). Deterministic, so it only changes when the human says something new: the
+        newest TASTE_MAX_COMMENTS rating comments, the newest answers up to TASTE_MAX_BULLETS in total, each bullet cut to
+        TASTE_MAX_BULLET_CHARS, then the oldest answers (then comments) dropped until it fits in TASTE_MAX_CHARS."""
+        def cut(s: str) -> str:
+            s = " ".join(str(s).split())
+            return s if len(s) <= TASTE_MAX_BULLET_CHARS else s[:TASTE_MAX_BULLET_CHARS - 1] + "…"
+
+        comments = [cut(f"- rating of design {r['genome_id']}: {r['score']}/5 — {r['comment']}")
+                    for r in self.human.ratings() if str(r.get("comment", "")).strip()][-TASTE_MAX_COMMENTS:]
+        answers = [cut(f"- {p['question']} -> {p['answer']}") for p in self.human.answered_pairs()]
+        answers = answers[len(answers) - min(len(answers), TASTE_MAX_BULLETS - len(comments)):]
+        while answers or comments:
+            text = "\n".join(answers + comments)
+            if len(text) <= TASTE_MAX_CHARS:
+                return text
+            (answers or comments).pop(0)
+        return ""
 
     # ---------------------------------------------------------------- Task protocol
     def describe(self) -> str:
