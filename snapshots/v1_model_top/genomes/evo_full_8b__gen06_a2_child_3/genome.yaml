@@ -1,0 +1,9 @@
+id: gen06a2_c3
+parent: gen05a1_c3
+soul: ''
+roles:
+- name: solver
+  type: tool
+  tool: tools/solve_cal.py
+final: solver
+notes: 'Child 1''s solver fixes plus a history check on parsed rules, with parser phrasing unchanged. The parser records the turn where each rule was stated; if the assistant calendar answering that turn breaks the parsed rule, the rule is treated as misread, dropped, and the event is held at (or beside) its last slot above preferences. This catches wrong-but-feasible parses the fallback never sees (e.g. ''can''t start before 12:15pm'' read as before), aimed at the lost after-rules in train-2733/oodA-3110. 0 tokens.'

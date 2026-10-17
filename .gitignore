@@ -1,0 +1,9 @@
+runs/
+logs/
+data/*.jsonl
+__pycache__/
+appworld/data/
+appworld/env/
+appworld/experiments/
+appworld/results/
+*.log

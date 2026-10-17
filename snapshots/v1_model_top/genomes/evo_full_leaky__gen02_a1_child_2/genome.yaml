@@ -1,0 +1,53 @@
+id: gen02a1_c2
+parent: gen01a1_c2
+soul: ""
+roles:
+  - name: digest
+    type: tool
+    tool: tools/digest.py
+  - name: extract
+    type: llm
+    model: $WORKER
+    input: transcript
+    max_tokens: 1536
+    prompt: |
+      You read a calendar-scheduling conversation and write down the CURRENT state of the calendar. You do NOT schedule anything.
+
+      CONVERSATION (user turns verbatim; the assistant's replies are summarised):
+      {blackboard}
+
+      Work through the USER turns in order and keep, for every event, its id, short name, latest duration and latest hard rule.
+      Report every event that should be on the calendar now (all events ever added, minus any the user removed), with:
+      - event_id (integer), event_name (short), duration in minutes (latest value),
+      - constraint: the event's LATEST hard time rule, copying the user's clock times exactly, in one of these forms, or null:
+          "at 1:30pm"  - user wants it at / locked for / set for / moved to that time
+          "before 2:30pm" - must end by / finish by / wrap up by / end at or before that time
+          "after 11am" - must start at or after / no earlier than / at that time or later
+          "between 10am and 1pm" - must fit inside that range
+      RULES:
+        * Hard rules come ONLY from what the USER asked. Where the ASSISTANT placed an event is NOT a rule - never copy it.
+        * A newer user request about an event replaces its older rule; a turn that does not give that event a new clock time keeps its old rule.
+        * Each rule belongs to the event whose id is in the same sentence. Never move a rule to another event.
+        * Rules without a clock time (e.g. "after my sync") are NOT constraints. Never invent a time the user did not write.
+        * Soft wishes NEVER change "constraint" - they go only into "prefs".
+      Then list soft preferences: wishes phrased as "ideally", "I'd prefer", "would love", "would be perfect", "suits me best", "if possible", "if you can", etc.
+      Turn each into one object with these keys (times HH:MM, 24h):
+          type="window", event_id, start, end: event should fit inside a time range:
+              early morning / first thing / before noon / early in the day -> 10:00-12:00
+              afternoon -> 12:00-16:00
+              late in the day / end of my day / wind-down -> 14:00-16:00
+              around lunchtime / midday / around noon -> 11:30-13:30
+              any other wording -> the most sensible window inside 10:00-16:00
+          type="avoid", event_id, start, end: event should NOT overlap that range
+          type="order", event_id, other_id: event_id should end before other_id starts
+          type="adjacent", event_id, other_id: the two events back-to-back
+          type="apart", event_id, other_id, gap (minutes): keep a gap between the two
+          type="earliest" or "latest", event_id: as early / as late as possible
+      Output ONE compact single-line JSON object and nothing else, with key "events" (list of objects with keys
+      event_id, event_name, duration, constraint) and key "prefs" (list of the objects above). /no_think
+  - name: answer
+    type: tool
+    tool: tools/solve.py
+final: answer
+notes: >-
+  Same digest and stricter extractor as the cheap fix, plus two code safeguards in solve.py. (1) A deterministic reader takes each user sentence that names exactly one event id with a clock-time phrase (finish by, at or after, between, lock in for, ...) and skips soft-wish sentences; the latest one per event overrides the LLM's constraint. (2) A grounding check drops any LLM constraint whose clock time never appears in user/system text. Evidence: every parent failure was a wrong extracted constraint (times invented from assistant placements or preference windows, earlier rules lost), while all failing last-turn phrasings parse correctly with the regex.

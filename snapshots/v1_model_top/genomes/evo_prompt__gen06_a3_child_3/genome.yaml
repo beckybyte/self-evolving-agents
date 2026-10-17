@@ -1,0 +1,47 @@
+id: gen06a3_c3
+parent: gen05a2_c2
+soul: ""
+roles:
+  - name: draft
+    type: llm
+    model: $WORKER
+    input: native
+    max_tokens: 1200
+    prompt: |
+      /no_think
+      Always reply with ONLY the full current calendar as a JSON list (even if the user just says thanks).
+      Include every event ever added; "before X" means the event must END by X; avoid overlaps; all events 10:00-16:00.
+      Keep earlier events at their previous times unless a new request forces a move. List events in order of start time.
+  - name: verifier
+    type: llm
+    model: $WORKER
+    input: transcript
+    max_tokens: 5000
+    prompt: |
+      You audit and repair a proposed calendar.
+
+      Conversation:
+      {conversation}
+
+      Proposed calendar:
+      {blackboard}
+
+      1. List each event's hard constraint from the whole conversation (latest request wins):
+         "at X" start=X; "after X" start>=X; "before X"/"finish by X" start+duration<=X;
+         "between A and B" start>=A and end<=B; all events within 10:00-16:00.
+         Also note soft preferences (fuzzy wishes about time of day, order, spacing...). Time-of-day windows:
+         early/before noon 10:00-12:00, midday/lunch 11:30-13:30, afternoon 12:00-16:00, late/end of day 14:00-16:00.
+      2. Sort the proposed events by start and write HH:MM-HH:MM for each. Compute end carefully: add whole hours first,
+         then minutes (75 = 1h15, 90 = 1h30, 45 = 0h45; e.g. 13:45 + 75 = 15:00, 12:30 + 30 = 13:00).
+         Then check each neighbour pair in that sorted list: "end of this <= start of next?" (yes/no). Any "no" is an overlap.
+         Also mark every constraint violation, end after 16:00, missing or extra event. No square brackets or JSON before step 4.
+      3. If step 2 found NO problem, go straight to step 4 with the proposed calendar unchanged (move one event only to
+         meet a soft preference if that is obviously safe). If it found ANY problem, do NOT patch or try ideas: rebuild
+         directly, once: place "at" events first, then the rest in order of their latest allowed end, each at the earliest
+         free time >= its earliest start that fits fully before its latest end (inside a preferred window first, if it fits).
+         Write one line per placement as "id: HH:MM-HH:MM". Take that result; never say "wait" or re-check twice.
+         If anything seems impossible, a soft preference is blocking: drop all preferences and place by hard rules only.
+      4. Finish with the line "ANSWER:" followed by ONLY the final JSON list
+         [{"event_id": int, "event_name": str, "start_time": "HH:MM", "duration": int}] and nothing after it.
+final: verifier
+notes: "Token cut on the draft plus the arithmetic check. Tokens cost ~0.17 fitness and the verifier rebuilds most bad drafts anyway (a2_c1 showed draft quality barely matters), so the draft gets /no_think, a 1200 cap, and is told to keep previous times and list events by start so the verifier's sorted audit is trivial. The verifier keeps the parent prompt except step 2's explicit hour+minute end arithmetic and neighbour-pair overlap check (train-94/2432 passed miscomputed overlaps)."

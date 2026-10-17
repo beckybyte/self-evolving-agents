@@ -1,0 +1,17 @@
+id: gen10a1_c2
+parent: gen09a1_c1
+soul: ""
+roles:
+  - name: brief
+    type: tool
+    tool: tools/repair.py
+  - name: assistant
+    type: llm
+    model: $WORKER
+    input: transcript
+    prompt: "{blackboard}"
+  - name: repair
+    type: tool
+    tool: tools/repair.py
+final: repair
+notes: "Same seeded-search fix as c1, plus two parsing and routing generalisations. (1) Clock times written as words ('half past two', 'two thirty', 'by four', 'between two and four', 'quarter to two') are rewritten to digits before parsing; the regex could not read them, and unknown constraints are what make repair move events the wrong way (v2-272's 11:35 output matches an unparsed 'between 12pm and 1:45pm'). (2) When the turns after the latest calendar are only small talk (no ids, edit/add/delete words, durations or time words), that calendar is treated as current: pure adds take the cheap title-only route and repair keeps its known-legal anchors and hulls instead of the 'stale' mode."

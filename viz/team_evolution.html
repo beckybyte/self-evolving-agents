@@ -1,0 +1,238 @@
+<title>Calendar-Evo Team Evolution</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;750&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; each run is a vertical stack of three aligned strips (team / score / tokens) on a shared generation axis */
+:root {
+  --bg: #fbfbf9; --panel: #ffffff; --ink: #161614; --ink-2: #55534d; --ink-3: #8c8a82;
+  --grid: #e6e4de; --rule: #d4d2ca;
+  --llm: #2a78d6; --code: #eb6834; --multi: #1baf7a;
+  --tip-bg: #161614; --tip-ink: #f4f3ef;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #161615; --panel: #1d1d1b; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #8f8d84;
+  --grid: #2e2d2a; --rule: #3a3936; --llm: #3987e5; --code: #d95926; --multi: #199e70;
+  --tip-bg: #f0efec; --tip-ink: #161614; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #161615; --panel: #1d1d1b; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #8f8d84;
+  --grid: #2e2d2a; --rule: #3a3936; --llm: #3987e5; --code: #d95926; --multi: #199e70;
+  --tip-bg: #f0efec; --tip-ink: #161614; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 40px; }
+h1 { font-family: var(--f-display); font-weight: 750; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 21px; margin: 0; text-wrap: balance; }
+.lede { color: var(--ink-2); max-width: 65ch; margin: 10px 0 0; }
+.eyebrow { font-family: var(--f-data); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+section { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.note { color: var(--ink-2); max-width: 65ch; margin: 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; }
+.tile .v { font-family: var(--f-data); font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.tile .k { color: var(--ink-2); font-size: 13px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.line-sw { width: 18px; height: 0; border-top: 2px solid var(--ink); display: inline-block; }
+.line-sw.dash { border-top-style: dashed; }
+.chart { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 6px 4px; overflow-x: auto; }
+.chart svg { display: block; width: 100%; height: auto; min-width: 560px; }
+svg text { font-family: var(--f-data); fill: var(--ink-2); font-size: 11px; }
+svg .t-ink { fill: var(--ink); }
+svg .t-title { font-family: var(--f-body); font-size: 13px; font-weight: 600; fill: var(--ink); }
+.runs { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.wrap > *, .chart, .tile { min-width: 0; }
+.tip { position: fixed; pointer-events: none; background: var(--tip-bg); color: var(--tip-ink); font-family: var(--f-data);
+  font-size: 12px; line-height: 1.5; padding: 8px 10px; border-radius: 4px; max-width: 280px; z-index: 10; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); }
+th { font-weight: 600; color: var(--ink-2); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+td.n { font-family: var(--f-data); font-variant-numeric: tabular-nums; text-align: right; }
+th.n { text-align: right; }
+tr.hl td { font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) { .dot, .bar { transition: opacity .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Calendar-Evo · v1 snapshot · 2026-10-17</div>
+    <h1>一支 agent 团队怎样进化了 10 代</h1>
+    <p class="lede">任务是 Nemotron 日程排程。每一代由 Claude 进化器读父代团队的失败样本，设计 3 个子代团队，更好的取代父代。下面看团队人数、分数和 token 怎么一起变化。</p>
+  </header>
+
+  <div class="tiles">
+    <div class="tile"><div class="v">0.32 → 1.00</div><div class="k">test_in 得分，单 prompt → 进化 10 代（30B）</div></div>
+    <div class="tile"><div class="v">4141 → 907</div><div class="k">每样本 token，同一对比</div></div>
+    <div class="tile"><div class="v">1 → 3</div><div class="k">团队人数；其中 LLM 始终只有 1 个</div></div>
+    <div class="tile"><div class="v">0.625</div><div class="k">没见过的偏好类型（ood_test），仍未解决</div></div>
+  </div>
+
+  <section>
+    <div><div class="eyebrow">逐代</div><h2>人数先涨到 3 就停了，之后每代只在省 token</h2></div>
+    <p class="note">每个 run 三条横带共用同一条代数轴。上：被接受的父代团队，一个方块一名员工。中：父代在 dev_in（实线）和 ood_dev（虚线）上的分数，灰点是这一代所有被评估的子代。下：父代每样本 token。空心方块的代表这一代没有子代胜出，父代保留。</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--llm)"></i>LLM 员工</span>
+      <span><i class="sw" style="background:var(--code)"></i>代码员工（工具）</span>
+      <span><i class="line-sw"></i>dev_in</span>
+      <span><i class="line-sw dash"></i>ood_dev</span>
+    </div>
+    <div class="runs" id="runs"></div>
+  </section>
+
+  <section>
+    <div><div class="eyebrow">所有子代</div><h2>赢家都在左上角：1 个 LLM 加几个代码角色</h2></div>
+    <p class="note">每个点是一个被评估过的子代团队（4 个 run，共 181 个）。横轴是每样本 token，纵轴是 dev_in 分数。纯 LLM 的多人团队（绿）越加人越贵，分数却上不去；纯代码团队（橙）0 token 也能满分，但它在新措辞上会崩。</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--code)"></i>0 个 LLM（纯代码）</span>
+      <span><i class="sw" style="background:var(--llm)"></i>1 个 LLM</span>
+      <span><i class="sw" style="background:var(--multi)"></i>2–3 个 LLM</span>
+    </div>
+    <div class="chart" id="scatter"></div>
+    <p class="note">黑圈：evo_full 的最终团队，3 人（1 个 LLM），708 token，dev_in 1.00。悬停任一点可看团队组成。</p>
+  </section>
+
+  <section>
+    <div><div class="eyebrow">测试集</div><h2>dev 满分不等于泛化：未见偏好仍是短板</h2></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>worker</th><th>团队</th><th class="n">员工（LLM）</th><th class="n">test_in</th><th class="n">ood_test</th><th class="n">test_v2</th><th class="n">token</th></tr></thead>
+      <tbody>
+        <tr><td>30B</td><td>P0 单 prompt</td><td class="n">1 (1)</td><td class="n">0.320</td><td class="n">0.150</td><td class="n">0.359</td><td class="n">4141</td></tr>
+        <tr><td>30B</td><td>S0 固定求解器</td><td class="n">2 (1)</td><td class="n">0.414</td><td class="n">0.121</td><td class="n">0.418</td><td class="n">4294</td></tr>
+        <tr class="hl"><td>30B</td><td>evo_full，进化 10 代</td><td class="n">3 (1)</td><td class="n">1.000</td><td class="n">0.625</td><td class="n">0.824</td><td class="n">907</td></tr>
+        <tr><td>30B</td><td>evo_prompt，纯 LLM 团队</td><td class="n">2 (2)</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">≈7900</td></tr>
+        <tr><td>8B</td><td>evo_full_8b，λ=0.02</td><td class="n">1 (0)</td><td class="n">1.000</td><td class="n">0.575</td><td class="n">0.410</td><td class="n">0</td></tr>
+        <tr><td>8B</td><td>λ=0.005，+dev_v2</td><td class="n">3 (1)</td><td class="n">1.000</td><td class="n">0.629</td><td class="n">0.953*</td><td class="n">2566</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">ood_test = 进化时从没出现过的偏好类型（right_after / order / keep_free）。* 这个 run 的 fitness 用了 v2 train，test_v2 对它算同分布。evo_prompt 快照时还没进化完，没有测试集分数。</p>
+  </section>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const DATA = {"evo_full": [{"gen": 0, "att": 0, "fit": 0.1862, "din": 0.36, "ood": 0.075, "tok": 2742, "n": 1, "nl": 1, "roles": ["assistant"], "acc": true}, {"gen": 1, "att": 1, "fit": 0.2913, "din": 0.51, "ood": 0.13, "tok": 3085, "n": 1, "nl": 1, "roles": ["assistant"], "acc": false}, {"gen": 1, "att": 1, "fit": 0.666, "din": 0.78, "ood": 0.685, "tok": 3517, "n": 2, "nl": 1, "roles": ["extract", "answer"], "acc": false}, {"gen": 1, "att": 1, "fit": 0.7284, "din": 0.85, "ood": 0.725, "tok": 3324, "n": 2, "nl": 1, "roles": ["extract", "answer"], "acc": true}, {"gen": 2, "att": 1, "fit": 0.8841, "din": 0.93, "ood": 0.94, "tok": 2376, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 2, "att": 1, "fit": 0.9241, "din": 0.98, "ood": 0.965, "tok": 2383, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": true}, {"gen": 2, "att": 1, "fit": 0.7821, "din": 0.86, "ood": 0.775, "tok": 2092, "n": 3, "nl": 1, "roles": ["digest", "ledger", "answer"], "acc": false}, {"gen": 3, "att": 1, "fit": 0.958, "din": 0.99, "ood": 0.98, "tok": 1287, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": true}, {"gen": 3, "att": 1, "fit": 0.9219, "din": 0.97, "ood": 0.955, "tok": 1975, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 3, "att": 1, "fit": 0.9303, "din": 0.97, "ood": 0.975, "tok": 1977, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.946, "din": 0.95, "ood": 0.94, "tok": 0, "n": 2, "nl": 0, "roles": ["extract", "answer"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.964, "din": 1.0, "ood": 0.98, "tok": 1282, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.9641, "din": 1.0, "ood": 0.96, "tok": 843, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": true}, {"gen": 5, "att": 1, "fit": 0.9802, "din": 1.0, "ood": 1.0, "tok": 842, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": true}, {"gen": 5, "att": 1, "fit": 0.969, "din": 1.0, "ood": 0.975, "tok": 924, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 5, "att": 1, "fit": 0.9712, "din": 1.0, "ood": 0.98, "tok": 887, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.9743, "din": 0.99, "ood": 0.995, "tok": 806, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.9698, "din": 0.98, "ood": 1.0, "tok": 820, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.9598, "din": 0.99, "ood": 0.97, "tok": 1000, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 6, "att": 2, "fit": 0.786, "din": 0.79, "ood": 0.78, "tok": 0, "n": 1, "nl": 0, "roles": ["answer"], "acc": false}, {"gen": 6, "att": 2, "fit": 0.9806, "din": 1.0, "ood": 1.0, "tok": 830, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": true}, {"gen": 6, "att": 2, "fit": 0.9722, "din": 1.0, "ood": 0.98, "tok": 842, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 7, "att": 1, "fit": 0.9697, "din": 1.0, "ood": 0.975, "tok": 856, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 7, "att": 1, "fit": 0.9698, "din": 1.0, "ood": 0.975, "tok": 854, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 7, "att": 1, "fit": 0.9516, "din": 1.0, "ood": 0.95, "tok": 1265, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 7, "att": 2, "fit": 0.9677, "din": 0.99, "ood": 0.98, "tok": 780, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 7, "att": 2, "fit": 0.9726, "din": 1.0, "ood": 0.98, "tok": 834, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 7, "att": 2, "fit": 0.9706, "din": 1.0, "ood": 0.975, "tok": 830, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 7, "att": 3, "fit": 0.9728, "din": 1.0, "ood": 0.98, "tok": 827, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 7, "att": 3, "fit": 0.9751, "din": 1.0, "ood": 0.99, "tok": 932, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 7, "att": 3, "fit": 0.9649, "din": 0.99, "ood": 0.975, "tok": 814, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.84, "din": 0.84, "ood": 0.84, "tok": 0, "n": 1, "nl": 0, "roles": ["answer"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.9712, "din": 1.0, "ood": 0.98, "tok": 927, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.9665, "din": 0.99, "ood": 0.98, "tok": 866, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 8, "att": 2, "fit": 0.9815, "din": 1.0, "ood": 1.0, "tok": 785, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": true}, {"gen": 8, "att": 2, "fit": 0.9707, "din": 1.0, "ood": 0.975, "tok": 838, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 8, "att": 2, "fit": 0.9734, "din": 0.99, "ood": 0.995, "tok": 785, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 9, "att": 1, "fit": 0.9651, "din": 0.99, "ood": 0.98, "tok": 900, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 9, "att": 1, "fit": 0.9814, "din": 1.0, "ood": 1.0, "tok": 830, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 9, "att": 1, "fit": 0.9736, "din": 0.99, "ood": 0.995, "tok": 798, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 9, "att": 2, "fit": 0.9704, "din": 1.0, "ood": 0.97, "tok": 761, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 9, "att": 2, "fit": 0.98, "din": 1.0, "ood": 0.995, "tok": 769, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 9, "att": 2, "fit": 0.981, "din": 1.0, "ood": 1.0, "tok": 812, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 9, "att": 3, "fit": 0.9795, "din": 1.0, "ood": 0.995, "tok": 788, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 9, "att": 3, "fit": 0.9825, "din": 1.0, "ood": 1.0, "tok": 744, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": true}, {"gen": 9, "att": 3, "fit": 0.9806, "din": 1.0, "ood": 0.995, "tok": 753, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 10, "att": 1, "fit": 0.9837, "din": 1.0, "ood": 1.0, "tok": 708, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": true}, {"gen": 10, "att": 1, "fit": 0.9598, "din": 0.96, "ood": 1.0, "tok": 696, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}, {"gen": 10, "att": 1, "fit": 0.9767, "din": 1.0, "ood": 0.99, "tok": 819, "n": 3, "nl": 1, "roles": ["digest", "extract", "answer"], "acc": false}], "evo_prompt": [{"gen": 0, "att": 0, "fit": 0.2002, "din": 0.37, "ood": 0.095, "tok": 2742, "n": 1, "nl": 1, "roles": ["assistant"], "acc": true}, {"gen": 1, "att": 1, "fit": 0.2662, "din": 0.47, "ood": 0.13, "tok": 3138, "n": 1, "nl": 1, "roles": ["assistant"], "acc": false}, {"gen": 1, "att": 1, "fit": 0.2836, "din": 0.54, "ood": 0.25, "tok": 6120, "n": 2, "nl": 2, "roles": ["planner", "formatter"], "acc": false}, {"gen": 1, "att": 1, "fit": 0.3651, "din": 0.63, "ood": 0.375, "tok": 7358, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": true}, {"gen": 2, "att": 1, "fit": 0.2189, "din": 0.47, "ood": 0.135, "tok": 5057, "n": 2, "nl": 2, "roles": ["extractor", "scheduler"], "acc": false}, {"gen": 2, "att": 1, "fit": 0.2838, "din": 0.57, "ood": 0.25, "tok": 7182, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 2, "att": 1, "fit": 0.2821, "din": 0.61, "ood": 0.265, "tok": 8671, "n": 3, "nl": 3, "roles": ["draft", "verifier", "finalizer"], "acc": false}, {"gen": 2, "att": 2, "fit": 0.2784, "din": 0.47, "ood": 0.16, "tok": 3131, "n": 1, "nl": 1, "roles": ["solver"], "acc": false}, {"gen": 2, "att": 2, "fit": 0.3416, "din": 0.61, "ood": 0.325, "tok": 6880, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 2, "att": 2, "fit": 0.3461, "din": 0.62, "ood": 0.345, "tok": 7344, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 2, "att": 3, "fit": 0.3174, "din": 0.6, "ood": 0.26, "tok": 6724, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 2, "att": 3, "fit": 0.1656, "din": 0.51, "ood": 0.18, "tok": 9654, "n": 3, "nl": 3, "roles": ["draft", "checker", "repairer"], "acc": false}, {"gen": 2, "att": 3, "fit": 0.3352, "din": 0.7, "ood": 0.47, "tok": 12133, "n": 3, "nl": 3, "roles": ["draft", "verifier", "finalizer"], "acc": false}, {"gen": 3, "att": 1, "fit": 0.3027, "din": 0.49, "ood": 0.195, "tok": 3182, "n": 1, "nl": 1, "roles": ["solver"], "acc": false}, {"gen": 3, "att": 1, "fit": 0.2176, "din": 0.43, "ood": 0.095, "tok": 3626, "n": 2, "nl": 2, "roles": ["extractor", "scheduler"], "acc": false}, {"gen": 3, "att": 1, "fit": 0.2686, "din": 0.5, "ood": 0.275, "tok": 6474, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 3, "att": 2, "fit": 0.444, "din": 0.71, "ood": 0.49, "tok": 8010, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": true}, {"gen": 3, "att": 2, "fit": 0.133, "din": 0.48, "ood": 0.135, "tok": 9426, "n": 3, "nl": 3, "roles": ["draft", "auditor", "repairer"], "acc": false}, {"gen": 3, "att": 2, "fit": 0.3507, "din": 0.7, "ood": 0.535, "tok": 12784, "n": 3, "nl": 3, "roles": ["draft", "verifier", "finalizer"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.2544, "din": 0.48, "ood": 0.09, "tok": 3232, "n": 1, "nl": 1, "roles": ["solver"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.2568, "din": 0.45, "ood": 0.23, "tok": 4654, "n": 2, "nl": 2, "roles": ["extractor", "scheduler"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.4508, "din": 0.74, "ood": 0.43, "tok": 7464, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": true}, {"gen": 5, "att": 1, "fit": 0.2276, "din": 0.43, "ood": 0.14, "tok": 3996, "n": 2, "nl": 2, "roles": ["extractor", "scheduler"], "acc": false}, {"gen": 5, "att": 1, "fit": 0.2727, "din": 0.52, "ood": 0.255, "tok": 6523, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 5, "att": 1, "fit": 0.2791, "din": 0.67, "ood": 0.3, "tok": 11017, "n": 3, "nl": 3, "roles": ["draft", "verifier", "finalizer"], "acc": false}, {"gen": 5, "att": 2, "fit": 0.3012, "din": 0.57, "ood": 0.285, "tok": 7126, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 5, "att": 2, "fit": 0.4842, "din": 0.77, "ood": 0.48, "tok": 7551, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 5, "att": 2, "fit": 0.495, "din": 0.78, "ood": 0.495, "tok": 7532, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": true}, {"gen": 6, "att": 1, "fit": 0.2732, "din": 0.49, "ood": 0.125, "tok": 3291, "n": 1, "nl": 1, "roles": ["planner"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.2977, "din": 0.49, "ood": 0.215, "tok": 3802, "n": 2, "nl": 2, "roles": ["extractor", "scheduler"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.2775, "din": 0.56, "ood": 0.26, "tok": 7121, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 6, "att": 2, "fit": 0.4929, "din": 0.76, "ood": 0.525, "tok": 7651, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 6, "att": 2, "fit": 0.4442, "din": 0.73, "ood": 0.455, "tok": 7700, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 6, "att": 2, "fit": 0.3709, "din": 0.78, "ood": 0.55, "tok": 13916, "n": 3, "nl": 3, "roles": ["draft", "verifier", "auditor"], "acc": false}, {"gen": 6, "att": 3, "fit": 0.523, "din": 0.8, "ood": 0.55, "tok": 7879, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": true}, {"gen": 6, "att": 3, "fit": 0.4732, "din": 0.73, "ood": 0.545, "tok": 7974, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 6, "att": 3, "fit": 0.4787, "din": 0.78, "ood": 0.475, "tok": 7951, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 7, "att": 1, "fit": 0.4998, "din": 0.77, "ood": 0.495, "tok": 7245, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 7, "att": 1, "fit": 0.1019, "din": 0.37, "ood": 0.185, "tok": 8658, "n": 2, "nl": 2, "roles": ["sheet", "scheduler"], "acc": false}, {"gen": 7, "att": 1, "fit": 0.3954, "din": 0.78, "ood": 0.52, "tok": 12551, "n": 3, "nl": 3, "roles": ["draft", "verifier", "finalizer"], "acc": false}, {"gen": 7, "att": 2, "fit": 0.4817, "din": 0.78, "ood": 0.455, "tok": 7566, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 7, "att": 2, "fit": 0.4203, "din": 0.69, "ood": 0.465, "tok": 7892, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 7, "att": 2, "fit": 0.3618, "din": 0.65, "ood": 0.375, "tok": 8051, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 7, "att": 3, "fit": 0.4813, "din": 0.78, "ood": 0.495, "tok": 8225, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 7, "att": 3, "fit": 0.2591, "din": 0.57, "ood": 0.3, "tok": 8968, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 7, "att": 3, "fit": 0.4376, "din": 0.77, "ood": 0.42, "tok": 8354, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.281, "din": 0.6, "ood": 0.2, "tok": 7156, "n": 2, "nl": 2, "roles": ["extract", "scheduler"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.3091, "din": 0.59, "ood": 0.27, "tok": 6846, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.3556, "din": 0.65, "ood": 0.38, "tok": 8349, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 8, "att": 2, "fit": 0.494, "din": 0.79, "ood": 0.505, "tok": 8067, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 8, "att": 2, "fit": 0.4642, "din": 0.74, "ood": 0.51, "tok": 8132, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}, {"gen": 8, "att": 2, "fit": 0.5137, "din": 0.78, "ood": 0.57, "tok": 8168, "n": 2, "nl": 2, "roles": ["draft", "verifier"], "acc": false}], "evo_full_8b": [{"gen": 0, "att": 0, "fit": 0.2441, "din": 0.42, "ood": 0.13, "tok": 2744, "n": 1, "nl": 1, "roles": ["assistant"], "acc": true}, {"gen": 1, "att": 1, "fit": 0.5255, "din": 0.69, "ood": 0.475, "tok": 3651, "n": 2, "nl": 1, "roles": ["extractor", "solver"], "acc": false}, {"gen": 1, "att": 1, "fit": 0.5396, "din": 0.72, "ood": 0.465, "tok": 3649, "n": 2, "nl": 1, "roles": ["extractor", "solver"], "acc": true}, {"gen": 1, "att": 1, "fit": 0.4678, "din": 0.71, "ood": 0.52, "tok": 7716, "n": 3, "nl": 2, "roles": ["extractor", "auditor", "solver"], "acc": false}, {"gen": 2, "att": 1, "fit": 0.6248, "din": 0.71, "ood": 0.67, "tok": 3210, "n": 2, "nl": 1, "roles": ["extractor", "solver"], "acc": false}, {"gen": 2, "att": 1, "fit": 0.7544, "din": 0.88, "ood": 0.755, "tok": 3520, "n": 2, "nl": 1, "roles": ["extractor", "solver"], "acc": true}, {"gen": 2, "att": 1, "fit": 0.4004, "din": 0.55, "ood": 0.365, "tok": 3518, "n": 2, "nl": 1, "roles": ["extractor", "solver"], "acc": false}, {"gen": 3, "att": 1, "fit": 0.9512, "din": 0.95, "ood": 0.98, "tok": 478, "n": 3, "nl": 1, "roles": ["prep", "prefs", "solver"], "acc": true}, {"gen": 3, "att": 1, "fit": 0.8944, "din": 0.98, "ood": 0.955, "tok": 3522, "n": 2, "nl": 1, "roles": ["extractor", "solver"], "acc": false}, {"gen": 3, "att": 1, "fit": 0.8541, "din": 0.96, "ood": 0.89, "tok": 3624, "n": 2, "nl": 1, "roles": ["extractor", "solver"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.9672, "din": 0.98, "ood": 0.975, "tok": 478, "n": 3, "nl": 1, "roles": ["prep", "prefs", "solver"], "acc": true}, {"gen": 4, "att": 1, "fit": 0.9672, "din": 0.98, "ood": 0.975, "tok": 478, "n": 3, "nl": 1, "roles": ["prep", "prefs", "solver"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.9633, "din": 0.98, "ood": 0.97, "tok": 569, "n": 3, "nl": 1, "roles": ["prep", "prefs", "solver"], "acc": false}, {"gen": 5, "att": 1, "fit": 0.986, "din": 0.99, "ood": 0.98, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": true}, {"gen": 5, "att": 1, "fit": 0.9752, "din": 0.99, "ood": 0.98, "tok": 478, "n": 3, "nl": 1, "roles": ["prep", "prefs", "solver"], "acc": false}, {"gen": 5, "att": 1, "fit": 0.9765, "din": 0.99, "ood": 0.97, "tok": 268, "n": 3, "nl": 1, "roles": ["prep", "prefs", "solver"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.986, "din": 0.99, "ood": 0.98, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.98, "din": 0.98, "ood": 0.98, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.98, "din": 0.98, "ood": 0.98, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 6, "att": 2, "fit": 0.994, "din": 0.99, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 6, "att": 2, "fit": 0.994, "din": 0.99, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 6, "att": 2, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": true}, {"gen": 7, "att": 1, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 7, "att": 1, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 7, "att": 1, "fit": 0.9865, "din": 1.0, "ood": 0.99, "tok": 455, "n": 3, "nl": 1, "roles": ["prefsents", "prefs", "solver"], "acc": false}, {"gen": 7, "att": 2, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 7, "att": 2, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 7, "att": 2, "fit": 0.998, "din": 1.0, "ood": 0.995, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 7, "att": 3, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 7, "att": 3, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 7, "att": 3, "fit": 0.982, "din": 0.97, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 8, "att": 1, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 8, "att": 1, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.9914, "din": 1.0, "ood": 0.995, "tok": 318, "n": 3, "nl": 1, "roles": ["scan", "prefs", "solver"], "acc": false}, {"gen": 8, "att": 2, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 8, "att": 2, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 8, "att": 2, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 8, "att": 3, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 8, "att": 3, "fit": 1.0, "din": 1.0, "ood": 1.0, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}, {"gen": 8, "att": 3, "fit": 0.996, "din": 1.0, "ood": 0.99, "tok": 0, "n": 1, "nl": 0, "roles": ["solver"], "acc": false}], "evo_full_8b_v2guard_lam005": [{"gen": 0, "att": 0, "fit": 0.3021, "din": 0.42, "ood": 0.13, "tok": 2744, "n": 1, "nl": 1, "roles": ["assistant"], "acc": true}, {"gen": 1, "att": 1, "fit": 0.2372, "din": 0.27, "ood": 0.23, "tok": 3670, "n": 2, "nl": 1, "roles": ["extractor", "solver"], "acc": false}, {"gen": 1, "att": 1, "fit": 0.1842, "din": 0.24, "ood": 0.16, "tok": 3481, "n": 2, "nl": 1, "roles": ["extractor", "solver"], "acc": false}, {"gen": 1, "att": 1, "fit": 0.1618, "din": 0.24, "ood": 0.165, "tok": 6546, "n": 3, "nl": 2, "roles": ["extractor", "reviewer", "solver"], "acc": false}, {"gen": 1, "att": 2, "fit": 0.3196, "din": 0.47, "ood": 0.12, "tok": 3247, "n": 1, "nl": 1, "roles": ["assistant"], "acc": false}, {"gen": 1, "att": 2, "fit": 0.8081, "din": 0.9, "ood": 0.815, "tok": 3247, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 1, "att": 2, "fit": 0.8101, "din": 0.91, "ood": 0.79, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": true}, {"gen": 2, "att": 1, "fit": 0.9421, "din": 0.97, "ood": 0.94, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": true}, {"gen": 2, "att": 1, "fit": 0.9393, "din": 0.97, "ood": 0.945, "tok": 2983, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 2, "att": 1, "fit": 0.9258, "din": 0.97, "ood": 0.94, "tok": 5563, "n": 3, "nl": 2, "roles": ["assistant", "prefs", "repair"], "acc": false}, {"gen": 3, "att": 1, "fit": 0.9506, "din": 0.98, "ood": 0.955, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": true}, {"gen": 3, "att": 1, "fit": 0.9258, "din": 0.98, "ood": 0.875, "tok": 2878, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 3, "att": 1, "fit": 0.9281, "din": 0.98, "ood": 0.895, "tok": 3006, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.9591, "din": 0.99, "ood": 0.96, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": true}, {"gen": 4, "att": 1, "fit": 0.9329, "din": 0.99, "ood": 0.875, "tok": 2865, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 4, "att": 1, "fit": 0.9277, "din": 0.98, "ood": 0.885, "tok": 3082, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 5, "att": 1, "fit": 0.9576, "din": 0.99, "ood": 0.955, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 5, "att": 1, "fit": 0.9606, "din": 0.99, "ood": 0.965, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": true}, {"gen": 5, "att": 1, "fit": 0.9606, "din": 0.99, "ood": 0.965, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.9696, "din": 0.99, "ood": 0.985, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": true}, {"gen": 6, "att": 1, "fit": 0.9426, "din": 0.99, "ood": 0.92, "tok": 3017, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 6, "att": 1, "fit": 0.9451, "din": 0.99, "ood": 0.92, "tok": 3114, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 7, "att": 1, "fit": 0.9741, "din": 0.99, "ood": 0.99, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": true}, {"gen": 7, "att": 1, "fit": 0.9711, "din": 0.99, "ood": 0.99, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 7, "att": 1, "fit": 0.9305, "din": 0.99, "ood": 0.88, "tok": 3046, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.9741, "din": 0.99, "ood": 0.99, "tok": 2744, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.9712, "din": 0.98, "ood": 0.97, "tok": 1087, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": false}, {"gen": 8, "att": 1, "fit": 0.9728, "din": 0.99, "ood": 0.97, "tok": 2030, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": false}, {"gen": 8, "att": 2, "fit": 0.9621, "din": 0.99, "ood": 0.965, "tok": 3011, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 8, "att": 2, "fit": 0.9621, "din": 0.99, "ood": 0.965, "tok": 3011, "n": 2, "nl": 1, "roles": ["assistant", "repair"], "acc": false}, {"gen": 8, "att": 2, "fit": 0.9582, "din": 0.99, "ood": 0.935, "tok": 3151, "n": 4, "nl": 2, "roles": ["brief", "cons", "assistant", "repair"], "acc": false}, {"gen": 8, "att": 3, "fit": 0.8387, "din": 0.92, "ood": 0.91, "tok": 2754, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": false}, {"gen": 8, "att": 3, "fit": 0.8395, "din": 0.92, "ood": 0.915, "tok": 2754, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": false}, {"gen": 8, "att": 3, "fit": 0.975, "din": 0.99, "ood": 0.975, "tok": 1844, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": true}, {"gen": 9, "att": 1, "fit": 0.9761, "din": 0.99, "ood": 0.995, "tok": 1618, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": false}, {"gen": 9, "att": 1, "fit": 0.9795, "din": 0.99, "ood": 0.99, "tok": 1845, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": true}, {"gen": 9, "att": 1, "fit": 0.9523, "din": 0.99, "ood": 0.95, "tok": 1861, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": false}, {"gen": 10, "att": 1, "fit": 0.9836, "din": 1.0, "ood": 0.99, "tok": 1778, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": true}, {"gen": 10, "att": 1, "fit": 0.9835, "din": 1.0, "ood": 0.99, "tok": 1845, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": false}, {"gen": 10, "att": 1, "fit": 0.9813, "din": 1.0, "ood": 0.99, "tok": 1684, "n": 3, "nl": 1, "roles": ["brief", "assistant", "repair"], "acc": false}]};
+const RUNS = [
+  ["evo_full", "evo_full · 30B · 可写代码 · λ=0.02"],
+  ["evo_prompt", "evo_prompt · 30B · 只能用 LLM 员工"],
+  ["evo_full_8b", "evo_full_8b · 8B · 可写代码 · λ=0.02"],
+  ["evo_full_8b_v2guard_lam005", "8B · 可写代码 · λ=0.005 · +dev_v2"],
+];
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (parent) parent.appendChild(e); return e; };
+const txt = (parent, x, y, s, attrs = {}) => { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; };
+const tip = document.getElementById("tip");
+function showTip(ev, html) { tip.innerHTML = html; tip.hidden = false;
+  const r = tip.getBoundingClientRect(); let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14; if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; }
+const hideTip = () => { tip.hidden = true; };
+
+// accepted parent per generation (parent survives when no child wins)
+function parents(H) {
+  let p = H[0]; const out = [{ gen: 0, p, kids: [], won: true }];
+  const byGen = {}; for (const h of H.slice(1)) (byGen[h.gen] ??= []).push(h);
+  for (const g of Object.keys(byGen).map(Number).sort((a, b) => a - b)) {
+    const acc = byGen[g].filter(h => h.acc); if (acc.length) p = acc.at(-1);
+    out.push({ gen: g, p, kids: byGen[g], won: acc.length > 0 });
+  }
+  return out;
+}
+const TOK_MAX = 9000;
+const W = 720, L = 100, R = 18, X = g => L + g * (W - L - R) / 10;
+
+for (const [key, title] of RUNS) {
+  const H = DATA[key], P = parents(H);
+  const box = document.createElement("div"); box.className = "chart"; document.getElementById("runs").appendChild(box);
+  const svg = el("svg", { viewBox: `0 0 ${W} 330`, role: "img", "aria-label": title }, box);
+  txt(svg, 8, 18, title, { class: "t-title" });
+  // band labels
+  const bands = [["团队", 58], ["分数", 152], ["token", 278]];
+  for (const [s, y] of bands) txt(svg, 8, y, s);
+  // x axis (generation) at bottom
+  for (let g = 0; g <= 10; g++) { txt(svg, X(g), 322, g === 0 ? "代 0" : String(g), { "text-anchor": "middle" }); }
+  // TEAM strip: squares stacked upward from y=78
+  const SQ = 11, GAP = 3, base = 80;
+  // SCORE band: y 100..200
+  const sy0 = 205, sy1 = 105, SY = v => sy0 - v * (sy0 - sy1);
+  for (const v of [0, 0.5, 1]) { el("line", { x1: L, x2: W - R, y1: SY(v), y2: SY(v), stroke: "var(--grid)" }, svg);
+    txt(svg, L - 8, SY(v) + 4, v.toFixed(1), { "text-anchor": "end" }); }
+  // TOKEN band: y 230..300
+  const ty0 = 300, ty1 = 232, TY = v => ty0 - Math.min(v, TOK_MAX) / TOK_MAX * (ty0 - ty1);
+  el("line", { x1: L, x2: W - R, y1: ty0, y2: ty0, stroke: "var(--rule)" }, svg);
+  for (const v of [4000, 8000]) { el("line", { x1: L, x2: W - R, y1: TY(v), y2: TY(v), stroke: "var(--grid)" }, svg);
+    txt(svg, L - 8, TY(v) + 4, (v / 1000) + "k", { "text-anchor": "end" }); }
+  // children dots (dev_in), faint
+  for (const row of P) row.kids.forEach((h, i) => {
+    const n = row.kids.length, jx = (i - (n - 1) / 2) * 3.2;
+    el("circle", { cx: X(row.gen) + jx, cy: SY(h.din), r: 2.6, fill: "var(--ink-3)", opacity: 0.45 }, svg);
+  });
+  // score lines
+  const path = f => P.map((r, i) => `${i ? "L" : "M"}${X(r.gen)},${SY(f(r.p))}`).join("");
+  el("path", { d: path(p => p.ood), fill: "none", stroke: "var(--ink)", "stroke-width": 2, "stroke-dasharray": "5 4", opacity: .7 }, svg);
+  el("path", { d: path(p => p.din), fill: "none", stroke: "var(--ink)", "stroke-width": 2 }, svg);
+  for (const r of P) el("circle", { cx: X(r.gen), cy: SY(r.p.din), r: 4, fill: "var(--ink)", stroke: "var(--panel)", "stroke-width": 2 }, svg);
+  // end labels
+  const last = P.at(-1).p, first = P[0].p;
+  txt(svg, X(P.at(-1).gen) - 6, SY(last.din) - 9, last.din.toFixed(2), { "text-anchor": "end", class: "t-ink" });
+  txt(svg, X(0) - 10, SY(first.din) + 4, first.din.toFixed(2), { "text-anchor": "end", class: "t-ink" });
+  // per generation: team squares + token bar + hit target
+  const colW = (W - L - R) / 10;
+  for (const r of P) {
+    const x = X(r.gen), roles = r.p.roles, nl = r.p.nl;
+    // order: LLM roles first at the bottom, then code roles
+    const kinds = Array.from({ length: roles.length }, (_, i) => i < nl ? "llm" : "code");
+    kinds.forEach((k, i) => {
+      const y = base - (i + 1) * (SQ + GAP) + GAP;
+      el("rect", { x: x - SQ / 2, y, width: SQ, height: SQ, rx: 2,
+        fill: r.won ? `var(--${k})` : "var(--panel)", stroke: `var(--${k})`, "stroke-width": r.won ? 0 : 1.5 }, svg);
+    });
+    const bh = ty0 - TY(r.p.tok);
+    if (r.p.tok > 0) el("rect", { class: "bar", x: x - 8, y: TY(r.p.tok), width: 16, height: bh, rx: 3, fill: "var(--ink-3)", opacity: .55 }, svg);
+    else txt(svg, x, ty0 - 5, "0", { "text-anchor": "middle" });
+    const hit = el("rect", { x: x - colW / 2, y: 26, width: colW, height: 284, fill: "transparent" }, svg);
+    hit.addEventListener("mousemove", ev => showTip(ev,
+      `<b>第 ${r.gen} 代</b>${r.won ? "" : "（无子代胜出，父代保留）"}<br>` +
+      `团队：${roles.join(" + ")}<br>LLM 员工 ${nl} / 共 ${roles.length}<br>` +
+      `dev_in ${r.p.din.toFixed(2)} · ood_dev ${r.p.ood.toFixed(2)}<br>token ${r.p.tok} · fitness ${r.p.fit.toFixed(3)}` +
+      (r.kids.length ? `<br>本代评估子代 ${r.kids.length} 个` : "")));
+    hit.addEventListener("mouseleave", hideTip);
+  }
+  // token end labels
+  txt(svg, X(0) + 12, TY(P[0].p.tok) + 10, String(P[0].p.tok), { "text-anchor": "start" });
+  const lp = P.at(-1); if (lp.p.tok > 0) txt(svg, X(lp.gen), TY(lp.p.tok) - 5, String(lp.p.tok), { "text-anchor": "middle", class: "t-ink" });
+}
+
+// SCATTER: all children of the 4 runs
+{
+  const SW = 720, SH = 380, l = 56, r = 18, t = 36, b = 44;
+  const XM = 14000, sx = v => l + v / XM * (SW - l - r), sy = v => SH - b - v * (SH - b - t);
+  const box = document.getElementById("scatter");
+  const svg = el("svg", { viewBox: `0 0 ${SW} ${SH}`, role: "img", "aria-label": "所有子代团队：token 对 dev_in 分数" }, box);
+  for (const v of [0, .25, .5, .75, 1]) { el("line", { x1: l, x2: SW - r, y1: sy(v), y2: sy(v), stroke: "var(--grid)" }, svg);
+    txt(svg, l - 8, sy(v) + 4, v.toFixed(2), { "text-anchor": "end" }); }
+  for (const v of [0, 2000, 4000, 6000, 8000, 10000, 12000, 14000]) txt(svg, sx(v), SH - b + 18, v === 0 ? "0" : (v / 1000) + "k", { "text-anchor": "middle" });
+  txt(svg, (l + SW - r) / 2, SH - 6, "每样本 token", { "text-anchor": "middle" });
+  txt(svg, l - 8, 16, "dev_in 分数", { "text-anchor": "start" });
+  const colorOf = nl => nl === 0 ? "var(--code)" : nl === 1 ? "var(--llm)" : "var(--multi)";
+  const pts = [];
+  for (const [key] of RUNS) for (const h of DATA[key]) pts.push({ ...h, run: key });
+  pts.sort((a, b) => (a.nl === 1) - (b.nl === 1)); // draw 1-LLM on top
+  for (const h of pts) {
+    const c = el("circle", { class: "dot", cx: sx(h.tok), cy: sy(h.din), r: 5, fill: colorOf(h.nl), stroke: "var(--panel)", "stroke-width": 2, opacity: .9 }, svg);
+    c.addEventListener("mousemove", ev => showTip(ev,
+      `<b>${h.run}</b> · 第 ${h.gen} 代${h.acc ? " · 被接受" : ""}<br>团队：${h.roles.join(" + ")}<br>` +
+      `dev_in ${h.din.toFixed(2)} · ood_dev ${h.ood.toFixed(2)}<br>token ${h.tok} · fitness ${h.fit.toFixed(3)}`));
+    c.addEventListener("mouseleave", hideTip);
+  }
+  // annotate the final evo_full genome
+  const fin = DATA.evo_full.filter(h => h.acc).at(-1);
+  el("circle", { cx: sx(fin.tok), cy: sy(fin.din), r: 10, fill: "none", stroke: "var(--ink)", "stroke-width": 1.5 }, svg);
+}
+</script>

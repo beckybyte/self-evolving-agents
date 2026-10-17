@@ -1,0 +1,23 @@
+{
+ "score": 0.9531,
+ "hard_acc": 0.9531,
+ "soft_mean": null,
+ "tokens_per_sample": 1929.2,
+ "fail_reasons": {
+  "constraint_violated": 10,
+  "different_number_of_events": 2
+ },
+ "fail_detail": {
+  "violates_before": 2,
+  "extra_event": 1,
+  "violates_at": 5,
+  "missing_event": 1,
+  "violates_between": 1,
+  "violates_after": 2
+ },
+ "genome": "gen10a1_c2",
+ "split": "test_v2",
+ "worker": "qwen3-8b",
+ "n": 256,
+ "secs": 86.1
+}

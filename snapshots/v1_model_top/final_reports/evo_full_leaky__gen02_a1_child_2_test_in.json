@@ -1,0 +1,17 @@
+{
+ "score": 0.9844,
+ "hard_acc": 0.9844,
+ "soft_mean": null,
+ "tokens_per_sample": 2980.9,
+ "fail_reasons": {
+  "different_number_of_events": 2
+ },
+ "fail_detail": {
+  "extra_event": 2
+ },
+ "genome": "gen02a1_c2",
+ "split": "test_in",
+ "worker": "qwen3-30b-a3b",
+ "n": 128,
+ "secs": 654.2
+}

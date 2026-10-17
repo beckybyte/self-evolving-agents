@@ -1,0 +1,25 @@
+{
+ "score": 0.8242,
+ "hard_acc": 0.8242,
+ "soft_mean": null,
+ "tokens_per_sample": 827.9,
+ "fail_reasons": {
+  "different_number_of_events": 35,
+  "constraint_violated": 9,
+  "runtime_error": 1
+ },
+ "fail_detail": {
+  "extra_event": 34,
+  "violates_at": 2,
+  "violates_after": 4,
+  "violates_between": 2,
+  "TimeoutExpired(['<conda>/bin/python3', '-c', \"import json,sys,importlib.util\\nspec=importlib.util.spec_from_file_location('t','<repo>/runs/evo_full/genomes/gen10_a1_child_1/tools/solve.py')\\nm=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)\\nd=json.load(sys.stdin);print(json.dumps(m.run(d['bb'],d['messages'])))\\n\"], 60)": 1,
+  "missing_event": 1,
+  "violates_before": 1
+ },
+ "genome": "gen10a1_c1",
+ "split": "test_v2",
+ "worker": "qwen3-30b-a3b",
+ "n": 256,
+ "secs": 108.3
+}

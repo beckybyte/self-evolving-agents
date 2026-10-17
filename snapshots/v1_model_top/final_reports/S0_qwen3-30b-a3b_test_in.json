@@ -1,0 +1,23 @@
+{
+ "score": 0.4141,
+ "hard_acc": 0.4141,
+ "soft_mean": null,
+ "tokens_per_sample": 4294.2,
+ "fail_reasons": {
+  "constraint_violated": 59,
+  "no_json_list": 15,
+  "different_number_of_events": 1
+ },
+ "fail_detail": {
+  "violates_between": 18,
+  "missing_event": 16,
+  "violates_at": 22,
+  "violates_after": 12,
+  "violates_before": 7
+ },
+ "genome": "S0",
+ "split": "test_in",
+ "worker": "qwen3-30b-a3b",
+ "n": 128,
+ "secs": 346.5
+}

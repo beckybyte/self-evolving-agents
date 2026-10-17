@@ -1,0 +1,23 @@
+{
+ "score": 0.0917,
+ "hard_acc": 0.1167,
+ "soft_mean": 0.5714,
+ "tokens_per_sample": 4347.2,
+ "fail_reasons": {
+  "conflicting_events": 41,
+  "constraint_violated": 12
+ },
+ "fail_detail": {
+  "violates_at": 8,
+  "violates_after": 4,
+  "overlap": 18,
+  "violates_before": 4,
+  "out_of_window": 12,
+  "violates_between": 7
+ },
+ "genome": "P0",
+ "split": "ood_test",
+ "worker": "qwen3-8b",
+ "n": 60,
+ "secs": 43.1
+}

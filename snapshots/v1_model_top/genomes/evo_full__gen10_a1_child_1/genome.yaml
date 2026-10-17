@@ -1,0 +1,33 @@
+id: gen10a1_c1
+parent: gen09a3_c3
+soul: ""
+roles:
+  - name: digest
+    type: tool
+    tool: tools/digest.py
+  - name: extract
+    type: llm
+    model: $WORKER
+    input: transcript
+    max_tokens: 768
+    prompt: |
+      List the CURRENT calendar from these user requests. Do not schedule.
+
+      {blackboard}
+
+      For each event still on the calendar (added, not removed) write one row [event_id, "name" (2-4 words), duration (latest, minutes), rule],
+      rule = its LATEST hard rule with the user's clock time: "at 1:30pm", "before 2:30pm" (end by), "after 11am"
+      (start at or after), "between 10am and 1pm", or null if no clock time was given. A rule belongs only to the event whose id is in that sentence.
+      Soft wishes (ideally, prefer, would love, if possible...) are never rules; put them in "prefs" (HH:MM 24h):
+      objects with type "window" or "avoid" (event_id, start, end), "order" / "adjacent" / "apart" (event_id, other_id),
+      or "earliest" / "latest" (event_id).
+      Output one single-line JSON object like {"events": [[3, "Team sync", 60, "before 2:30pm"], [5, "Lunch", 30, null]], "prefs": []}, nothing else. /no_think
+  - name: answer
+    type: tool
+    tool: tools/solve.py
+final: answer
+notes: >-
+  Token-only move (parent has zero failures on both splits, so the 0.02*tokens term is the only lever on dev_in): the extractor
+  now writes each event as a positional row [id, "name", duration, rule] instead of a keyed object, roughly halving its output
+  tokens per event. solve.py accepts both rows and objects (plus a row salvager for truncated replies); every deterministic
+  override, grounding and preference path is unchanged.

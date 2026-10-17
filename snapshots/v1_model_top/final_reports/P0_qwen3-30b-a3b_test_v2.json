@@ -1,0 +1,28 @@
+{
+ "score": 0.3594,
+ "hard_acc": 0.3594,
+ "soft_mean": null,
+ "tokens_per_sample": 3312.7,
+ "fail_reasons": {
+  "conflicting_events": 109,
+  "no_json_list": 10,
+  "constraint_violated": 37,
+  "different_number_of_events": 8
+ },
+ "fail_detail": {
+  "overlap": 96,
+  "no_json": 10,
+  "out_of_window": 27,
+  "violates_at": 4,
+  "wrong_duration": 2,
+  "violates_between": 5,
+  "violates_before": 10,
+  "extra_event": 8,
+  "violates_after": 2
+ },
+ "genome": "P0",
+ "split": "test_v2",
+ "worker": "qwen3-30b-a3b",
+ "n": 256,
+ "secs": 1258.6
+}

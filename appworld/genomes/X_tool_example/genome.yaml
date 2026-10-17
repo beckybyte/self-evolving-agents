@@ -1,0 +1,26 @@
+id: X_tool_example
+parent: P0
+notes: "Schema example: a tool role injects the API name catalog of mentioned apps; single-mode coder sees last 6 steps."
+max_steps: 30
+history_turns: 6
+act: coder
+roles:
+  - name: api_catalog
+    type: tool
+    tool: tools/api_catalog.py
+  - name: coder
+    type: llm
+    model: $WORKER
+    input: single
+    max_tokens: 1536
+    system: "You complete tasks by writing Python against AppWorld `apis`. Reply with exactly one ```python``` block. Read docs with print(apis.api_docs.show_api_doc(app_name=..., api_name=...)) before first use. Finish with apis.supervisor.complete_task(answer=...) (answer only for questions)."
+    prompt: |
+      {task}
+
+      Existing API names (use only these):
+      {blackboard.api_catalog}
+
+      Recent steps:
+      {history}
+
+      Step {step}. Write the next code block.

@@ -1,0 +1,26 @@
+id: S0
+parent: null
+soul: ""
+roles:
+  - name: extract
+    type: llm
+    model: $WORKER
+    input: transcript
+    max_tokens: 3000
+    prompt: |
+      Below is a conversation between a user and a calendar assistant. Work out the FINAL set of events the
+      user wants on the calendar and the FINAL constraint for each one (later messages override earlier ones;
+      constraints are permanent once given unless the user changes them).
+
+      Output ONLY a JSON list, one object per event:
+      {"event_id": int, "event_name": str, "duration": int (minutes), "constraint": str or null}
+      constraint must be exactly one of: "before H[:MM]am|pm", "after H[:MM]am|pm", "at H[:MM]am|pm",
+      "between H[:MM]am|pm and H[:MM]am|pm", or null.
+
+      Conversation:
+      {conversation}
+  - name: schedule
+    type: tool
+    tool: tools/solve.py
+final: schedule
+notes: "Fixed-DSL solver baseline: LLM extracts the 4 hard constraint types, Python backtracking solves."

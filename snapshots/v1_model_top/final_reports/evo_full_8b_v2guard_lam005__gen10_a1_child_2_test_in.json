@@ -1,0 +1,13 @@
+{
+ "score": 1.0,
+ "hard_acc": 1.0,
+ "soft_mean": null,
+ "tokens_per_sample": 2566.5,
+ "fail_reasons": {},
+ "fail_detail": {},
+ "genome": "gen10a1_c2",
+ "split": "test_in",
+ "worker": "qwen3-8b",
+ "n": 128,
+ "secs": 58.3
+}

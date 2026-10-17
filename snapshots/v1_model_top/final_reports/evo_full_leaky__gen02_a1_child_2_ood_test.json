@@ -1,0 +1,17 @@
+{
+ "score": 0.925,
+ "hard_acc": 0.9833,
+ "soft_mean": 0.8814,
+ "tokens_per_sample": 3058.6,
+ "fail_reasons": {
+  "constraint_violated": 1
+ },
+ "fail_detail": {
+  "violates_at": 1
+ },
+ "genome": "gen02a1_c2",
+ "split": "ood_test",
+ "worker": "qwen3-30b-a3b",
+ "n": 60,
+ "secs": 372.3
+}

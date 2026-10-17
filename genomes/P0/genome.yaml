@@ -1,0 +1,11 @@
+id: P0
+parent: null
+soul: ""
+roles:
+  - name: assistant
+    type: llm
+    model: $WORKER
+    input: native
+    prompt: ""
+final: assistant
+notes: "Baseline: the dataset's own system prompt, one call, no extra instructions."

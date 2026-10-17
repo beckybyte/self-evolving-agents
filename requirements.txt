@@ -1,0 +1,7 @@
+openai>=1.40
+pyyaml>=6.0
+datasets>=2.19
+math-verify>=0.5
+sympy>=1.12
+pytest>=8.0
+matplotlib>=3.8

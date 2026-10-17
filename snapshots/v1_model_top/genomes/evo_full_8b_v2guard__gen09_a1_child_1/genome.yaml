@@ -1,0 +1,14 @@
+id: gen09a1_c1
+parent: gen08a1_c1
+soul: ""
+roles:
+  - name: planner
+    type: tool
+    tool: tools/repair.py
+final: planner
+notes: >-
+  Parse fix only. In a clause with no event id, a time now belongs to the event named in the sentence that holds
+  the time, not to whichever event the whole clause matches best. Evidence: v2train-4994's small-talk final turn says
+  "the Brand Narrative Workshop is set to wrap by 11:30" and then talks at length about the Client Pitch, so the parent
+  gave "before 11:30" to the pitch and pushed the workshop to 11:30. I reproduced that exact wrong answer and confirmed
+  the fix on a synthetic copy. Still zero LLM tokens.
