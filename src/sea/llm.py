@@ -56,14 +56,17 @@ def strip_think(text: str) -> str:
     return re.sub(r"<think>.*?</think>", "", text or "", flags=re.S).strip()
 
 
+CLAUDE_TIMEOUT = int(os.environ.get("SEA_CLAUDE_TIMEOUT", "2400"))
+
+
 def chat(model: str, messages: list[dict], max_tokens: int = 2048, temperature: float = 0.0,
          timeout: int = 900) -> tuple[str, dict]:
     if model.startswith("fake:"):
         text = _fakes[model[5:]](messages)
         n = sum(len(m["content"]) for m in messages) // 4
         return text, {"prompt": n, "completion": len(text) // 4, "calls": 1}
-    if model.startswith("claude:"):
-        return _claude(model[7:], messages, timeout)
+    if model.startswith("claude:"):  # whole-file code generation by a Claude worker can take 10+ minutes
+        return _claude(model[7:], messages, max(timeout, CLAUDE_TIMEOUT))
     if model.startswith("crusoe:"):
         return _crusoe(model[7:], messages, max_tokens, temperature, timeout)
     extra = {"chat_template_kwargs": {"enable_thinking": False}} if model in NO_THINKING else {}
