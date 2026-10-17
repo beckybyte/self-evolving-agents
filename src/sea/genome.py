@@ -34,6 +34,9 @@ genome.yaml (schema: 2)
                                     deep also chains chat "yes" on the created item -> items/<id>/done -> clock +2 h
                                     -> undo (when a message has an undo_id); still crash/shape problems only, and a
                                     slow deep call (timeout, budget used up) is a note, not a failure.
+      selftest: true                app_smoke option: first runs `python app.py --selftest --data <tmp>` (<= 12 s, must
+                                    exit) and reports its exit code and output; nonzero exit = a problem. The team
+                                    writes the self-test; the normal start-up path is still what gets started and scored.
       # human (never blocks)
       question: str (template), default: str (template)  -> output = the human's answer if one exists, else the default
   workflow: [step, ...]             step = role name, or {loop: {body: [names], max_rounds: int, stop_when: str}}

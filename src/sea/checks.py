@@ -25,6 +25,7 @@ from pathlib import Path
 
 SMOKE_BUDGET = 38.0  # seconds for the whole check, process start to last call
 HEALTH_WAIT = 15.0
+SELFTEST_WAIT = 12.0
 TAIL = 1500
 
 ITEM_KEYS = ("id", "kind", "title", "start", "end", "window", "status", "why", "parent_id", "estimate_min",
@@ -151,7 +152,30 @@ def deep_calls(do, seen: list, lines: list):
         lines.append("deep: no message carried an undo_id; /api/undo not run")
 
 
-def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: str = "basic") -> tuple[bool, str]:
+def run_selftest(app: Path, tmp: Path, wait: float) -> tuple[int, str]:
+    """selftest: true -- `python app.py --selftest --data <tmp>` in its own process before the server starts; the
+    team's own self-test (assertions it wrote) reports through its exit code and output. The shipped start-up path is
+    untouched, so a failing self-test never stops the scored app from starting. Returns (problems, report line)."""
+    data = tmp / "selftest_data"
+    data.mkdir(exist_ok=True)
+    with open(tmp / "selftest.txt", "w") as outf:
+        p = subprocess.Popen([sys.executable, "app.py", "--selftest", "--data", str(data)], cwd=app, stdout=outf,
+                             stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, env=_app_env(), start_new_session=True)
+        t0 = time.time()
+        try:
+            code = p.wait(timeout=wait)
+        except subprocess.TimeoutExpired:
+            code = None
+        finally:
+            _kill_tree(p)
+    out = (tmp / "selftest.txt").read_text(errors="replace")[-TAIL:]
+    if code is None:
+        return 1, f"selftest: did not finish within {wait:.0f} s (it must exit; do not start the server under --selftest)\noutput tail:\n{out}"
+    return int(code != 0), f"selftest: exit {code} in {time.time() - t0:.1f} s" + (f"\noutput tail:\n{out}" if out.strip() else "")
+
+
+def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: str = "basic",
+              selftest: bool = False) -> tuple[bool, str]:
     """Compile the team's files, start app.py, make SMOKE_CALLS (+ deep_calls when calls == "deep").
     Returns (passed, report)."""
     from .tasks.build import materialise  # lazy: tasks.build imports the executor, which imports this module
@@ -173,13 +197,19 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
         if bad:
             return False, "SMOKE: FAIL (compile errors)\n" + "\n".join(lines + ["compile errors:"] + bad)
         lines.append("compile: ok")
+        if selftest:
+            problems_st, st_line = run_selftest(app, Path(tmp), min(SELFTEST_WAIT, budget / 3))
+            lines.append(st_line)
+            pre_problems = problems_st
+        else:
+            pre_problems = 0
         port, data, log = _free_port(), Path(tmp) / "data", Path(tmp) / "stderr.txt"
         data.mkdir()
         with open(log, "w") as errf:
             proc = subprocess.Popen([sys.executable, "app.py", "--port", str(port), "--data", str(data)], cwd=app,
                                     stdout=errf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                     env=_app_env(), start_new_session=True)
-        base, problems = f"http://127.0.0.1:{port}", 0
+        base, problems = f"http://127.0.0.1:{port}", pre_problems
         try:
             started = False
             while time.time() - t0 < min(HEALTH_WAIT + 1, budget):
@@ -254,7 +284,7 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
 
 
 CHECKS = {"app_smoke": app_smoke}
-CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep")}}  # option -> allowed values (first = default)
+CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep"), "selftest": (False, True)}}  # option -> allowed values (first = default)
 
 
 def run_check(name: str, artifacts: dict[str, str], **opts) -> tuple[bool, str]:

@@ -231,3 +231,16 @@ def test_check_options_validated_and_passed(tmp_path):
     for bad in ({"calls": "all"}, {"depth": 3}):
         with pytest.raises(AssertionError, match="check option"):
             load_genome(_genome(tmp_path, [{"name": "s", "kind": "check", "check": "app_smoke", **bad}], ["s"]))
+
+
+def test_smoke_selftest_option():
+    st = good().replace('a = p.parse_args()', 'p.add_argument("--selftest", action="store_true")\na = p.parse_args()\n'
+                        'if a.selftest:\n    print("SELFTEST lunch parsed as window"); raise SystemExit(SELFCODE)')
+    ok, rep = app_smoke({"app_py": st.replace("SELFCODE", "1")}, selftest=True)
+    assert not ok and "selftest: exit 1" in rep and "lunch parsed as window" in rep
+    assert "POST /api/command" in rep  # the normal start-up path still ran
+    ok, rep = app_smoke({"app_py": st.replace("SELFCODE", "0")}, selftest=True)
+    assert ok and "selftest: exit 0" in rep
+    hang = st.replace('raise SystemExit(SELFCODE)', '__import__("time").sleep(60)')
+    ok, rep = app_smoke({"app_py": hang}, selftest=True, budget=15)  # a self-test that never exits
+    assert not ok and "did not finish" in rep
