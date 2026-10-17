@@ -134,9 +134,16 @@ def test_build_p1_parallel_and_evolution(tmp_path, monkeypatch):
 
     monkeypatch.setenv("SEA_FAKE_EVOLVER", "1")
     monkeypatch.setenv("SEA_META_SIGNALS", "0")
+    # a stale eval left by a previous run of the same attempt tag (resume after a restart) must not be reused
+    stale = tmp_path / "evo" / "evals" / "gen01_a1_child_1" / "v0"
+    for sp in ("fit", "holdout"):
+        (stale / sp).mkdir(parents=True)
+        (stale / sp / "report.json").write_text(json.dumps({"score": 9.0, "tokens_per_sample": 0, "per_run": [9.0]}))
     st = Evolution(task, tmp_path / "evo", "fake:team", ROOT / "genomes/v2/build_P1", gens=1, k=1, max_attempts=1,
                    patience=1).run()
     assert st["done"] and st["parent_fit"] is not None
+    hist = [json.loads(l) for l in open(tmp_path / "evo" / "history.jsonl")]
+    assert all(h.get("fitness", 0) < 2 for h in hist) and any(h.get("id") == "gen01_a1_child_1" for h in hist)
     ws = next((tmp_path / "evo" / "workspaces").glob("gen01_a1"))
     assert (ws / "app_r0" / "app.py").exists() and (ws / "app_r1" / "app.py").exists() and (ws / "fit_rows.jsonl").exists()
     assert "SECRET" not in "".join(p.read_text() for p in ws.rglob("*") if p.is_file() and "parent" not in p.parts)

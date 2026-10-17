@@ -211,6 +211,9 @@ class Evolution:
                 dst = self.run_dir / "genomes" / f"{tag}_{c.name}"
                 if dst.exists():
                     shutil.rmtree(dst)
+                # a resumed attempt re-runs the evolver under the same tag: its new child must not reuse evals
+                # (team.json / report.json caches) of the previous child that had the same name
+                shutil.rmtree(self.run_dir / "evals" / dst.name, ignore_errors=True)
                 shutil.copytree(c, dst, ignore=shutil.ignore_patterns("__pycache__"))
                 self._inherit_memory(Path(st["parent"]), dst, g)
                 if self.learn:
