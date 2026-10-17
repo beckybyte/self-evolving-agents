@@ -217,7 +217,7 @@ class _Run:
         with self._lock:
             arts = dict(self.artifacts)
         t0 = time.time()
-        ok, text = run_check(r["check"], arts)
+        ok, text = run_check(r["check"], arts, **r.get("options", {}))
         with self._lock:
             self.store(r, text)
             self.trace.append({"role": r["name"], "kind": "check", "tokens": 0, "chars": len(text), "ok": ok,

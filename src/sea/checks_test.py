@@ -31,7 +31,13 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         self.rfile.read(int(self.headers.get("Content-Length", 0)))
         if self.path == "/api/reset": return self.send({"now": "2026-10-19T09:00", "items": [], "messages": []})
-        if self.path == "/api/command": return self.send({"messages": [MSG], "created": ["i1"]})
+        if self.path == "/api/command": return self.send({"messages": [dict(MSG, undo_id="u1")], "created": ["i1"]})
+        if self.path == "/api/chat":
+            CHAT
+            return self.send({"messages": [MSG]})
+        if self.path == "/api/items/i1/done": return self.send({"item": dict(ITEM, status="done")})
+        if self.path == "/api/clock": return self.send({"messages": []})
+        if self.path == "/api/undo": return self.send({"ok": True})
         self.send_error(404)
     def log_message(self, *a): pass
 p = argparse.ArgumentParser(); p.add_argument("--port", type=int); p.add_argument("--data")
@@ -40,9 +46,9 @@ ThreadingHTTPServer(("127.0.0.1", a.port), H).serve_forever()
 '''
 
 
-def good(pidfile: str = "pass") -> str:
+def good(pidfile: str = "pass", chat: str = "pass") -> str:
     code = f"open({pidfile!r}, 'w').write(str(__import__('os').getpid()))" if pidfile != "pass" else "pass"
-    return GOOD_APP.replace("PIDFILE", code)
+    return GOOD_APP.replace("PIDFILE", code).replace("CHAT", chat)
 
 
 # the gen00 r1 failure of evo_iris2: class body `store = store` -> NameError at startup
@@ -195,3 +201,33 @@ def test_rendered_artifacts_round_trip_and_legacy_emissions(tmp_path):
     # tags win over a legacy section for the same name
     both = '<artifact name="a_py">tag</artifact>\n### artifact: a_py\n```\nlegacy\n```'
     assert parse_artifacts(both) == {"a_py": "tag"}
+
+
+def test_smoke_deep_calls_opt_in():
+    ok, rep = app_smoke({"app_py": good()}, calls="deep")
+    assert ok, rep
+    for path in ("/api/chat", "/api/items/i1/done", "/api/clock", "/api/undo"):
+        assert f"POST {path}" in rep
+    ok, rep = app_smoke({"app_py": good()})  # default: basic, none of the deep paths
+    assert ok and "/api/chat" not in rep
+    # chat crashes: basic passes (never calls it), deep reports the 500
+    crash = good(chat="raise ValueError('a, b = (1,)')")
+    assert app_smoke({"app_py": crash})[0]
+    ok, rep = app_smoke({"app_py": crash}, calls="deep")
+    assert not ok and "POST /api/chat" in rep and ("HTTP 500" in rep or "no answer" in rep or "Traceback" in rep)
+    # a slow deep call is a note, not a failure
+    slow = good(chat="__import__('time').sleep(20)")
+    ok, rep = app_smoke({"app_py": slow}, budget=8, calls="deep")
+    assert ok, rep
+
+
+def test_check_options_validated_and_passed(tmp_path):
+    roles = [{"name": "w", "kind": "llm", "model": "fake:w3", "prompt": "write"},
+             {"name": "smoke", "kind": "check", "check": "app_smoke", "calls": "deep"}]
+    register_fake("w3", lambda m: f'<artifact name="app_py">{good()}</artifact>')
+    g = load_genome(_genome(tmp_path, roles, ["w", "smoke"]))
+    res = run_team(g, {"id": "e", "input": {"text": "x"}}, "fake:w3")
+    assert res["blackboard"]["smoke"].startswith("SMOKE: PASS") and "/api/undo" in res["blackboard"]["smoke"]
+    for bad in ({"calls": "all"}, {"depth": 3}):
+        with pytest.raises(AssertionError, match="check option"):
+            load_genome(_genome(tmp_path, [{"name": "s", "kind": "check", "check": "app_smoke", **bad}], ["s"]))

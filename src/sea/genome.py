@@ -30,6 +30,10 @@ genome.yaml (schema: 2)
                                     app.py and make a few generic contract calls; output (blackboard[name]) is a
                                     report starting "SMOKE: PASS" or "SMOKE: FAIL (...)" with compile errors, the
                                     traceback tail, HTTP status and JSON-shape problems per call. 0 tokens, <= 40 s.
+      calls: basic | deep           app_smoke option (default basic: reset, state, command "call mom" dump, focus).
+                                    deep also chains chat "yes" on the created item -> items/<id>/done -> clock +2 h
+                                    -> undo (when a message has an undo_id); still crash/shape problems only, and a
+                                    slow deep call (timeout, budget used up) is a note, not a failure.
       # human (never blocks)
       question: str (template), default: str (template)  -> output = the human's answer if one exists, else the default
   workflow: [step, ...]             step = role name, or {loop: {body: [names], max_rounds: int, stop_when: str}}
@@ -94,7 +98,8 @@ def normalize(raw: dict) -> dict:
         elif kind == "tool":
             n.update(tool=r.get("tool"), writes=r.get("writes", "blackboard"))
         elif kind == "check":
-            n.update(check=r.get("check"), writes=r.get("writes", "blackboard"))
+            n.update(check=r.get("check"), writes=r.get("writes", "blackboard"),
+                     options={k: v for k, v in r.items() if k not in ("name", "kind", "type", "check", "writes")})
         elif kind == "human":
             n.update(question=r.get("question", ""), default=r.get("default", ""), writes=r.get("writes", "blackboard"),
                      reads=list(r.get("reads") or ["blackboard"]))
@@ -130,6 +135,11 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
         if r["kind"] == "check":
             from .checks import CHECKS
             assert r.get("check") in CHECKS, f"role {r['name']}: unknown check {r.get('check')!r} ({sorted(CHECKS)})"
+            from .checks import CHECK_OPTIONS
+            allowed = CHECK_OPTIONS.get(r["check"], {})
+            for k, v in r.get("options", {}).items():
+                assert k in allowed and v in allowed[k], (
+                    f"role {r['name']}: check option {k}: {v!r} not allowed ({ {o: list(a) for o, a in allowed.items()} })")
         if r["kind"] == "llm":
             assert known_model(r["model"]), f"unknown model {r['model']}"
             if g["_legacy"]:
