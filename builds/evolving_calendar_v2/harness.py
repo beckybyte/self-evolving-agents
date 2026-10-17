@@ -1047,7 +1047,8 @@ def op_activity(ctx: Ctx, st: dict):
     ok = bool(ev) and all(ats) and all(a <= b for a, b in zip(ats, ats[1:]))
     ctx.check("activity_ordered", ok, f"ats={[e.get('at') for e in ev][:8]}")
     rw = [e for e, b in zip(ev, blob) if re.search(r"prompt|rewrite", b)]
-    ok = any(re.search(r"^[+-]|\n[+-]|diff|→|->", str(e.get("text") or "")) for e in rw)
+    ok = any(re.search(r"^[+-]|\n[+-]|(^|\s)[+-] \S|diff|→|->", str(e.get("text") or ""))
+             or str(e.get("diff") or "").strip() for e in rw)
     ctx.check("rewrite_has_diff", ok, f"rewrite events: {short([e.get('text') for e in rw], 200)}")
 
 

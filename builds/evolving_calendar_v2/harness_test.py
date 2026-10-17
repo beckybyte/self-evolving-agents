@@ -181,3 +181,29 @@ def test_ui_usability_plain_page_fails(tmp_path):
     plain = "<html><body>" + "".join(f'<div id="{i}"></div>' for i in harness.UI_IDS) + "</body></html>"
     r = harness.run_scenario(_page_app(tmp_path, plain), harness.SCENARIOS.SPLITS["fit"][-1], timeout=5)
     assert r["score"] <= 0.25, r
+
+
+class _FakeClient:
+    def __init__(self, events):
+        self.events = events
+
+    def call(self, method, path, body=None, raw=False):
+        return {"events": self.events}
+
+
+def _rewrite_ok(events):
+    ctx = harness.Ctx(_FakeClient(events))
+    ctx.prefix = "activity"
+    harness.op_activity(ctx, {})
+    return ctx.results["activity:rewrite_has_diff"][0]
+
+
+def test_rewrite_has_diff_forms():
+    ev = lambda text, **kw: dict({"at": "2026-10-19T09:00", "agent": "learner", "kind": "prompt_rewrite",
+                                  "text": text}, **kw)
+    assert _rewrite_ok([ev("Designer prompt v2: + Prefer classic, familiar views.")])
+    assert _rewrite_ok([ev("Designer prompt v2: - Try invented layouts")])
+    assert _rewrite_ok([ev("--- v1\n+++ v2\n+ Prefer classic views")])
+    assert _rewrite_ok([ev("Designer prompt v2 written", diff="+ Prefer classic views")])
+    assert not _rewrite_ok([ev("Designer prompt v2 written")])
+    assert not _rewrite_ok([ev("Rewrote the designer prompt for a well-known re-run")])
