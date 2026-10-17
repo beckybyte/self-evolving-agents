@@ -1,4 +1,4 @@
-"""Genome v2: a team = roles (llm | tool | human) + workflow + communication channel + declared artifacts.
+"""Genome v2: a team = roles (llm | tool | human | check) + workflow + communication channel + declared artifacts.
 
 genome.yaml (schema: 2)
   id, parent, notes                 notes = what changed vs the parent and which evidence motivated it
@@ -8,7 +8,7 @@ genome.yaml (schema: 2)
                                     messages: additionally each role has an inbox; writes: message:<role> delivers
   roles:
     - name: str                     unique
-      kind: llm | tool | human      (v1 spelling `type:` accepted)
+      kind: llm | tool | human | check   (v1 spelling `type:` accepted)
       # llm
       model: $WORKER | qwen3-8b | qwen3-30b-a3b | qwen2.5-72b | claude:<alias>
       reads: [selector, ...]        what the role sees; default [input, blackboard]. selectors:
@@ -22,10 +22,17 @@ genome.yaml (schema: 2)
       # tool
       tool: tools/<file>.py         run(ctx) -> {"text": str, "artifacts": {name: str}?}
                                     ctx = {"blackboard", "artifacts", "input", "context"}; v1 run(blackboard, messages) also works
+      # check (framework-provided, frozen code in sea.checks; the genome only names it)
+      check: app_smoke              build mode: materialise the current file artifacts, compile every .py, start
+                                    app.py and make a few generic contract calls; output (blackboard[name]) is a
+                                    report starting "SMOKE: PASS" or "SMOKE: FAIL (...)" with compile errors, the
+                                    traceback tail, HTTP status and JSON-shape problems per call. 0 tokens, <= 40 s.
       # human (never blocks)
       question: str (template), default: str (template)  -> output = the human's answer if one exists, else the default
   workflow: [step, ...]             step = role name, or {loop: {body: [names], max_rounds: int, stop_when: str}}
-                                    (loop stops early when the last body role's output contains stop_when)
+                                    (loop stops early when the last body role's output contains stop_when;
+                                    check_first: true also tests it BEFORE round 1, so the loop runs 0 rounds when
+                                    e.g. a smoke check that ran just before the loop already passed)
                                     or {parallel: [names]}: 2..6 roles run concurrently, each starting from the state
                                     before the step (use it for independent pieces, e.g. backend / ui). Default: roles in order.
   artifacts: [{name, format: markdown|json|text, required: bool=true}]
@@ -50,7 +57,7 @@ import yaml
 
 from .llm import known_model
 
-KINDS = ("llm", "tool", "human")
+KINDS = ("llm", "tool", "human", "check")
 BASE_SELECTORS = ("input", "blackboard", "artifacts", "inbox", "memory")
 
 
@@ -81,6 +88,8 @@ def normalize(raw: dict) -> dict:
                 n["_v1_input"] = r.get("input", "native")
         elif kind == "tool":
             n.update(tool=r.get("tool"), writes=r.get("writes", "blackboard"))
+        elif kind == "check":
+            n.update(check=r.get("check"), writes=r.get("writes", "blackboard"))
         elif kind == "human":
             n.update(question=r.get("question", ""), default=r.get("default", ""), writes=r.get("writes", "blackboard"),
                      reads=list(r.get("reads") or ["blackboard"]))
@@ -112,7 +121,10 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
         assert r.get("name") and r["name"] not in names, f"bad/duplicate role name {r.get('name')}"
         assert re.fullmatch(r"[A-Za-z_][A-Za-z0-9_\-]*", r["name"]), f"role name must be an identifier: {r['name']}"
         names.add(r["name"])
-        assert r["kind"] in KINDS, f"unknown kind {r['kind']} (llm | tool | human)"
+        assert r["kind"] in KINDS, f"unknown kind {r['kind']} (llm | tool | human | check)"
+        if r["kind"] == "check":
+            from .checks import CHECKS
+            assert r.get("check") in CHECKS, f"role {r['name']}: unknown check {r.get('check')!r} ({sorted(CHECKS)})"
         if r["kind"] == "llm":
             assert known_model(r["model"]), f"unknown model {r['model']}"
             if g["_legacy"]:

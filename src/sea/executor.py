@@ -11,9 +11,11 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from .checks import run_check
 from .human import HumanChannel
 from .llm import add_usage, chat, strip_think
 
@@ -182,6 +184,17 @@ class _Run:
         self.store(r, text)
         self.trace.append({"role": r["name"], "kind": "tool", "tokens": 0, "chars": len(text)})
 
+    def run_check_role(self, r: dict):
+        """Framework check (sea.checks): runs outside the lock on a snapshot of the artifacts."""
+        with self._lock:
+            arts = dict(self.artifacts)
+        t0 = time.time()
+        ok, text = run_check(r["check"], arts)
+        with self._lock:
+            self.store(r, text)
+            self.trace.append({"role": r["name"], "kind": "check", "tokens": 0, "chars": len(text), "ok": ok,
+                               "secs": round(time.time() - t0, 1)})
+
     def run_human(self, r: dict):
         q = self.render(r["question"], r["name"], [])
         d = self.render(r["default"], r["name"], [])
@@ -200,6 +213,8 @@ class _Run:
         r = next(x for x in self.g["roles"] if x["name"] == name)
         if r["kind"] == "llm":
             return self.run_llm(r)  # takes the lock itself, after the model call
+        if r["kind"] == "check":
+            return self.run_check_role(r)  # may take tens of seconds: not under the lock
         with self._lock:
             {"tool": self.run_tool_role, "human": self.run_human}[r["kind"]](r)
 
@@ -216,6 +231,9 @@ class _Run:
                 self.parallel(list(s["parallel"]))
             elif isinstance(s, dict):
                 lp = s["loop"]
+                stop = lp.get("stop_when")
+                if lp.get("check_first") and stop and stop in str(self.bb.get(lp["body"][-1], "")):
+                    continue
                 for _ in range(int(lp.get("max_rounds", 2))):
                     for b in lp["body"]:
                         self.step(b)

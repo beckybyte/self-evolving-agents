@@ -1,0 +1,133 @@
+"""Framework check roles: app_smoke on real tiny apps (starts processes), and the check kind in genome/executor."""
+import os
+import time
+from pathlib import Path
+
+import pytest
+import yaml
+
+from sea.checks import app_smoke, shape_problems
+from sea.executor import run_team
+from sea.genome import load_genome
+from sea.llm import register_fake
+from sea.tasks import make_task
+
+GOOD_APP = r'''
+import argparse, json
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+ITEM = {"id": "i1", "kind": "task", "title": "call mom", "start": None, "end": None, "window": None, "status": "open",
+        "why": None, "parent_id": None, "estimate_min": None, "postpone_count": 0, "source": "dump"}
+MSG = {"id": "m1", "role": "agent", "kind": "reply", "text": "ok", "item_id": None, "at": "2026-10-19T09:00", "undo_id": None}
+class H(BaseHTTPRequestHandler):
+    def send(self, obj):
+        b = json.dumps(obj).encode(); self.send_response(200); self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+    def do_GET(self):
+        PIDFILE
+        if self.path == "/health": return self.send({"ok": True})
+        if self.path == "/api/state": return self.send({"now": "2026-10-19T09:00", "items": [ITEM], "messages": [MSG]})
+        if self.path == "/api/focus": return self.send({"item": ITEM, "parent": None, "why": None, "action": "Start 5 minutes"})
+        self.send_error(404)
+    def do_POST(self):
+        self.rfile.read(int(self.headers.get("Content-Length", 0)))
+        if self.path == "/api/reset": return self.send({"now": "2026-10-19T09:00", "items": [], "messages": []})
+        if self.path == "/api/command": return self.send({"messages": [MSG], "created": ["i1"]})
+        self.send_error(404)
+    def log_message(self, *a): pass
+p = argparse.ArgumentParser(); p.add_argument("--port", type=int); p.add_argument("--data")
+a = p.parse_args()
+ThreadingHTTPServer(("127.0.0.1", a.port), H).serve_forever()
+'''
+
+
+def good(pidfile: str = "pass") -> str:
+    code = f"open({pidfile!r}, 'w').write(str(__import__('os').getpid()))" if pidfile != "pass" else "pass"
+    return GOOD_APP.replace("PIDFILE", code)
+
+
+# the gen00 r1 failure of evo_iris2: class body `store = store` -> NameError at startup
+CRASH_APP = good().replace("ThreadingHTTPServer((", "class X:\n    store = store\nThreadingHTTPServer((")
+WRONG_SHAPE_APP = good().replace('"created": ["i1"]', '"made": ["i1"]')
+
+
+def test_smoke_passes_good_app_and_kills_it(tmp_path):
+    pidf = tmp_path / "pid"
+    ok, rep = app_smoke({"app_py": good(str(pidf)), "index_html": "<html></html>"})
+    assert ok and rep.startswith("SMOKE: PASS"), rep
+    assert "POST /api/command" in rep and "shape ok" in rep
+    pid = int(pidf.read_text())
+    time.sleep(0.2)
+    with pytest.raises(ProcessLookupError):
+        os.kill(pid, 0)
+
+
+def test_smoke_reports_startup_traceback():
+    ok, rep = app_smoke({"app_py": CRASH_APP})
+    assert not ok and rep.startswith("SMOKE: FAIL (app did not start)") and "NameError" in rep
+
+
+def test_smoke_reports_compile_error_and_missing_app():
+    ok, rep = app_smoke({"app_py": good(), "agents_py": "def f(:\n  pass\n"})
+    assert not ok and "compile errors" in rep and "agents.py" in rep
+    ok, rep = app_smoke({"index_html": "<html></html>"})
+    assert not ok and "no app.py" in rep
+
+
+def test_smoke_reports_wrong_shape():
+    ok, rep = app_smoke({"app_py": WRONG_SHAPE_APP})
+    assert not ok and "missing key 'created'" in rep
+
+
+def test_shape_problems():
+    assert shape_problems("focus", {"item": None, "parent": None, "why": None, "action": "x"}) == []
+    assert shape_problems("state", []) and shape_problems("state", {"now": "", "items": [{"id": 1}], "messages": []})
+
+
+def _genome(tmp: Path, roles, workflow) -> Path:
+    d = tmp / "g"
+    d.mkdir(exist_ok=True)
+    (d / "genome.yaml").write_text(yaml.safe_dump({"schema": 2, "id": "t", "roles": roles, "workflow": workflow}))
+    return d
+
+
+def test_check_role_drives_fixer_loop(tmp_path):
+    calls = []
+    register_fake("writer", lambda m: calls.append("w") or f'<artifact name="app_py">{CRASH_APP}</artifact>')
+
+    def fixer(msgs):
+        calls.append("f")
+        assert "NameError" in msgs[-1]["content"]  # the fixer sees the smoke report
+        return f'<artifact name="app_py">{good()}</artifact>'
+    register_fake("fixer", fixer)
+    roles = [{"name": "writer", "kind": "llm", "model": "fake:writer", "prompt": "write"},
+             {"name": "smoke", "kind": "check", "check": "app_smoke"},
+             {"name": "fixer", "kind": "llm", "model": "fake:fixer", "prompt": "fix {blackboard.smoke}",
+              "reads": ["artifacts"]}]
+    loop = {"loop": {"body": ["fixer", "smoke"], "max_rounds": 3, "stop_when": "SMOKE: PASS", "check_first": True}}
+    g = load_genome(_genome(tmp_path, roles, ["writer", "smoke", loop]))
+    res = run_team(g, {"id": "e", "input": {"text": "x"}}, "fake:writer")
+    assert calls == ["w", "f"] and res["blackboard"]["smoke"].startswith("SMOKE: PASS")
+    checks = [t for t in res["trace"] if t["kind"] == "check"]
+    assert [c["ok"] for c in checks] == [False, True] and all(c["tokens"] == 0 for c in checks)
+
+    # check_first: the smoke before the loop already passed -> the fixer never runs
+    calls.clear()
+    register_fake("writer", lambda m: calls.append("w") or f'<artifact name="app_py">{good()}</artifact>')
+    res = run_team(g, {"id": "e", "input": {"text": "x"}}, "fake:writer")
+    assert calls == ["w"]
+
+
+def test_unknown_check_rejected_and_build_accepts_check_role(tmp_path):
+    with pytest.raises(AssertionError, match="unknown check"):
+        load_genome(_genome(tmp_path, [{"name": "s", "kind": "check", "check": "harness"}], ["s"]))
+    spec = tmp_path / "spec"
+    spec.mkdir()
+    (spec / "contract.md").write_text("# c\n")
+    (spec / "harness.py").write_text("def run_split(*a, **k): return []\n")
+    (spec / "scenarios.py").write_text("SPLITS = {'fit': [], 'holdout': []}\n")
+    task = make_task(f"build:{spec}", tmp_path / "run")
+    d = _genome(tmp_path, [{"name": "dev", "kind": "llm", "prompt": "write app_py"},
+                           {"name": "smoke", "kind": "check", "check": "app_smoke"}], ["dev", "smoke"])
+    g = task.load_child(d)
+    assert [r["kind"] for r in g["roles"]] == ["llm", "check"]
+    assert "app_smoke" in task.describe() and "app_smoke" in task.moves() and "check_first" in task.schema_doc(False)

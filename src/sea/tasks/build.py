@@ -58,6 +58,15 @@ files after an architect has fixed the interfaces, then a sequential integrator 
 WHO WRITES THE CODE: the team's models (Nemotron). You design the team; you do not write the product. Tool roles
 are rejected, and a genome whose soul/prompts/notes hold more than 25 lines of code is rejected. Prompts may name
 functions, JSON shapes, ids and rules in prose or short snippets.
+RUN YOUR OWN CODE: a `kind: check` role with `check: app_smoke` (framework code, 0 tokens, <= 40 s) materialises the
+current file artifacts, compiles every .py, starts `python app.py`, waits for /health and makes generic contract calls
+(POST /api/reset with no items, GET /api/state, POST /api/command "call mom" dump, GET /api/focus). Its output
+(blackboard[<role name>]) starts with "SMOKE: PASS" or "SMOKE: FAIL (...)" and lists compile errors, the startup
+traceback, HTTP status and JSON-shape problems per call. It is NOT the scoring harness (no scenarios, no behaviour
+checks): it catches code that does not compile, does not start or answers with the wrong shape. Typical use, after the
+files are written: `smoke, {{loop: {{body: [fixer, smoke], max_rounds: 2, stop_when: "SMOKE: PASS", check_first: true}}}}`
+where fixer reads blackboard.smoke and artifacts and re-emits only the broken files (check_first skips the loop when
+the first smoke already passed).
 THINKING: the worker is a reasoning model; with thinking on it can spend the whole max_tokens budget thinking and
 emit no file at all. A role may pin `model: crusoe:<model id>#nothink` (thinking off: much faster and cheaper, good
 for writing a file from a precise plan) or keep $WORKER for planning/review roles.
@@ -178,7 +187,8 @@ class BuildTask(Task):
         return ("pick a model per role from MODELS (strong coder for big files, a cheap fast one for plans/checks; thinking on or #nothink per role), split the work by file (architect -> {parallel: [backend, agents, ui]} -> integrator), merge roles that "
                 "only add tokens, add a reviewer that checks the code against the contract's numbered behaviours and "
                 "re-emits fixed files, give a role the exact JSON shapes / ids it keeps getting wrong, make the app "
-                "rule-based where the harness checks fail on LLM flakiness, or add a reviewer/fixer loop. Tool roles are not "
+                "rule-based where the harness checks fail on LLM flakiness, or add a smoke check (kind: check, check: app_smoke) "
+                "with a fixer loop so the team runs its own app and repairs crashes before it is scored. Tool roles are not "
                 "allowed and the genome may hold at most 25 lines of code: describe what to build, the models write it. Look at fit_rows.jsonl (failed checks) "
                 "and app/ (the parent's code) before changing anything.")
 
