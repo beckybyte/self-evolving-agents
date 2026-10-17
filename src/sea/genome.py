@@ -30,10 +30,14 @@ genome.yaml (schema: 2)
                                     app.py and make a few generic contract calls; output (blackboard[name]) is a
                                     report starting "SMOKE: PASS" or "SMOKE: FAIL (...)" with compile errors, the
                                     traceback tail, HTTP status and JSON-shape problems per call. 0 tokens, <= 40 s.
-      calls: basic | deep           app_smoke option (default basic: reset, state, command "call mom" dump, focus).
+      calls: basic | deep | v2      app_smoke option (default basic: reset, state, command "call mom" dump, focus).
+                                    v2 = deep plus the contract-v2 endpoints (log, import of a one-event .ics -> plan
+                                    apply/undo, learn, beliefs (+ delete one the app returned), proposal, view week,
+                                    prompts, activity), crash/shape only.
                                     deep also chains chat "yes" on the created item -> items/<id>/done -> clock +2 h
                                     -> undo (when a message has an undo_id); still crash/shape problems only, and a
                                     slow deep call (timeout, budget used up) is a note, not a failure.
+      selftest_secs: 12 | 20        time limit of that self-test (default 12)
       selftest: true                app_smoke option: first runs `python app.py --selftest --data <tmp>` (<= 12 s, must
                                     exit) and reports its exit code and output; nonzero exit = a problem. The team
                                     writes the self-test; the normal start-up path is still what gets started and scored.

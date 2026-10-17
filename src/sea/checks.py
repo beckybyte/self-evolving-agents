@@ -164,6 +164,62 @@ def _app_env() -> dict:
     return env
 
 
+V2_KEYS = {  # contract v2 (builds/evolving_calendar_v2/contract.md) top-level and record keys, shape only
+    "log": ("entries", ("id", "at", "kind", "item_ids", "payload", "source")),
+    "plan": ("plan", ("id", "origin", "status", "ops", "affected")),
+    "beliefs": ("beliefs", ("key", "level", "statement", "value", "confidence", "evidence", "updated_at")),
+    "view": ("view", ("type", "params", "hidden_counts")),
+    "prompts": ("prompts", ("agent", "version", "core_hash", "learned", "diff", "reason", "evidence", "replay", "active")),
+    "activity": ("events", ("at", "agent", "kind", "text")),
+}
+SMOKE_ICS = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:smoke-1\r\nSUMMARY:Smoke check event\r\n"
+             "DTSTART:20261021T100000\r\nDTEND:20261021T110000\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+
+
+def v2_shape_problems(kind: str, data) -> list[str]:
+    if not isinstance(data, dict):
+        return [f"expected a JSON object, got {type(data).__name__}"]
+    if kind == "learn":
+        return [f"missing key {k!r}" for k in ("beliefs", "proposal") if k not in data]
+    if kind == "proposal":
+        return [] if "proposal" in data else ["missing key 'proposal'"]
+    if kind == "ok":
+        return [] if "ok" in data else ["missing key 'ok'"]
+    top, keys = V2_KEYS[kind]
+    if top not in data:
+        return [f"missing key {top!r}"]
+    val = data[top]
+    recs = val if isinstance(val, list) else [val]
+    if isinstance(val, list) is not (kind in ("log", "beliefs", "prompts", "activity")):
+        return [f"{top!r} has the wrong type ({type(val).__name__})"]
+    for i, r in enumerate(recs[:5]):
+        m = _missing(r, keys)
+        if m:
+            return [f"{top}[{i}] missing {m}" if isinstance(val, list) else f"{top} missing {m}"]
+    return []
+
+
+def v2_calls(do, lines: list):
+    """calls: v2 -- the v2 endpoints with neutral inputs (a one-event .ics, an empty learn, a week view), crash and
+    shape problems only. Mutating calls run only on ids the app itself returned."""
+    do("GET", "/api/log", None, "v2:log", strict=False)
+    plan = (do("POST", "/api/import", {"filename": "smoke.ics", "content": SMOKE_ICS}, "v2:plan", strict=False) or {}).get("plan")
+    pid = plan.get("id") if isinstance(plan, dict) else None
+    if pid:
+        do("POST", f"/api/plan/{pid}/apply", {}, "v2:plan", strict=False)
+        do("POST", f"/api/plan/{pid}/undo", {}, "v2:plan", strict=False)
+    else:
+        lines.append("v2: import returned no plan id; plan apply/undo not run")
+    do("POST", "/api/learn", {}, "v2:learn", strict=False)
+    bel = (do("GET", "/api/beliefs", None, "v2:beliefs", strict=False) or {}).get("beliefs") or []
+    if bel and isinstance(bel[0], dict) and bel[0].get("key"):
+        do("DELETE", f"/api/beliefs/{bel[0]['key']}", None, "v2:ok", strict=False)
+    do("GET", "/api/proposal", None, "v2:proposal", strict=False)
+    do("POST", "/api/view", {"type": "week"}, "v2:view", strict=False)
+    do("GET", "/api/prompts", None, "v2:prompts", strict=False)
+    do("GET", "/api/activity", None, "v2:activity", strict=False)
+
+
 def deep_calls(do, seen: list, lines: list):
     """calls: deep -- after SMOKE_CALLS, chain the remaining contract endpoints with neutral inputs on an item the app
     created itself: chat "yes" -> done -> clock +2 h -> undo (if any message carried an undo_id). Crash and JSON-shape
@@ -214,7 +270,7 @@ def run_selftest(app: Path, tmp: Path, wait: float) -> tuple[int, str]:
 
 
 def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: str = "basic",
-              selftest: bool = False) -> tuple[bool, str]:
+              selftest: bool = False, selftest_secs: int = 12) -> tuple[bool, str]:
     """Compile the team's files, start app.py, make SMOKE_CALLS (+ deep_calls when calls == "deep").
     Returns (passed, report)."""
     from .tasks.build import materialise  # lazy: tasks.build imports the executor, which imports this module
@@ -237,7 +293,7 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
             return False, "SMOKE: FAIL (compile errors)\n" + "\n".join(lines + ["compile errors:"] + bad)
         lines.append("compile: ok")
         if selftest:
-            problems_st, st_line = run_selftest(app, Path(tmp), min(SELFTEST_WAIT, budget / 3))
+            problems_st, st_line = run_selftest(app, Path(tmp), min(selftest_secs, budget / 2))
             lines.append(st_line)
             pre_problems = problems_st
         else:
@@ -300,7 +356,7 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
                     lines.append(f"{head}; not JSON: {text[:300]}")
                     problems += 1
                     return None
-                shp = shape_problems(kind, obj)
+                shp = v2_shape_problems(kind[3:], obj) if kind.startswith("v2:") else shape_problems(kind, obj)
                 problems += bool(shp)
                 lines.append(f"{head}; shape {'ok' if not shp else 'WRONG: ' + '; '.join(shp)}; body: {text[:300]}")
                 seen.append(obj)
@@ -310,8 +366,10 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
                 do(method, path, body, kind)
                 if proc.poll() is not None:
                     break
-            if calls == "deep" and proc.poll() is None:
+            if calls in ("deep", "v2") and proc.poll() is None:
                 deep_calls(do, seen, lines)
+            if calls == "v2" and proc.poll() is None:
+                v2_calls(do, lines)
         finally:
             _kill_tree(proc)
         out = log.read_text(errors="replace")
@@ -323,7 +381,7 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
 
 
 CHECKS = {"app_smoke": app_smoke}
-CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep"), "selftest": (False, True)}}  # option -> allowed values (first = default)
+CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep", "v2"), "selftest": (False, True), "selftest_secs": (12, 20)}}  # option -> allowed values (first = default)
 
 
 def run_check(name: str, artifacts: dict[str, str], **opts) -> tuple[bool, str]:

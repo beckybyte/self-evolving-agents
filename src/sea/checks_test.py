@@ -300,3 +300,38 @@ def test_failed_model_call_fails_the_role_not_the_run(tmp_path, monkeypatch):
     assert res["artifacts"]["index_html"] == "<html></html>"  # ui's file survives
     assert "failed" in res["blackboard"]["app"] and [t["role"] for t in res["trace"] if t.get("error")] == ["app"]
     assert [t["role"] for t in res["trace"]][-1] == "after"  # the run went on
+
+
+V2_ROUTES = r'''
+LOGE = {"id": "l1", "at": "2026-10-19T09:00", "kind": "create", "item_ids": ["i1"], "payload": {}, "source": "dump"}
+PLAN = {"id": "p1", "origin": "import", "status": "preview", "ops": [], "affected": []}
+BEL = {"key": "evening", "level": "habit", "statement": "Finishes after 8 PM (8 of 9)", "value": 20, "confidence": 0.8,
+       "evidence": ["l1"], "updated_at": "2026-10-19T09:00"}
+VIEW = {"type": "week", "params": {}, "hidden_counts": {}}
+PROMPT = {"agent": "designer", "version": 1, "core_hash": "x", "learned": "", "diff": "", "reason": "", "evidence": [],
+          "replay": {"passed": True, "detail": ""}, "active": True}
+V2GET = {"/api/log": {"entries": [LOGE]}, "/api/beliefs": {"beliefs": [BEL]}, "/api/proposal": {"proposal": None},
+         "/api/prompts": {"prompts": [PROMPT]}, "/api/activity": {"events": []}}
+V2POST = {"/api/import": {"plan": PLAN}, "/api/plan/p1/apply": {"plan": dict(PLAN, status="applied")},
+          "/api/plan/p1/undo": {"plan": dict(PLAN, status="undone")}, "/api/learn": {"beliefs": [BEL], "proposal": None},
+          "/api/view": {"view": VIEW}}
+'''
+
+
+def v2_app(broken: str = "") -> str:
+    app = good().replace("class H(BaseHTTPRequestHandler):", V2_ROUTES + "\nclass H(BaseHTTPRequestHandler):")
+    app = app.replace('        if self.path == "/health":', '        if self.path in V2GET: return self.send(V2GET[self.path])\n        if self.path == "/health":')
+    app = app.replace('        if self.path == "/api/reset":', '        if self.path in V2POST: BROKEN; return self.send(V2POST[self.path])\n        if self.path == "/api/reset":')
+    app = app.replace("    def log_message", '    def do_DELETE(self): return self.send({"ok": True})\n    def log_message')
+    return app.replace("BROKEN", broken or "pass")
+
+
+def test_smoke_v2_calls():
+    ok, rep = app_smoke({"app_py": v2_app()}, calls="v2")
+    assert ok, rep
+    for p in ("/api/log", "/api/import", "/api/plan/p1/apply", "/api/plan/p1/undo", "/api/learn", "/api/beliefs",
+              "DELETE /api/beliefs/evening", "/api/proposal", "/api/view", "/api/prompts", "/api/activity", "/api/chat"):
+        assert p in rep, p
+    ok, rep = app_smoke({"app_py": v2_app("V2POST['/api/learn'] = {'beliefs': []}")}, calls="v2")
+    assert not ok and "missing key 'proposal'" in rep
+    assert "/api/log" not in app_smoke({"app_py": v2_app()}, calls="deep")[1]
