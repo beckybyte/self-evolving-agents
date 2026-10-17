@@ -1,23 +1,59 @@
 # Self-Evolving Agent Teams
 
-A small, task-agnostic workflow in which a frozen **evolver** (Claude, run headless via the `claude` CLI)
-repeatedly redesigns a **team of agents** for a benchmark. The team is described by a *genome*: a list of
-roles (LLM roles with a prompt and model, or Python tool roles), their order, and optional tool code.
-Each generation the evolver reads the parent genome, its scores and its failing samples, and writes
-3 child genomes; the best child replaces the parent only if it is better (greedy, with retries and patience).
+A small workflow in which a frozen **evolver** (Claude, run headless via the `claude` CLI) repeatedly redesigns a
+**team of agents**. The team is described by a *genome*: roles (LLM, Python tool, or human), a workflow, a
+communication channel and the artifacts it must produce. Each generation the evolver reads the parent genome, its
+evaluation and its failures, and writes k child genomes; a child replaces the parent only if it is better.
+
+**v2 (branch `v2-open-ended`, package `src/sea/`)** generalises this from benchmarks to **open-ended product briefs**
+with no dataset: the system restates a vague brief, lists assumptions, asks the human (without waiting), builds its own
+evaluation (personas, scenarios, rubric, complexity model) and revises it when the human answers. Benchmarks
+(calendar / MATH / DROP / AppWorld) are plugins with ground truth, kept for regression. Design:
+[`docs/architecture_v2.md`](docs/architecture_v2.md) (Chinese). v1 code (`src/calevo/`) is unchanged and still runs.
 
 ```
-L2  evolver (Claude, frozen)      reads parent + report + failures + feedback  ->  writes child genomes
-L1  genome  (the only thing that changes)   roles[] (llm | tool) · prompts · models · tools/*.py
-L0  environment (frozen)          data splits · local vLLM workers · verifier · token counter
+L2  evolver (Claude, frozen)   reads TaskView files + feedback -> writes k children (last one radical with --radical)
+      HumanChannel             ask_human: question + default -> runs/<run>/inbox/, never blocks; folded in between generations
+      rationale/<gen>.md       what changed, on which evidence, why accepted/rejected; design_log.md for accepted designs
+L1  genome v2                  roles[llm|tool|human] · workflow (sequence / loop) · channels (blackboard / messages)
+                               · artifacts · memory/<role>.md (gated learning) · memory/_shared.md (human answers)
+L0  Task plugin (frozen)       bench:calendar|math|drop · appworld · brief:<file.md> (Framer + Judge, versioned goal/v<N>/)
 ```
 
-- **Recursive**: a child that beats its parent becomes the new parent.
-- **Iterative**: if no child wins, the evolver retries *from the same parent* with condensed feedback about
-  the failed children (their full traces never reach the next generation).
-- **Fitness** = weighted task score − λ · tokens/sample / 1000, so the evolver must trade accuracy for cost.
-- **No test leakage**: the evolver works in an isolated workspace that only contains the parent, dev-split
-  reports and failures; test splits are evaluated only in `calevo.report`.
+- **Recursive / iterative**: as in v1; acceptance needs `fitness > parent + margin` (0.02 for briefs, against judge noise).
+- **Fitness** is a `FitnessSpec` of weighted terms. Benchmarks: `Σ w·score(split) − λ·tokens/1000`.
+  Briefs: `score(fit) − λ_tok·team_tokens/1000 − λ_cx·complexity_points/100`.
+- **Isolation**: the evolver workspace only holds what `Task.workspace_files()` returns (fit split only); holdout
+  scenarios / splits are used only to gate memory updates; tool code is statically checked for references to eval data.
+- **Gated per-agent learning** (`sea.learn`): each LLM role rewrites its notes from experience; the new notes are kept
+  only if the team with them beats the old notes on the holdout split.
+- **Diversity archive** (`sea.archive`): every child is filed by (LLM roles, token band, mechanism); the radical child
+  survives there if it opens a new niche. Parent selection is still greedy.
+
+### v2 quick start
+
+```bash
+# product brief mode: Framer = Claude (once per evaluation version), team = local worker, judge = --judge
+PYTHONPATH=src python -m sea.evolve --task brief:briefs/day_planner.md --run runs/brief_demo \
+    --start genomes/v2/brief_P0 --gens 3 --k 3 --radical --judge claude:sonnet
+PYTHONPATH=src python -m sea.human --inbox runs/brief_demo/inbox list            # questions the system asked you
+PYTHONPATH=src python -m sea.human --inbox runs/brief_demo/inbox answer Q1 "..."  # answer whenever; next generation folds it in
+PYTHONPATH=src python -m sea.human --inbox runs/brief_demo/inbox rate gen01_a1_child_2 3 "too many features"
+# benchmark plugin (regression), v1 genomes run unchanged on the v2 executor
+PYTHONPATH=src python -m sea.run --task bench:calendar --genome genomes/S0 --split dev_in --limit 10 --out runs/x
+PYTHONPATH=src python -m sea.evolve --task bench:calendar --run runs/cal_v2 --start genomes/P0
+PYTHONPATH=src python -m pytest -q src/sea src/calevo/verifier_test.py
+```
+
+A brief run writes `goal/v<N>/` (restatement, assumptions, personas, scenarios with fit/holdout split, rubric, cost
+model, changelog), `inbox/`, `evals/<genome>/<version>/` (team artifacts, judge rows), `rationale/`, `design_log.md`,
+`archive.json`, `history.jsonl`.
+
+**Judge choice matters**: on the same PRD, qwen2.5-72b scored 0.97 with the plain prompt ("design is perfect") and a
+flat 0.475 on every scenario with the calibrated prompt; Claude sonnet gave 0.31-0.40 with per-scenario,
+specific critiques. Use `--judge claude:sonnet` for real runs; the local default only suits dry runs.
+
+## v1 (benchmark genome evolution, `src/calevo/`)
 
 ## Benchmarks wired in
 
@@ -31,6 +67,9 @@ L0  environment (frozen)          data splits · local vLLM workers · verifier 
 ## Layout
 
 ```
+src/sea/           v2 core (see above): genome.py executor.py llm.py human.py fitness.py evolve.py learn.py archive.py
+  tasks/           base.py benchmark.py appworld.py brief/{task,framer,judge}.py
+briefs/            example product briefs;  genomes/v2/brief_P0  starting team for brief mode
 src/calevo/
   runner.py        L0: execute a genome on a split, score, count tokens  (python -m calevo.runner)
   evolve.py        L2: resumable evolution loop                          (python -m calevo.evolve)
