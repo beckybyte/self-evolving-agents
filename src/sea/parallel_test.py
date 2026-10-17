@@ -110,7 +110,7 @@ def test_claude_worker_runs_bare(monkeypatch):
 
     class P:
         returncode, stderr = 0, ""
-        stdout = json.dumps({"result": "ok", "total_cost_usd": 0.001,
+        stdout = json.dumps({"result": "ok", "total_cost_usd": 0.001, "stop_reason": "max_tokens",
                              "usage": {"input_tokens": 2, "cache_creation_input_tokens": 900, "cache_read_input_tokens": 0,
                                        "output_tokens": 3}})
 
@@ -120,6 +120,6 @@ def test_claude_worker_runs_bare(monkeypatch):
     monkeypatch.setattr(llm.subprocess, "run", run)
     text, u = llm._claude("haiku", [{"role": "system", "content": "s"}, {"role": "user", "content": "hi"}], 30)
     c = seen["cmd"]
-    assert text == "ok" and u["cost_usd"] == 0.001 and u["prompt"] == 902
+    assert text == "ok" and u["cost_usd"] == 0.001 and u["prompt"] == 902 and u["finish"] == "length"
     assert c[c.index("--setting-sources") + 1] == "project" and "--strict-mcp-config" in c and "--disable-slash-commands" in c
     assert c[c.index("--tools") + 1] == "" and "--system-prompt" in c

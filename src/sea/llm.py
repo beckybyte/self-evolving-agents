@@ -92,8 +92,11 @@ def _claude(alias: str, messages: list[dict], timeout: int) -> tuple[str, dict]:
         raise RuntimeError(f"claude CLI failed ({p.returncode}): {p.stderr[-500:]} {p.stdout[-500:]}")
     u = d.get("usage") or {}
     prompt = u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0) + u.get("cache_read_input_tokens", 0)
+    stop = d.get("stop_reason") or ""
+    # finish uses the Crusoe vocabulary so trace_health sees a Claude role cut off at its output limit too
     return d.get("result", ""), {"prompt": prompt, "completion": u.get("output_tokens", 0), "calls": 1,
-                                 "cost_usd": d.get("total_cost_usd", 0.0)}
+                                 "cost_usd": d.get("total_cost_usd", 0.0),
+                                 "finish": "length" if stop == "max_tokens" else stop}
 
 
 CRUSOE_URL = os.environ.get("CRUSOE_BASE_URL", "https://api.inference.crusoecloud.com/v1")
