@@ -1,0 +1,213 @@
+schema: 2
+id: build_P1_smoke
+parent: build_P1
+mechanism: architect-parallel-integrate-smoke-fix
+notes: 'Ablation (hand-made, no evolver): P1 + the framework check role app_smoke and a fixer loop, to measure what the new
+  ''run your own code'' capability is worth on its own.'
+soul: 'You are part of a small team writing one Python 3.12 app (standard library only) against a frozen contract.
+
+  Follow the architect''s interface plan exactly: module names, function names, arguments and return shapes.
+
+  Always emit complete files, never fragments or diffs. Simulated clock only: never use the real time for "now".
+
+  '
+roles:
+- name: architect
+  kind: llm
+  model: $WORKER
+  reads:
+  - contract
+  - scenarios
+  max_tokens: 32000
+  prompt: "You are the architect. Plan the implementation of this contract; you write no code files yourself.\n\n{contract}\n\
+    \nTest scenarios (examples):\n{scenarios}\n\nFiles: app.py (HTTP server, routing, in-memory store + JSON persistence under\
+    \ --data, simulated clock, scheduler\nticks for reminders / auto-postpone / check-in, undo, focus), agents.py (text understanding\
+    \ and agent wording:\ncommand / dump parsing, complexity check, breakdown conversation state machine, check-in replies;\
+    \ optional\nCrusoe LLM calls with rule fallbacks), index.html (single page UI).\nWrite, as plain text:\n1. The Item and\
+    \ Message dicts and the store layout.\n2. Every function agents.py exports, with exact signature, argument types and return\
+    \ value (dict keys), e.g.\n   parse_command(text: str, now: datetime, mode: str) -> list[dict], and who calls it from\
+    \ app.py.\n3. For each numbered required behaviour in the contract: which function implements it and the exact rule\n\
+    \   (e.g. thresholds, time arithmetic, what message kind, the wording style).\n4. The breakdown conversation states and\
+    \ transitions, and the check-in reply handling.\nBe precise and complete; three developers will code in parallel from\
+    \ this plan without talking to each other.\n"
+- name: backend
+  kind: llm
+  model: $WORKER
+  reads:
+  - contract
+  - blackboard.architect
+  max_tokens: 32000
+  prompt: 'You write app.py. Contract:
+
+    {contract}
+
+
+    Interface plan (follow it exactly; import agents and call the functions as specified):
+
+    {blackboard.architect}
+
+
+    app.py: ThreadingHTTPServer on --port, data under --data, GET / serves index.html from the app directory,
+
+    every endpoint of the contract, the simulated clock (POST /api/clock runs every scheduler tick between old and
+
+    new time in order: reminders at start and 10 minutes before end without duplicates, auto-postpone > 30 minutes
+
+    after end to the next day at the person''s usual done hour, third consecutive postponement -> check-in instead),
+
+    undo, focus. Catch every exception per request and still answer JSON.
+
+    Output exactly one artifact: <artifact name="app_py">...whole file...</artifact>
+
+    '
+- name: agents
+  kind: llm
+  model: $WORKER
+  reads:
+  - contract
+  - blackboard.architect
+  max_tokens: 32000
+  prompt: 'You write agents.py. Contract:
+
+    {contract}
+
+
+    Interface plan (implement exactly these functions and signatures):
+
+    {blackboard.architect}
+
+
+    agents.py: rule-based parsing first (weekday names, "tomorrow", "3pm", "15:00", vague windows like "around
+
+    noon" / "this afternoon" / "tonight"), dump splitting by commas / "and" / newlines without losing fragments,
+
+    the complexity check (vague verbs: work on, figure out, deal with, get ... together; or over 2 hours), the
+
+    breakdown conversation (why first, then at most two short questions, then 2-5 verb-first steps, first step
+
+    15 minutes or less), check-in replies (too big / wrong time / not needed). Optional LLM calls: urllib POST to
+
+    os.environ CRUSOE_BASE_URL + "/chat/completions" with Bearer CRUSOE_API, model MODEL_FAST, max_tokens 4000,
+
+    timeout 40 s; on any error fall back to the rules. Kind wording only: never overdue, failed, missed, late,
+
+    behind, "should have", forgot, lazy.
+
+    Output exactly one artifact: <artifact name="agents_py">...whole file...</artifact>
+
+    '
+- name: ui
+  kind: llm
+  model: $WORKER
+  reads:
+  - contract
+  - blackboard.architect
+  max_tokens: 16000
+  prompt: 'You write index.html for this contract:
+
+    {contract}
+
+
+    Interface plan:
+
+    {blackboard.architect}
+
+
+    One page, inline CSS and JS, no CDN: a chat box (id chat-input) with a send button and a "brain dump" toggle,
+
+    the conversation (id chat-log), a focus card (id focus) showing only the next tiny step, its why, and a
+
+    "Start 5 minutes" button with a countdown, and a timeline (id timeline) of today''s and tomorrow''s items.
+
+    Breakdown messages show their steps; postponed messages show an Undo button. Calm, friendly look.
+
+    Output exactly one artifact: <artifact name="index_html">...whole file...</artifact>
+
+    '
+- name: integrator
+  kind: llm
+  model: $WORKER
+  reads:
+  - contract
+  - blackboard.architect
+  - artifacts
+  max_tokens: 32000
+  prompt: 'You are the integrator. Three developers wrote these files in parallel from the plan below:
+
+    {artifacts}
+
+
+    Plan:
+
+    {blackboard.architect}
+
+
+    Contract:
+
+    {contract}
+
+
+    Check: every function app.py calls exists in agents.py with the same signature and return shape; every
+
+    endpoint and JSON field of the contract is implemented; index.html calls the right endpoints; both Python
+
+    files would import and run (syntax, imports, names). Fix every mismatch. For EACH file you change, re-emit
+
+    the whole corrected file with the same artifact name (app_py, agents_py, index_html). Do not re-emit files
+
+    you leave unchanged. Start with a short list of the problems you found.
+
+    '
+- name: smoke
+  kind: check
+  check: app_smoke
+- name: fixer
+  kind: llm
+  model: $WORKER
+  reads:
+  - contract
+  - blackboard.smoke
+  - artifacts
+  max_tokens: 32000
+  prompt: 'You fix the team''s app so it starts and answers. Smoke test report (compile errors, traceback, HTTP status, JSON
+    shape problems):
+
+    {blackboard.smoke}
+
+
+    Current files:
+
+    {artifacts}
+
+
+    Contract:
+
+    {contract}
+
+
+    Find the cause of every reported problem and fix it. For EACH file you change, re-emit the whole corrected file with the
+    same artifact name (app_py, agents_py, index_html). Do not re-emit unchanged files.'
+workflow:
+- architect
+- parallel:
+  - backend
+  - agents
+  - ui
+- integrator
+- smoke
+- loop:
+    body:
+    - fixer
+    - smoke
+    max_rounds: 2
+    stop_when: 'SMOKE: PASS'
+    check_first: true
+artifacts:
+- name: app_py
+  format: text
+- name: agents_py
+  format: text
+- name: index_html
+  format: text
+outputs:
+  answer: artifact.app_py

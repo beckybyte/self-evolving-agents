@@ -200,7 +200,8 @@ class BuildTask(Task):
         assert all(r["kind"] != "tool" for r in g["roles"]), "build mode: tool roles are not allowed (the team's models write the code)"
         for r in g["roles"]:
             m = r.get("model", "$WORKER")
-            assert m == "$WORKER" or (m.startswith("crusoe:") and models.allowed(m[7:])), (
+            assert m == "$WORKER" or (m.startswith("crusoe:") and models.allowed(m[7:])) or (
+                m.startswith("claude:") and models.allowed(m)), (
                 f"build mode: role {r['name']} model {m!r} is not in the catalog pool ({models.pool()}); see MODELS")
         text = "\n".join([g.get("soul", "")] + [r.get("prompt", "") for r in g["roles"]] + list(g["_memory"].values()))
         n = code_lines(text)

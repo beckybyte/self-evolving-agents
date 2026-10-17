@@ -217,3 +217,17 @@ def test_trace_health_flags_truncation_empty_and_retries():
     h = trace_health(trace)
     assert h == {"truncated_roles": ["backend"], "empty_roles": ["ui"], "model_retries": {"crusoe:a": 2, "crusoe:b": 1}}
     assert trace_health([]) == {"truncated_roles": [], "empty_roles": [], "model_retries": {}}
+
+
+def test_mixed_pool_allows_claude_workers(tmp_path, monkeypatch):
+    from sea import models
+    monkeypatch.setenv("SEA_MODEL_POOL", "nemotron")
+    assert not models.allowed("claude:sonnet")
+    monkeypatch.setenv("SEA_MODEL_POOL", "mixed")
+    assert models.allowed("claude:sonnet") and models.allowed("openai/gpt-oss-120b") and not models.allowed("claude:opus")
+    assert models.cost("claude:sonnet") == 15.0 and "claude:haiku" in models.catalog_text()
+    g = tmp_path / "g"
+    g.mkdir()
+    (g / "genome.yaml").write_text("schema: 2\nid: x\nroles:\n- {name: dev, kind: llm, model: 'claude:sonnet', prompt: hi}\n")
+    task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")
+    assert task.load_child(g)["roles"][0]["model"] == "claude:sonnet"

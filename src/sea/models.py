@@ -6,7 +6,8 @@ can choose per role (e.g. a strong coder for backend, a fast model for a checker
 
 Probe (2026-10-17, Crusoe): one small stdlib coding task with self-written asserts, 2 trials per mode, max_tokens
 16000; "pass" = code ran and its asserts held. Small sample: treat as a prior, not a ranking.
-Pool: SEA_MODEL_POOL=nemotron (default: Nemotron family only, the hackathon's sponsor models) or all.
+Pool: SEA_MODEL_POOL=nemotron (default: Nemotron family only, the hackathon's sponsor models), all (every Crusoe model),
+or mixed (every Crusoe model plus Claude workers claude:sonnet / claude:haiku via the headless CLI).
 """
 from __future__ import annotations
 
@@ -39,15 +40,24 @@ CATALOG = {
         family="other", cost=0.5, think="2/2 15s", nothink="1/2 46s", good="short outputs, fast (pool=all only)"),
 }
 
+# Claude workers (headless `claude -p`), allowed in pool "mixed". Cost = rough $/token relative to Nemotron Super.
+CLAUDE = {
+    "claude:sonnet": dict(cost=15.0, good="strongest coder here, slow on long files (~60 tok/s); use where Nemotron "
+                                          "keeps failing (integration, fixing), not for bulk"),
+    "claude:haiku": dict(cost=4.0, good="fast, solid on short code/reviews/JSON; cheaper than sonnet"),
+}
+
 
 def pool() -> str:
     return os.environ.get("SEA_MODEL_POOL", "nemotron")
 
 
 def allowed(model_id: str) -> bool:
-    """model_id: a crusoe id without the crusoe: prefix, with or without #nothink."""
+    """model_id: a crusoe id without the crusoe: prefix (with or without #nothink), or a claude:<alias> string."""
+    if model_id.startswith("claude:"):
+        return pool() == "mixed" and model_id in CLAUDE
     m = CATALOG.get(model_id.partition("#")[0])
-    return m is not None and (pool() == "all" or m["family"] == "nemotron")
+    return m is not None and (pool() in ("all", "mixed") or m["family"] == "nemotron")
 
 
 def cost(model: str) -> float:
@@ -55,12 +65,16 @@ def cost(model: str) -> float:
     if model.startswith("crusoe:"):
         m = CATALOG.get(model[7:].partition("#")[0])
         return m["cost"] if m else 1.0
+    if model in CLAUDE:
+        return CLAUDE[model]["cost"]
     return 1.0
 
 
 def catalog_text() -> str:
     rows = [f"- crusoe:{mid}  (cost x{m['cost']}; probe thinking {m['think']}, #nothink {m['nothink']}): {m['good']}"
-            for mid, m in CATALOG.items() if pool() == "all" or m["family"] == "nemotron"]
+            for mid, m in CATALOG.items() if pool() in ("all", "mixed") or m["family"] == "nemotron"]
+    if pool() == "mixed":
+        rows += [f"- {mid}  (cost x{m['cost']}): {m['good']}" for mid, m in CLAUDE.items()]
     return ("MODELS a role may pick (`model: crusoe:<id>` or `crusoe:<id>#nothink`; `$WORKER` = the run's default). "
             "Team tokens are weighted by cost. A thinking call that spends all of max_tokens thinking and answers nothing is "
             "retried once with #nothink (both calls counted; trace shows fallback). Probe = 2 trials of one small coding task, a prior only:\n" + "\n".join(rows))
