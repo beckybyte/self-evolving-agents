@@ -143,7 +143,9 @@ class Evolution:
         return st
 
     def framework_signals(self):
-        """Detectors + evolver wishes -> framework proposal backlog (§8.2). Never fails the run."""
+        """Detectors + evolver wishes -> framework proposal backlog (§8.2). Never fails the run. SEA_META_SIGNALS=0 disables."""
+        if os.environ.get("SEA_META_SIGNALS", "1") == "0":
+            return
         try:
             from .meta.backlog import Backlog, detect
             b = Backlog()

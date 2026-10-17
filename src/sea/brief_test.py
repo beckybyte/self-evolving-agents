@@ -58,6 +58,7 @@ def test_brief_task_and_evolution(tmp_path, monkeypatch):
     assert rep["artifacts_present"] == 1.0 and any(q["question"] == "Web too?" for q in rep["team_questions"])
 
     monkeypatch.setenv("SEA_FAKE_EVOLVER", "2")
+    monkeypatch.setenv("SEA_META_SIGNALS", "0")  # fake runs must not file framework proposals
     ev = Evolution(task, run, "fake:worker", ROOT / "genomes/v2/brief_P0", gens=1, k=2, max_attempts=1, margin=0.02, radical=True)
     task.human.answer("Q1", "students")  # arrives before the first attempt -> evaluation revised to v2
     st = ev.run()
