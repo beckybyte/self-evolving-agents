@@ -199,3 +199,14 @@ def test_model_catalog_pool_and_cost(tmp_path, monkeypatch):
     with pytest.raises(AssertionError, match="catalog pool"):
         task.load_child(g)
     assert "MODELS a role may pick" in task.describe()
+
+
+def test_trace_health_flags_truncation_empty_and_retries():
+    from sea.tasks.build import trace_health
+    trace = [{"role": "arch", "kind": "llm", "chars": 900, "finish": "stop", "model": "crusoe:a", "retries": 0},
+             {"role": "backend", "kind": "llm", "chars": 50000, "finish": "length", "model": "crusoe:a", "retries": 2},
+             {"role": "ui", "kind": "llm", "chars": 0, "finish": "stop", "model": "crusoe:b", "retries": 1},
+             {"role": "ask", "kind": "human", "tokens": 0}]
+    h = trace_health(trace)
+    assert h == {"truncated_roles": ["backend"], "empty_roles": ["ui"], "model_retries": {"crusoe:a": 2, "crusoe:b": 1}}
+    assert trace_health([]) == {"truncated_roles": [], "empty_roles": [], "model_retries": {}}

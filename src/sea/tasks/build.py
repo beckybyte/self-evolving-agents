@@ -119,6 +119,19 @@ def code_lines(text: str) -> int:
     return sum(bool(CODE_LINE.match(l)) for l in text.splitlines())
 
 
+def trace_health(trace: list[dict]) -> dict:
+    """Framework-level failure signals of one team run: roles cut off at max_tokens (finish=length; a cut-off file
+    artifact is never closed, so it is lost), llm roles that emitted nothing, and 429/5xx/timeout retries per model."""
+    llm = [t for t in trace if t.get("kind") == "llm"]
+    retries: dict[str, int] = {}
+    for t in llm:
+        if t.get("retries"):
+            retries[t.get("model", "?")] = retries.get(t.get("model", "?"), 0) + t["retries"]
+    return {"truncated_roles": [t["role"] for t in llm if t.get("finish") == "length"],
+            "empty_roles": [t["role"] for t in llm if not t.get("chars")],
+            "model_retries": retries}
+
+
 def _load_module(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, path)
     m = importlib.util.module_from_spec(spec)
@@ -253,7 +266,8 @@ class BuildTask(Task):
                     "secs": round(time.time() - t0, 1), "team_secs": res.get("team_secs"), "eval_version": "",
                     "files": res["files"], "rejected_files": res["rejected"], "team_error": res.get("error"),
                     "failed_checks": dict(sorted(check_fail.items(), key=lambda x: -x[1])),
-                    "role_tokens": {t["role"]: t.get("tokens", 0) for t in res.get("trace", [])}})
+                    "role_tokens": {t["role"]: t.get("tokens", 0) for t in res.get("trace", [])},
+                    **trace_health(res.get("trace", []))})
         (out / "report.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False))
         return rep
 
@@ -292,7 +306,10 @@ class BuildTask(Task):
                     "rejected_files": [x.get("rejected_files") for x in reps],
                     "team_error": [x.get("team_error") for x in reps if x.get("team_error")] or None,
                     "failed_checks": dict(sorted(check_fail.items(), key=lambda x: -x[1])),
-                    "role_tokens": [x.get("role_tokens") for x in reps], "eval_version": ""})
+                    "role_tokens": [x.get("role_tokens") for x in reps], "eval_version": "",
+                    "truncated_roles": [x.get("truncated_roles") for x in reps],
+                    "empty_roles": [x.get("empty_roles") for x in reps],
+                    "model_retries": [x.get("model_retries") for x in reps]})
         (out / split).mkdir(parents=True, exist_ok=True)
         with open(out / split / "rows.jsonl", "w") as f:
             for r in rows:
@@ -336,7 +353,9 @@ class BuildTask(Task):
         worst = list((r.get("failed_checks") or {}).items())[:4]
         return (f"score(fit) {r['score']} (per team run {r.get('per_run')}), holdout {hold}, team tokens {r['tokens_per_sample']}, files {r.get('files')}; "
                 f"fails: {r['fail_reasons']}; most-failed checks {worst}"
-                + (f"; team error {r['team_error']}" if r.get("team_error") else ""))
+                + (f"; team error {r['team_error']}" if r.get("team_error") else "")
+                + (f"; roles cut off at max_tokens per run {r['truncated_roles']}" if any(r.get("truncated_roles") or []) else "")
+                + (f"; roles that emitted nothing per run {r['empty_roles']}" if any(r.get("empty_roles") or []) else ""))
 
     def cases(self, rows: list[dict], role: str, k_fail: int = 6, k_ok: int = 2) -> str:
         rows = sorted(rows, key=lambda r: r["score"])

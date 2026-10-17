@@ -64,11 +64,12 @@ def test_crusoe_backend_retries_and_floors_tokens(monkeypatch):
         calls.append(body)
         if len(calls) == 1:
             raise urllib.error.HTTPError("u", 429, "rate", {}, None)
-        return {"choices": [{"message": {"content": "<think>hmm</think>ok"}}],
+        return {"choices": [{"message": {"content": "<think>hmm</think>ok"}, "finish_reason": "length"}],
                 "usage": {"prompt_tokens": 3, "completion_tokens": 5}}
 
     text, u = llm._crusoe("nvidia/x", [{"role": "user", "content": "hi"}], 2048, 0.0, 30, post=post)
-    assert text == "ok" and u == {"prompt": 3, "completion": 5, "calls": 1}
+    assert text == "ok" and {k: u[k] for k in ("prompt", "completion", "calls")} == {"prompt": 3, "completion": 5, "calls": 1}
+    assert u["retries"] == 1 and u["finish"] == "length" and u["secs"] >= 0
     assert len(calls) == 2 and calls[0]["max_tokens"] >= llm.CRUSOE_MIN_TOKENS
     assert llm.known_model("crusoe:nvidia/NVIDIA-Nemotron-3.5-Super-VL")
 

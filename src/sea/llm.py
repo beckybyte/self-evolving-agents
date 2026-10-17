@@ -133,7 +133,7 @@ def _crusoe(model: str, messages: list[dict], max_tokens: int, temperature: floa
         return json.load(urllib.request.urlopen(req, timeout=timeout))
 
     post = post or _post
-    delay, deadline = 3.0, time.time() + 240
+    delay, deadline, t0, retries = 3.0, time.time() + 240, time.time(), 0
     while True:
         try:
             with sem:
@@ -145,12 +145,18 @@ def _crusoe(model: str, messages: list[dict], max_tokens: int, temperature: floa
         except (urllib.error.URLError, TimeoutError) as e:
             if time.time() > deadline:
                 raise RuntimeError(f"crusoe {model}: {e!r}")
+        retries += 1
         time.sleep(delay * (0.5 + random.random()))
         delay = min(delay * 2, 40)
-    msg = r["choices"][0]["message"]
+    choice = r["choices"][0]
+    msg = choice["message"]
     u = r.get("usage") or {}
+    # finish ("length" = cut off at max_tokens), retries (429/5xx/timeouts absorbed) and secs make truncation and
+    # rate limiting visible per role in the team trace; add_usage only sums the numeric ones
     return strip_think(msg.get("content") or ""), {"prompt": u.get("prompt_tokens", 0),
-                                                   "completion": u.get("completion_tokens", 0), "calls": 1}
+                                                   "completion": u.get("completion_tokens", 0), "calls": 1,
+                                                   "retries": retries, "secs": round(time.time() - t0, 1),
+                                                   "finish": choice.get("finish_reason") or ""}
 
 
 def add_usage(acc: dict, u: dict):
