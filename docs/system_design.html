@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Evolving Agent Teams — How It Works</title>
+<style>
+:root {
+  --c-l3: #7C3AED; --c-l3-bg: #F5F3FF;
+  --c-l2: #1D4ED8; --c-l2-bg: #EFF6FF;
+  --c-l1: #047857; --c-l1-bg: #ECFDF5;
+  --c-l0: #B45309; --c-l0-bg: #FFFBEB;
+  --c-hu: #4B5563; --c-hu-bg: #F9FAFB;
+  --font: 'Trebuchet MS', 'Gill Sans MT', Tahoma, Arial, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:#F1F5F9;color:#1E293B;min-height:100vh;padding:12px 16px 24px;overflow-x:hidden}
+header{text-align:center;padding:16px 0 10px}
+header h1{font-size:clamp(16px,2.6vw,27px);font-weight:900;color:#0F172A;letter-spacing:-0.4px;word-break:break-word;overflow-wrap:break-word}
+header .sub{font-size:clamp(11px,1.4vw,14px);color:#64748B;margin-top:5px;max-width:860px;margin-left:auto;margin-right:auto;line-height:1.45;word-break:break-word}
+.controls{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0;flex-wrap:wrap}
+.controls button{padding:7px 18px;border:none;border-radius:20px;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:700;transition:background 0.15s,transform 0.1s;user-select:none}
+.controls button:active{transform:scale(0.96)}
+.btn-nav{background:#E2E8F0;color:#334155}
+.btn-nav:hover{background:#CBD5E1}
+.btn-play{background:#7C3AED;color:white;padding:7px 22px}
+.btn-play:hover{background:#6D28D9}
+.step-ind{font-size:13px;color:#64748B;font-weight:700;min-width:52px;text-align:center}
+.dots{display:flex;gap:5px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:#CBD5E1;cursor:pointer;transition:all 0.2s}
+.dot.active{background:#7C3AED;transform:scale(1.4)}
+.dot.done{background:#A78BFA}
+.caption{max-width:960px;margin:10px auto;background:white;border:2px solid #E2E8F0;border-radius:14px;padding:13px 20px;min-height:60px}
+.cap-label{font-size:11px;font-weight:800;color:#7C3AED;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px}
+.cap-text{font-size:14px;line-height:1.55;color:#374151;word-break:break-word;overflow-wrap:break-word}
+.diagram-wrap{max-width:1300px;margin:8px auto 0;position:relative;overflow-x:hidden;overflow-y:visible}
+.diagram-wrap svg{width:100%;height:auto;display:block;aspect-ratio:1310/1028}
+.legend{max-width:960px;margin:10px auto 0;background:white;border:2px solid #E2E8F0;border-radius:14px;padding:12px 18px;font-size:12.5px;color:#4B5563;line-height:1.65;overflow-wrap:break-word;word-break:break-word}
+.legend-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:5px}
+.badge{display:inline-block;padding:2px 10px;border-radius:9px;font-size:11px;font-weight:800;flex-shrink:0}
+.b-fast{background:#ECFDF5;color:#047857}
+.b-mid{background:#EFF6FF;color:#1D4ED8}
+.b-slow{background:#F5F3FF;color:#7C3AED}
+.legend-note{font-size:11.5px;color:#94A3B8;font-style:italic;margin-top:2px}
+.tip{position:fixed;background:rgba(15,23,42,0.95);color:#F1F5F9;padding:10px 14px;border-radius:10px;font-size:12.5px;line-height:1.5;max-width:270px;pointer-events:none;z-index:200;display:none;box-shadow:0 4px 24px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.08)}
+#err{display:none;background:#FEE2E2;color:#991B1B;padding:6px 14px;text-align:center;font-size:11px;border-radius:6px;margin:4px auto;max-width:640px}
+.mob-hint{display:none;text-align:center;font-size:11px;color:#94A3B8;margin-top:4px}
+@media(max-width:540px){
+  body{padding:8px}
+  .controls button{padding:6px 12px;font-size:12px}
+  .mob-hint{display:block}
+}
+@media(prefers-reduced-motion:reduce){
+  .dot,.controls button{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="err"></div>
+<header>
+  <h1>Self-Evolving Agent Teams — How It Works</h1>
+  <p class="sub">Three nested loops let a team of AI agents improve itself, its own evaluation, and its framework — with you in the loop whenever you want, never blocking the system.</p>
+</header>
+<div class="controls">
+  <button class="btn-nav" onclick="prevStep()">&#8592; Prev</button>
+  <button class="btn-play" id="playBtn" onclick="togglePlay()">&#9654; Play</button>
+  <button class="btn-nav" onclick="nextStep()">Next &#8594;</button>
+  <span class="step-ind"><span id="sn">1</span>&thinsp;/&thinsp;10</span>
+  <div class="dots" id="dots"></div>
+</div>
+<div class="caption">
+  <div class="cap-label" id="capLabel">STEP 1</div>
+  <div class="cap-text" id="capText">...</div>
+</div>
+<div class="diagram-wrap">
+<svg id="svg" viewBox="0 0 1310 1028" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="aK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0,0 L10,5 L0,10z" fill="#64748B"/></marker>
+  <marker id="aO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0,0 L10,5 L0,10z" fill="#B45309"/></marker>
+  <marker id="aG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0,0 L10,5 L0,10z" fill="#4B5563"/></marker>
+  <marker id="aP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0,0 L10,5 L0,10z" fill="#7C3AED"/></marker>
+  <filter id="glow"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="sglow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+
+<!-- background -->
+<rect width="1310" height="1028" fill="#F1F5F9"/>
+
+<!-- ===================== L3: SLOW LOOP ===================== -->
+<g id="g-l3">
+<rect id="b-l3" x="14" y="14" width="978" height="200" rx="16" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+<text x="34" y="42" font-size="14.5" font-weight="900" fill="#7C3AED" font-family="'Trebuchet MS',Tahoma,sans-serif">L3 &middot; SLOW LOOP &mdash; Framework evolution</text>
+<text x="34" y="60" font-size="11" fill="#8B5CF6" font-family="'Trebuchet MS',Tahoma,sans-serif">A stronger Claude Code session improves the framework code itself &middot; runs every few generations &middot; evaluators + data are protected</text>
+
+<!-- box: Signals -->
+<g id="bx-l3-sig" class="bx" data-tip="Signals come from: the Evolver's wish list (things the genome schema can't express), automatic detectors (e.g. judge gives every scenario the same score, all learning updates rejected), bottleneck diagnosis, and your own feedback.">
+  <rect x="34" y="72" width="162" height="124" rx="10" fill="white" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="46" y="95" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#9889; Signals</text>
+  <text x="46" y="112" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Evolver wish list</text>
+  <text x="46" y="127" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Auto-detectors</text>
+  <text x="46" y="142" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">(judge no-diff,</text>
+  <text x="46" y="157" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif"> all learning rejected)</text>
+  <text x="46" y="172" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Your feedback</text>
+</g>
+<path id="ar-l3-1" d="M196,134 L218,134" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Proposal Backlog -->
+<g id="bx-l3-bl" class="bx" data-tip="Proposals are ranked by frequency &times; impact. Each has evidence, acceptance criteria, and a budget cap. Currently: P001 (shared-memory dedupe, merged), P002–P006 queued.">
+  <rect x="218" y="72" width="152" height="124" rx="10" fill="white" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="230" y="95" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#128203; Backlog</text>
+  <text x="230" y="112" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">P001 &#8594; P006</text>
+  <text x="230" y="127" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Evidence +</text>
+  <text x="230" y="142" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">acceptance criteria</text>
+  <text x="230" y="157" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Ranked by</text>
+  <text x="230" y="172" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">count &times; impact</text>
+</g>
+<path id="ar-l3-2" d="M370,134 L392,134" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Framework Improver (Claude Code session) + wrench character -->
+<g id="bx-l3-imp" class="bx" data-tip="A separate Claude Code session in an isolated git worktree implements one proposal at a time. Attempts to touch protected files (evaluators, data, meta-evaluation) are rejected by the harness.">
+  <rect x="392" y="72" width="192" height="124" rx="10" fill="white" stroke="#7C3AED" stroke-width="1.5"/>
+  <!-- robot head -->
+  <rect x="404" y="80" width="18" height="13" rx="3" fill="#7C3AED"/>
+  <circle cx="408" cy="85" r="2" fill="white"/>
+  <circle cx="415" cy="85" r="2" fill="white"/>
+  <line x1="413" y1="76" x2="413" y2="80" stroke="#7C3AED" stroke-width="1.5"/>
+  <circle cx="413" cy="75" r="2.5" fill="#7C3AED"/>
+  <!-- wrench -->
+  <path d="M428,82 Q432,78 436,82 L444,92 Q440,96 436,92 Z" fill="#B45309" opacity="0.85"/>
+  <circle cx="430" cy="84" r="3.5" fill="none" stroke="#B45309" stroke-width="1.8"/>
+  <text x="450" y="96" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#128295; CC Session</text>
+  <text x="404" y="112" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Isolated git worktree</text>
+  <text x="404" y="127" font-size="10.5" fill="#E11D48" font-family="'Trebuchet MS',Tahoma,sans-serif">&#215; Can't touch evaluators</text>
+  <text x="404" y="142" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">1 proposal at a time</text>
+  <text x="404" y="157" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Protected paths rejected</text>
+</g>
+<path id="ar-l3-3" d="M584,134 L606,134" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Meta-Evaluation -->
+<g id="bx-l3-me" class="bx" data-tip="Three-tier gate: A) unit tests + frozen safety tests; B) prompt-trace regression with a fake LLM; C) a short real evolution run comparing new vs old framework. Budget cap: $15 / 1 hour.">
+  <rect x="606" y="72" width="202" height="124" rx="10" fill="white" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="618" y="95" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#127942; Meta-Eval (3-tier)</text>
+  <text x="618" y="112" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">A: unit + safety tests</text>
+  <text x="618" y="127" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">B: prompt regression</text>
+  <text x="618" y="142" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">&#160;&#160;&#160;(fake LLM)</text>
+  <text x="618" y="157" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">C: real evo run (old vs new)</text>
+  <text x="618" y="172" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Budget: $15 / 1 h</text>
+</g>
+<path id="ar-l3-4" d="M808,134 L830,134" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: evolve/main -->
+<g id="bx-l3-mn" class="bx" data-tip="Changes that pass meta-eval go to an integration branch. You decide what reaches main. The framework_log.md records every change. Merged changes propagate to L0–L2.">
+  <rect x="830" y="72" width="148" height="124" rx="10" fill="white" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="842" y="95" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#127807; evolve/main</text>
+  <text x="842" y="112" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">framework_log.md</text>
+  <text x="842" y="127" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">You decide &#8594; main</text>
+  <text x="842" y="142" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Changes apply to</text>
+  <text x="842" y="157" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">L0 &ndash; L2</text>
+</g>
+</g><!-- /l3 -->
+
+<!-- ===================== L2: MIDDLE LOOP ===================== -->
+<g id="g-l2">
+<rect id="b-l2" x="14" y="232" width="978" height="198" rx="16" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="2"/>
+<text x="34" y="260" font-size="14.5" font-weight="900" fill="#1D4ED8" font-family="'Trebuchet MS',Tahoma,sans-serif">L2 &middot; MIDDLE LOOP &mdash; Team evolution (every generation)</text>
+<text x="34" y="278" font-size="11" fill="#3B82F6" font-family="'Trebuchet MS',Tahoma,sans-serif">Greedy parent &middot; child beats parent by a margin &#8594; replace (recursive) &middot; otherwise retry from parent with feedback (iterative)</text>
+
+<!-- box: Isolated Workspace -->
+<g id="bx-l2-ws" class="bx" data-tip="The Evolver's isolated workspace contains: the parent genome, per-role memory notes, fit-scenario reports, Judge critiques, and condensed feedback from failed children. It never sees holdout scenarios or test data.">
+  <rect x="34" y="292" width="208" height="120" rx="10" fill="white" stroke="#1D4ED8" stroke-width="1.5"/>
+  <text x="46" y="315" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#128193; Isolated Workspace</text>
+  <text x="46" y="332" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Parent genome + memories</text>
+  <text x="46" y="347" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Fit reports + critiques</text>
+  <text x="46" y="362" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Failed children (condensed)</text>
+  <text x="46" y="377" font-size="10.5" fill="#E11D48" font-family="'Trebuchet MS',Tahoma,sans-serif">&#215; No holdout / test data</text>
+  <text x="46" y="392" font-size="10.5" fill="#E11D48" font-family="'Trebuchet MS',Tahoma,sans-serif">&#215; No training data</text>
+</g>
+<path id="ar-l2-1" d="M242,352 L264,352" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Evolver (frozen Claude) + robot+magnifier character -->
+<g id="bx-l2-ev" class="bx" data-tip="The Evolver is a frozen Claude instance. It reads the evidence, diagnoses why the parent failed, then writes k=3 child genomes. One must be deliberately radical. Each genome includes notes on what changed and why.">
+  <rect x="264" y="292" width="196" height="120" rx="10" fill="white" stroke="#1D4ED8" stroke-width="1.5"/>
+  <!-- robot head -->
+  <rect x="274" y="298" width="17" height="13" rx="3" fill="#1D4ED8"/>
+  <circle cx="278" cy="303" r="1.8" fill="white"/>
+  <circle cx="284" cy="303" r="1.8" fill="white"/>
+  <line x1="282" y1="294" x2="282" y2="298" stroke="#1D4ED8" stroke-width="1.5"/>
+  <circle cx="282" cy="293" r="2" fill="#1D4ED8"/>
+  <!-- magnifier -->
+  <circle cx="297" cy="305" r="5" fill="none" stroke="#F59E0B" stroke-width="2"/>
+  <line x1="301" y1="309" x2="306" y2="314" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round"/>
+  <text x="314" y="315" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#129302; Evolver</text>
+  <text x="276" y="332" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Frozen Claude instance</text>
+  <text x="276" y="347" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Writes k=3 child genomes</text>
+  <text x="276" y="362" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">1 must be radical</text>
+  <text x="276" y="377" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Notes: what changed &amp; why</text>
+  <text x="276" y="392" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Diagnoses failures</text>
+</g>
+<path id="ar-l2-2" d="M460,352 L482,352" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Child Prep -->
+<g id="bx-l2-cp" class="bx" data-tip="Each child inherits memory notes from same-named roles in the parent, plus a shared 'taste' file reflecting your answers. Tool code is static-checked for safety. Optionally: one round of gated learning before evaluation.">
+  <rect x="482" y="292" width="192" height="120" rx="10" fill="white" stroke="#1D4ED8" stroke-width="1.5"/>
+  <text x="494" y="315" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#9881;&#65039; Child Prep</text>
+  <text x="494" y="332" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Inherits role memories</text>
+  <text x="494" y="347" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">+ shared taste file</text>
+  <text x="494" y="362" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Tool code safety check</text>
+  <text x="494" y="377" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Optional gated learning</text>
+</g>
+<path id="ar-l2-3" d="M674,352 L696,352" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Selection & Recording -->
+<g id="bx-l2-sel" class="bx" data-tip="If a child beats the parent by a margin, it replaces the parent (recursive). Otherwise the Evolver retries from the parent with condensed feedback (iterative). Every child — win or lose — goes into a MAP-Elites diversity archive. Each generation writes a rationale + design log.">
+  <rect x="696" y="292" width="280" height="120" rx="10" fill="white" stroke="#1D4ED8" stroke-width="1.5"/>
+  <text x="708" y="315" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#127885; Selection &amp; Recording</text>
+  <text x="708" y="332" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Child &gt; parent + margin &#8594; replace</text>
+  <text x="708" y="347" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Else: retry (with feedback)</text>
+  <text x="708" y="362" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">All children &#8594; MAP-Elites archive</text>
+  <text x="708" y="377" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Each gen: rationale + design_log</text>
+</g>
+</g><!-- /l2 -->
+
+<!-- cross-layer: L2 selection &#8594; L3 signals -->
+<path id="ar-l2-l3" d="M950,292 L950,224 L120,224 L120,196" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#aP)" fill="none"/>
+<text x="330" y="220" font-size="10" fill="#7C3AED" font-style="italic" font-family="'Trebuchet MS',Tahoma,sans-serif">evolver wishes + detector signals &#8594; proposals</text>
+
+<!-- cross-layer: L2 Evolver &#8594; L1 Genome (child genome down) -->
+<path id="ar-l2-l1g" d="M362,412 L362,456 L250,456 L250,490" stroke="#64748B" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#aK)" fill="none"/>
+<text x="174" y="452" font-size="10" fill="#64748B" font-style="italic" font-family="'Trebuchet MS',Tahoma,sans-serif">child genome</text>
+
+<!-- cross-layer: L2 Selection &#8594; L1 (run to evaluate child) -->
+<path id="ar-l2-l1e" d="M580,412 L580,490" stroke="#64748B" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#aK)" fill="none"/>
+<text x="586" y="452" font-size="10" fill="#64748B" font-style="italic" font-family="'Trebuchet MS',Tahoma,sans-serif">run child</text>
+
+<!-- ===================== L1: ONE TEAM RUN ===================== -->
+<g id="g-l1">
+<rect id="b-l1" x="14" y="490" width="978" height="182" rx="16" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="34" y="518" font-size="14.5" font-weight="900" fill="#047857" font-family="'Trebuchet MS',Tahoma,sans-serif">L1 &middot; ONE TEAM RUN</text>
+<text x="34" y="536" font-size="11" fill="#10B981" font-family="'Trebuchet MS',Tahoma,sans-serif">Fast loop: each role rewrites its own notes after the run &mdash; kept only if the new notes score better on the hidden holdout (gated)</text>
+
+<!-- box: Genome v2 -->
+<g id="bx-l1-gn" class="bx" data-tip="The genome is the only thing the Evolver can modify. It specifies: roles (LLM / tool-code / human), workflow (sequence or bounded loop), communication channels (shared blackboard or direct messages), and per-role memory notes.">
+  <rect x="34" y="548" width="278" height="108" rx="10" fill="white" stroke="#047857" stroke-width="1.5"/>
+  <text x="46" y="571" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#129516; Genome v2 (only thing evolved)</text>
+  <text x="46" y="588" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">roles: llm | tool | human</text>
+  <text x="46" y="603" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">workflow: sequence / bounded loop</text>
+  <text x="46" y="618" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">channels: blackboard / messages</text>
+  <text x="46" y="633" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">memory/&lt;role&gt;.md (gated learning)</text>
+</g>
+<path id="ar-l1-1" d="M312,602 L336,602" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Executor + small agent bots -->
+<g id="bx-l1-ex" class="bx" data-tip="The Executor runs one episode per genome using local open-weight models (vLLM). Tool roles run as subprocesses with a 60-second limit. Any role can send ASK_HUMAN — the question goes to your inbox and the run continues immediately on a stated default.">
+  <rect x="336" y="548" width="300" height="108" rx="10" fill="white" stroke="#047857" stroke-width="1.5"/>
+  <!-- three small robots -->
+  <rect x="348" y="556" width="12" height="9" rx="2" fill="#047857"/>
+  <circle cx="351" cy="559" r="1.5" fill="white"/>
+  <circle cx="355" cy="559" r="1.5" fill="white"/>
+  <rect x="364" y="558" width="12" height="9" rx="2" fill="#10B981"/>
+  <circle cx="367" cy="561" r="1.5" fill="white"/>
+  <circle cx="371" cy="561" r="1.5" fill="white"/>
+  <rect x="380" y="556" width="12" height="9" rx="2" fill="#6EE7B7"/>
+  <circle cx="383" cy="559" r="1.5" fill="#1E293B"/>
+  <circle cx="387" cy="559" r="1.5" fill="#1E293B"/>
+  <text x="400" y="571" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#9654;&#65038; Executor</text>
+  <text x="348" y="588" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Local open-weight models (vLLM)</text>
+  <text x="348" y="603" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Tool roles: subprocess (60s max)</text>
+  <text x="348" y="618" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">ASK_HUMAN &#8594; inbox, runs on default</text>
+  <text x="348" y="633" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Logs tokens per role</text>
+</g>
+<path id="ar-l1-2" d="M636,602 L660,602" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Artifacts / Output -->
+<g id="bx-l1-out" class="bx" data-tip="Output artifacts: PRD, decision log, user flows. In benchmark mode: an answer. Unanswered questions become an assumption list. Total team tokens feed into the fitness cost model (penalises complexity).">
+  <rect x="660" y="548" width="316" height="108" rx="10" fill="white" stroke="#047857" stroke-width="1.5"/>
+  <text x="672" y="571" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#128196; Artifacts</text>
+  <text x="672" y="588" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">PRD &middot; decision log &middot; flows</text>
+  <text x="672" y="603" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">(benchmark mode: answer)</text>
+  <text x="672" y="618" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Assumption list = open questions</text>
+  <text x="672" y="633" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Team tokens &#8594; cost item</text>
+</g>
+</g><!-- /l1 -->
+
+<!-- cross-layer: L1 output &#8594; L0 judge -->
+<path id="ar-l1-l0" d="M848,656 L848,716" stroke="#64748B" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#aK)" fill="none"/>
+<text x="854" y="690" font-size="10" fill="#64748B" font-style="italic" font-family="'Trebuchet MS',Tahoma,sans-serif">artifacts</text>
+
+<!-- ===================== L0: BASE LAYER ===================== -->
+<g id="g-l0">
+<rect id="b-l0" x="14" y="714" width="978" height="248" rx="16" fill="#FFFBEB" stroke="#B45309" stroke-width="2"/>
+<text x="34" y="742" font-size="14.5" font-weight="900" fill="#B45309" font-family="'Trebuchet MS',Tahoma,sans-serif">L0 &middot; TASK PLUGINS &amp; EVALUATION (frozen)</text>
+<text x="34" y="760" font-size="11" fill="#F59E0B" font-family="'Trebuchet MS',Tahoma,sans-serif">Ground-truth regression plugins also plug in here: calendar &middot; MATH &middot; DROP &middot; AppWorld</text>
+
+<!-- box: Product Brief + human character -->
+<g id="bx-l0-br" class="bx" data-tip="The only required input from you. A vague, PM-style brief like 'a day-planning assistant'. No data, no answer key, no rubric — the Framer builds all of that from scratch.">
+  <rect x="34" y="772" width="152" height="168" rx="10" fill="white" stroke="#B45309" stroke-width="1.5"/>
+  <!-- human character -->
+  <circle cx="75" cy="796" r="11" fill="#FEF3C7" stroke="#B45309" stroke-width="1.5"/>
+  <line x1="75" y1="807" x2="75" y2="826" stroke="#B45309" stroke-width="2"/>
+  <line x1="75" y1="814" x2="64" y2="821" stroke="#B45309" stroke-width="1.5"/>
+  <line x1="75" y1="814" x2="86" y2="821" stroke="#B45309" stroke-width="1.5"/>
+  <line x1="75" y1="826" x2="68" y2="840" stroke="#B45309" stroke-width="1.5"/>
+  <line x1="75" y1="826" x2="82" y2="840" stroke="#B45309" stroke-width="1.5"/>
+  <text x="94" y="800" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#128221; Brief</text>
+  <text x="46" y="852" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Vague PM-style goal</text>
+  <text x="46" y="867" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">briefs/*.md</text>
+  <text x="46" y="882" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">No data, no rubric</text>
+  <text x="46" y="897" font-size="10.5" fill="#047857" font-weight="700" font-family="'Trebuchet MS',Tahoma,sans-serif">&#8592; Only required input</text>
+  <text x="46" y="912" font-size="10.5" fill="#047857" font-family="'Trebuchet MS',Tahoma,sans-serif">&#160;&#160;from you</text>
+</g>
+<path id="ar-l0-1" d="M186,856 L210,856" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Framer + blueprint character -->
+<g id="bx-l0-fr" class="bx" data-tip="The Framer (Claude) restates the goal, lists assumptions, and asks you questions — but does NOT wait for your answers. It proceeds on stated defaults immediately, building personas, fit and hidden holdout scenarios, a rubric, and a complexity cost model. Saved as goal/v1. Revised to v2+ whenever you answer questions.">
+  <rect x="210" y="772" width="210" height="168" rx="10" fill="white" stroke="#B45309" stroke-width="1.5"/>
+  <!-- framer/architect character -->
+  <circle cx="232" cy="792" r="11" fill="#FEF3C7" stroke="#B45309" stroke-width="1.5"/>
+  <!-- blueprint (book) -->
+  <rect x="247" y="784" width="16" height="12" rx="2" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1"/>
+  <line x1="249" y1="788" x2="261" y2="788" stroke="#1D4ED8" stroke-width="0.8"/>
+  <line x1="249" y1="791" x2="261" y2="791" stroke="#1D4ED8" stroke-width="0.8"/>
+  <line x1="249" y1="794" x2="258" y2="794" stroke="#1D4ED8" stroke-width="0.8"/>
+  <text x="270" y="800" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#127959; Framer</text>
+  <text x="222" y="820" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Restates goal, lists assumptions</text>
+  <text x="222" y="835" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Asks you (doesn't wait!)</text>
+  <text x="222" y="850" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Builds evaluation (goal/vN):</text>
+  <text x="222" y="865" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">&#160;&#160;personas + scenarios</text>
+  <text x="222" y="880" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">&#160;&#160;rubric + cost model</text>
+  <text x="222" y="895" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Revises when you reply</text>
+  <text x="222" y="910" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">v1 &#8594; v2 &#8594; &#8230;</text>
+</g>
+<path id="ar-l0-2" d="M420,856 L444,856" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Goal / vN -->
+<g id="bx-l0-gl" class="bx" data-tip="Versioned goal object. Personas: who uses the product. Fit scenarios: shown to the Evolver. Hidden holdout scenarios: NEVER shown to the Evolver (prevents overfitting). Rubric: trade-off rationale, MVP discipline. Complexity cost model. When a new version is created, the parent genome is re-scored on the new evaluation.">
+  <rect x="444" y="772" width="228" height="168" rx="10" fill="white" stroke="#B45309" stroke-width="1.5"/>
+  <text x="456" y="800" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#127919; Goal / v<tspan font-style="italic">N</tspan></text>
+  <text x="456" y="818" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Personas</text>
+  <text x="456" y="833" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Fit scenarios (Evolver sees)</text>
+  <text x="456" y="848" font-size="10.5" fill="#E11D48" font-weight="700" font-family="'Trebuchet MS',Tahoma,sans-serif">Hidden holdout (Evolver blind)</text>
+  <text x="456" y="863" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Rubric + trade-off rationale</text>
+  <text x="456" y="878" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Complexity cost model</text>
+  <text x="456" y="893" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Versioned: v1 &#8594; v2 &#8594; &#8230;</text>
+  <text x="456" y="908" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Parent re-scored on new version</text>
+  <text x="456" y="923" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Ground-truth plugins plug in here</text>
+</g>
+<path id="ar-l0-3" d="M672,856 L696,856" stroke="#64748B" stroke-width="1.5" marker-end="url(#aK)" fill="none"/>
+
+<!-- box: Judge + gavel character -->
+<g id="bx-l0-jg" class="bx" data-tip="The Judge (Claude) walks through each scenario as each persona, scoring the artifacts with the rubric. It ONLY sees the artifacts — never the genome, never the team's process. Fitness = score − λ·tokens − λ·complexity. Feedback goes back to the Evolver's workspace.">
+  <rect x="696" y="772" width="280" height="168" rx="10" fill="white" stroke="#B45309" stroke-width="1.5"/>
+  <!-- judge character + gavel -->
+  <circle cx="718" cy="792" r="11" fill="#FEF3C7" stroke="#B45309" stroke-width="1.5"/>
+  <rect x="729" y="784" width="16" height="8" rx="3" fill="#92400E"/>
+  <line x1="743" y1="789" x2="754" y2="800" stroke="#92400E" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="760" y="800" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#9878;&#65039; Judge</text>
+  <text x="708" y="820" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Walks each scenario as each persona</text>
+  <text x="708" y="835" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Scores with rubric</text>
+  <text x="708" y="850" font-size="10.5" fill="#E11D48" font-weight="700" font-family="'Trebuchet MS',Tahoma,sans-serif">Only sees artifacts, NOT genome</text>
+  <text x="708" y="865" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Global items + complexity points</text>
+  <text x="708" y="880" font-size="10" fill="#374151" font-family="'Trebuchet MS',Tahoma,sans-serif">fitness = score &#8722; &#955;&#183;tokens &#8722; &#955;&#183;complexity</text>
+  <text x="708" y="895" font-size="10.5" fill="#475569" font-family="'Trebochet MS',Tahoma,sans-serif">Feedback &#8594; Evolver workspace</text>
+  <text x="708" y="910" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Hidden holdout also scored</text>
+</g>
+<!-- Fitness feedback: Judge &#8594; L2 Selection -->
+<path id="ar-fit" d="M970,856 L996,856 L996,352 L976,352" stroke="#B45309" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#aO)" fill="none"/>
+<text x="1002" y="616" font-size="11" font-weight="800" fill="#B45309" font-style="italic" font-family="'Trebuchet MS',Tahoma,sans-serif" transform="rotate(-90 1002 616)">fitness score</text>
+</g><!-- /l0 -->
+
+<!-- ===================== HUMAN LANE ===================== -->
+<g id="g-hu">
+<rect id="b-hu" x="1014" y="14" width="282" height="948" rx="16" fill="#F8FAFC" stroke="#4B5563" stroke-width="2"/>
+
+<!-- Human figure on left, title + subtitle stacked to its right — no overlap -->
+<circle cx="1030" cy="38" r="10" fill="#E2E8F0" stroke="#4B5563" stroke-width="1.5"/>
+<line x1="1030" y1="48" x2="1030" y2="62" stroke="#4B5563" stroke-width="2"/>
+<line x1="1030" y1="54" x2="1021" y2="61" stroke="#4B5563" stroke-width="1.6"/>
+<line x1="1030" y1="54" x2="1039" y2="61" stroke="#4B5563" stroke-width="1.6"/>
+<line x1="1030" y1="62" x2="1023" y2="72" stroke="#4B5563" stroke-width="1.6"/>
+<line x1="1030" y1="62" x2="1037" y2="72" stroke="#4B5563" stroke-width="1.6"/>
+<text x="1048" y="41" font-size="14" font-weight="900" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">You (Human)</text>
+<text x="1048" y="57" font-size="9.5" fill="#64748B" font-family="'Trebuchet MS',Tahoma,sans-serif">in the loop anytime &mdash; never waits</text>
+
+<!-- Human: L3 Approve -->
+<g id="bx-hu-ap" class="bx" data-tip="You approve any proposals that would change protected files (evaluators, data, meta-evaluation). After meta-eval passes, you decide what gets merged to main. You can also add signals to the proposal backlog directly.">
+  <rect x="1026" y="72" width="256" height="124" rx="10" fill="white" stroke="#4B5563" stroke-width="1.5"/>
+  <text x="1038" y="95" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#9989; Approve (L3)</text>
+  <text x="1038" y="112" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Approve evaluator-touching proposals</text>
+  <text x="1038" y="127" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Decide what merges to main</text>
+  <text x="1038" y="142" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Read framework_log.md</text>
+  <text x="1038" y="157" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Add signals to backlog</text>
+  <text x="1038" y="172" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Non-blocking &#8212; your own pace</text>
+</g>
+<path id="ar-hu-l3" d="M1026,134 L978,134" stroke="#4B5563" stroke-width="1.5" marker-end="url(#aG)" fill="none"/>
+
+<!-- Human: L2 Evo Log -->
+<g id="bx-hu-ev" class="bx" data-tip="After each generation, read the rationale log (what changed and why?) and the design log (how the design evolved over generations). Catch up at your own pace — the system doesn't wait.">
+  <rect x="1026" y="292" width="256" height="120" rx="10" fill="white" stroke="#4B5563" stroke-width="1.5"/>
+  <text x="1038" y="315" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#128214; Evo Log (L2)</text>
+  <text x="1038" y="332" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">rationale/genXX.md:</text>
+  <text x="1038" y="347" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">&#160;&#160;what changed &amp; why</text>
+  <text x="1038" y="362" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">design_log.md (design history)</text>
+  <text x="1038" y="377" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Read at your own pace</text>
+  <text x="1038" y="392" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">System never waits for you</text>
+</g>
+<path id="ar-l2-hu" d="M976,330 L1026,330" stroke="#4B5563" stroke-width="1.5" marker-end="url(#aG)" fill="none"/>
+
+<!-- Human: L1 Inbox -->
+<g id="bx-hu-in" class="bx" data-tip="Any role that sends ASK_HUMAN drops a question with a default answer into your inbox. The run continues immediately on the default. Answer anytime with 'sea.human answer'; rate with 'sea.human rate'. Answers fold into the shared taste file at the next generation boundary.">
+  <rect x="1026" y="548" width="256" height="108" rx="10" fill="white" stroke="#4B5563" stroke-width="1.5"/>
+  <text x="1038" y="571" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">&#128236; Inbox (L1)</text>
+  <text x="1038" y="588" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Questions + default answers</text>
+  <text x="1038" y="603" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Run continues, doesn't wait</text>
+  <text x="1038" y="618" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">sea.human answer / rate</text>
+  <text x="1038" y="633" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Folds in at next gen boundary</text>
+</g>
+<path id="ar-l1-hu" d="M976,572 L1026,572" stroke="#4B5563" stroke-width="1.5" marker-end="url(#aG)" fill="none"/>
+
+<!-- Human: L0 Your Input -->
+<g id="bx-hu-yo" class="bx" data-tip="Write the brief — that's the only required input. Your question answers and ratings feed back to the Framer at the next generation boundary, revising the evaluation from v1 to v2 etc. Your answers become the team's shared 'taste' file.">
+  <rect x="1026" y="772" width="256" height="168" rx="10" fill="white" stroke="#4B5563" stroke-width="1.5"/>
+  <!-- human character (larger, colored) -->
+  <circle cx="1048" cy="794" r="12" fill="#FEF3C7" stroke="#B45309" stroke-width="1.5"/>
+  <line x1="1048" y1="806" x2="1048" y2="824" stroke="#B45309" stroke-width="2"/>
+  <line x1="1048" y1="814" x2="1038" y2="820" stroke="#B45309" stroke-width="1.5"/>
+  <line x1="1048" y1="814" x2="1058" y2="820" stroke="#B45309" stroke-width="1.5"/>
+  <line x1="1048" y1="824" x2="1041" y2="838" stroke="#B45309" stroke-width="1.5"/>
+  <line x1="1048" y1="824" x2="1055" y2="838" stroke="#B45309" stroke-width="1.5"/>
+  <text x="1068" y="800" font-size="12.5" font-weight="800" fill="#1E293B" font-family="'Trebuchet MS',Tahoma,sans-serif">Your Input (L0)</text>
+  <text x="1038" y="854" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Write the brief</text>
+  <text x="1038" y="869" font-size="10.5" fill="#047857" font-weight="700" font-family="'Trebuchet MS',Tahoma,sans-serif">(only required input)</text>
+  <text x="1038" y="884" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Answer questions any time</text>
+  <text x="1038" y="899" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Rate designs any time</text>
+  <text x="1038" y="914" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Fold in at gen boundary</text>
+  <text x="1038" y="929" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">&#8594; Framer revises evaluation</text>
+</g>
+<!-- Human input loopback to L0 (bottom arc) -->
+<path id="ar-hu-l0" d="M1155,940 L1155,972 L109,972 L109,940" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aG)" fill="none"/>
+<path id="ar-hu-fr" d="M315,972 L315,940" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aG)" fill="none"/>
+<text x="400" y="968" font-size="10" fill="#64748B" font-style="italic" font-family="'Trebuchet MS',Tahoma,sans-serif">brief &#8594; product brief &#160;&#160;&#160; answers &amp; ratings &#8594; Framer (revises evaluation)</text>
+<!-- Inbox answers drop to L0 -->
+<path id="ar-hu-drop" d="M1155,656 L1155,714" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aG)" fill="none"/>
+</g><!-- /hu -->
+
+<!-- ===================== ANIMATED TOKEN ===================== -->
+<g id="tok" style="display:none">
+  <circle id="tokC" cx="0" cy="0" r="9" fill="#F59E0B" stroke="white" stroke-width="2.5" opacity="0.95"/>
+  <text id="tokL" x="0" y="4" text-anchor="middle" font-size="9" fill="white" font-weight="900">&#10140;</text>
+</g>
+
+<!-- ===================== RESULTS OVERLAY ===================== -->
+<g id="res-ov" style="display:none">
+  <rect x="80" y="260" width="820" height="380" rx="18" fill="rgba(15,23,42,0.94)" stroke="#F59E0B" stroke-width="2"/>
+  <text x="490" y="304" text-anchor="middle" font-size="17" font-weight="900" fill="#FCD34D" font-family="'Trebuchet MS',Tahoma,sans-serif">Demo: Day-Planner Brief &#8212; Fitness Over 3 Generations</text>
+  <!-- bars -->
+  <text x="120" y="348" font-size="12" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">Gen 0</text>
+  <rect x="190" y="332" width="58" height="22" rx="5" fill="#B45309"/>
+  <text x="252" y="348" font-size="12" fill="#E5E7EB" font-family="'Trebuchet MS',Tahoma,sans-serif"> 0.14</text>
+  <text x="120" y="384" font-size="12" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">Gen 1</text>
+  <rect x="190" y="368" width="152" height="22" rx="5" fill="#D97706"/>
+  <text x="346" y="384" font-size="12" fill="#E5E7EB" font-family="'Trebuchet MS',Tahoma,sans-serif"> 0.37</text>
+  <text x="120" y="420" font-size="12" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">Gen 2 &#9733;</text>
+  <rect x="190" y="404" width="180" height="22" rx="5" fill="#F59E0B"/>
+  <text x="374" y="420" font-size="12" fill="#F1F5F9" font-family="'Trebuchet MS',Tahoma,sans-serif"> 0.44 &#8212; won on retry (radical child)</text>
+  <text x="120" y="456" font-size="12" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">Gen 3</text>
+  <rect x="190" y="440" width="196" height="22" rx="5" fill="#10B981"/>
+  <text x="390" y="456" font-size="12" fill="#E5E7EB" font-family="'Trebuchet MS',Tahoma,sans-serif"> 0.48 &#8212; won on retry</text>
+  <!-- notes -->
+  <text x="120" y="500" font-size="11.5" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">Final team: 2 roles &middot; 10.6k tokens total</text>
+  <text x="120" y="520" font-size="11.5" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">P001 (shared-memory dedupe): implemented + merged by a separate CC session</text>
+  <text x="120" y="540" font-size="11.5" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">P001 tier-C noise &#8594; became P006 (tier C: seeds + path coverage)</text>
+  <text x="120" y="560" font-size="11.5" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">Ground-truth benchmarks (calendar, MATH, DROP, AppWorld) plug into the same Judge</text>
+  <text x="490" y="622" text-anchor="middle" font-size="10" fill="#64748B" font-style="italic" font-family="'Trebuchet MS',Tahoma,sans-serif">click anywhere to dismiss</text>
+</g>
+
+<!-- ===================== LEGEND STRIP ===================== -->
+<g id="legend-strip">
+  <rect x="14" y="984" width="1282" height="36" rx="8" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="1.5"/>
+  <text x="28" y="1007" font-size="11" font-weight="800" fill="#374151" font-family="'Trebuchet MS',Tahoma,sans-serif">Three loops: </text>
+  <rect x="106" y="991" width="42" height="16" rx="8" fill="#ECFDF5"/><text x="112" y="1004" font-size="10" font-weight="800" fill="#047857" font-family="'Trebuchet MS',Tahoma,sans-serif">Fast</text>
+  <text x="153" y="1007" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">agents rewrite own notes (gated)</text>
+  <text x="368" y="1007" font-size="11" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">&#183;</text>
+  <rect x="380" y="991" width="54" height="16" rx="8" fill="#EFF6FF"/><text x="386" y="1004" font-size="10" font-weight="800" fill="#1D4ED8" font-family="'Trebuchet MS',Tahoma,sans-serif">Middle</text>
+  <text x="438" y="1007" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">evolver redesigns team each generation</text>
+  <text x="672" y="1007" font-size="11" fill="#94A3B8" font-family="'Trebuchet MS',Tahoma,sans-serif">&#183;</text>
+  <rect x="684" y="991" width="40" height="16" rx="8" fill="#F5F3FF"/><text x="690" y="1004" font-size="10" font-weight="800" fill="#7C3AED" font-family="'Trebuchet MS',Tahoma,sans-serif">Slow</text>
+  <text x="729" y="1007" font-size="10.5" fill="#475569" font-family="'Trebuchet MS',Tahoma,sans-serif">Claude Code improves framework (meta-evaluated)</text>
+</g>
+</svg>
+</div>
+
+<p class="mob-hint">Tip: rotate to landscape for a better view</p>
+
+<div class="legend">
+  <div class="legend-row">
+    <strong>Three loops:</strong>
+    <span class="badge b-fast">Fast</span> agents rewrite their own notes from experience (gated by holdout performance)
+    &nbsp;&middot;&nbsp;
+    <span class="badge b-mid">Middle</span> Evolver redesigns the team genome each generation
+    &nbsp;&middot;&nbsp;
+    <span class="badge b-slow">Slow</span> Claude Code improves the framework code itself (meta-evaluated)
+  </div>
+  <div class="legend-note">Designed, not fully built yet: capability toggles (memory / learning / tools switchable per role, agents choose tools at run time) &middot; bottleneck diagnosis &amp; goal widening &middot; proposals P002&ndash;P006</div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function(){
+'use strict';
+window.onerror = function(m,s,l){
+  var e=document.getElementById('err');
+  e.style.display='block';
+  e.textContent='JS error: '+m+' (line '+l+')';
+  return true;
+};
+
+var CUR=1, TOTAL=10, playing=false, timer=null, INTERVAL=4200;
+
+var STEPS=[
+  {title:'STEP 1 &mdash; You write the brief',
+   cap:'You type a vague product brief: &ldquo;a day-planning assistant.&rdquo; That is the <strong>only required input</strong>. No data, no rubric, no answer key. The system builds everything else.',
+   hi:['bx-l0-br','bx-hu-yo','ar-hu-l0','b-l0'],
+   tok:{x1:1155,y1:900,x2:109,y2:856,color:'#B45309',lbl:'&#128221;'}},
+  {title:'STEP 2 &mdash; Framer builds the evaluation',
+   cap:'The <strong>Framer (Claude)</strong> restates the goal, lists assumptions, and asks questions &mdash; but does <em>not</em> wait. It proceeds on stated defaults, building personas, fit + hidden holdout scenarios, a rubric, and a complexity cost model. Saved as <code>goal/v1</code>.',
+   hi:['bx-l0-fr','bx-l0-gl','ar-l0-1','ar-l0-2','b-l0'],
+   tok:{x1:315,y1:856,x2:558,y2:856,color:'#B45309',lbl:'&#127919;'}},
+  {title:'STEP 3 &mdash; A team runs',
+   cap:'The <strong>genome</strong> (roles + workflow + channels + memory notes) is executed by local open-weight models. Each role acts, shares state via a blackboard, and can send ASK_HUMAN &mdash; the run never stops to wait for you.',
+   hi:['bx-l1-gn','bx-l1-ex','bx-l1-out','ar-l1-1','ar-l1-2','b-l1'],
+   tok:{x1:173,y1:602,x2:486,y2:602,color:'#047857',lbl:'&#9654;'}},
+  {title:'STEP 4 &mdash; Judge scores the artifacts',
+   cap:'The <strong>Judge (Claude)</strong> walks through each scenario as each persona, scoring the artifacts with the rubric. It only sees the artifacts &mdash; <em>never</em> the genome. Fitness = score &minus; &lambda;&middot;tokens &minus; &lambda;&middot;complexity.',
+   hi:['bx-l0-jg','bx-l1-out','ar-l1-l0','ar-fit','b-l0'],
+   tok:{x1:818,y1:656,x2:836,y2:772,color:'#B45309',lbl:'&#9878;'}},
+  {title:'STEP 5 &mdash; Evolver writes child genomes',
+   cap:'The <strong>Evolver</strong> (frozen Claude) gets an isolated workspace: parent genome, reports, Judge critiques, condensed failed-child feedback &mdash; <em>never</em> the holdout. It writes 3 children, one deliberately radical, each with change notes.',
+   hi:['bx-l2-ws','bx-l2-ev','ar-l2-1','ar-l2-l1g','b-l2'],
+   tok:{x1:50,y1:352,x2:362,y2:352,color:'#1D4ED8',lbl:'&#129516;'}},
+  {title:'STEP 6 &mdash; Selection and recording',
+   cap:'A child that beats the parent by a margin <strong>replaces it (recursive)</strong>. Otherwise the Evolver retries from the parent with condensed feedback <strong>(iterative)</strong>. Every child &mdash; win or lose &mdash; goes into a MAP-Elites diversity archive.',
+   hi:['bx-l2-cp','bx-l2-sel','ar-l2-2','ar-l2-3','b-l2'],
+   tok:{x1:578,y1:352,x2:836,y2:352,color:'#1D4ED8',lbl:'&#127885;'}},
+  {title:'STEP 7 &mdash; Fast loop: agents learn (gated)',
+   cap:'After each episode, each role rewrites its own memory notes. The update is <strong>kept only if the new notes score better on the hidden holdout</strong>. Bad updates are discarded. Learning is gated &mdash; roles can improve, but cannot overfit.',
+   hi:['bx-l1-gn','bx-l1-ex','b-l1'],
+   tok:{x1:636,y1:580,x2:172,y2:602,color:'#047857',lbl:'&#128221;'}},
+  {title:'STEP 8 &mdash; You answer a question',
+   cap:'You reply: &ldquo;mainly students and freelancers.&rdquo; At the next generation boundary, the <strong>Framer revises the evaluation</strong> (v1 &rarr; v2). The parent genome is re-scored on v2. Your answers become the team&rsquo;s shared &ldquo;taste.&rdquo;',
+   hi:['bx-hu-in','bx-hu-yo','bx-l0-fr','bx-l0-gl','ar-hu-drop','ar-hu-fr','b-l0'],
+   tok:{x1:1155,y1:656,x2:315,y2:856,color:'#4B5563',lbl:'&#128172;'}},
+  {title:'STEP 9 &mdash; Slow loop: framework improves itself',
+   cap:'Evolver wishes and auto-detectors feed a <strong>proposal backlog</strong>. A separate Claude Code session implements one proposal in its own git worktree, then must pass a 3-tier meta-evaluation. <strong>You decide what reaches main.</strong>',
+   hi:['bx-l3-sig','bx-l3-bl','bx-l3-imp','bx-l3-me','bx-l3-mn','ar-l3-1','ar-l3-2','ar-l3-3','ar-l3-4','b-l3'],
+   tok:{x1:116,y1:134,x2:898,y2:134,color:'#7C3AED',lbl:'&#128295;'}},
+  {title:'STEP 10 &mdash; Results so far (demo)',
+   cap:'Fitness 0.14 &rarr; 0.37 &rarr; 0.44 &rarr; 0.48 over 3 generations on the day-planner brief. Gens 2&ndash;3 won on retry; gen 2 via the radical child. Final team: 2 roles, 10.6k tokens. P001 (shared-memory dedupe) implemented by a separate Claude Code session and merged.',
+   hi:['b-l0','b-l1','b-l2','b-l3','ar-fit'],
+   tok:null,
+   results:true}
+];
+
+var ALL_IDS=[
+  'g-l3','g-l2','g-l1','g-l0','g-hu',
+  'bx-l3-sig','bx-l3-bl','bx-l3-imp','bx-l3-me','bx-l3-mn',
+  'bx-l2-ws','bx-l2-ev','bx-l2-cp','bx-l2-sel',
+  'bx-l1-gn','bx-l1-ex','bx-l1-out',
+  'bx-l0-br','bx-l0-fr','bx-l0-gl','bx-l0-jg',
+  'bx-hu-ap','bx-hu-ev','bx-hu-in','bx-hu-yo',
+  'ar-l3-1','ar-l3-2','ar-l3-3','ar-l3-4',
+  'ar-l2-1','ar-l2-2','ar-l2-3',
+  'ar-l1-1','ar-l1-2',
+  'ar-l0-1','ar-l0-2','ar-l0-3',
+  'ar-l2-l3','ar-l2-l1g','ar-l2-l1e',
+  'ar-l1-l0','ar-fit',
+  'ar-hu-l3','ar-l2-hu','ar-l1-hu','ar-hu-l0','ar-hu-fr','ar-hu-drop',
+  'b-l3','b-l2','b-l1','b-l0','b-hu'
+];
+
+// Build dots
+var dotsEl=document.getElementById('dots');
+for(var i=1;i<=TOTAL;i++){
+  (function(n){
+    var d=document.createElement('div');
+    d.className='dot';d.setAttribute('data-n',n);
+    d.addEventListener('click',function(){go(n);});
+    dotsEl.appendChild(d);
+  })(i);
+}
+
+function go(n){
+  n=Math.max(1,Math.min(TOTAL,n));
+  CUR=n;
+  var s=STEPS[n-1];
+
+  // caption
+  document.getElementById('capLabel').innerHTML='STEP '+n;
+  document.getElementById('capText').innerHTML=s.cap;
+  document.getElementById('sn').textContent=n;
+
+  // dots
+  var ds=document.querySelectorAll('.dot');
+  ds.forEach(function(d,i){
+    d.classList.remove('active','done');
+    if(i+1===n)d.classList.add('active');
+    else if(i+1<n)d.classList.add('done');
+  });
+
+  // results overlay
+  var ov=document.getElementById('res-ov');
+  if(s.results){
+    ov.style.display='';
+  } else {
+    ov.style.display='none';
+  }
+
+  // highlights
+  var pref=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  ALL_IDS.forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el)return;
+    el.style.opacity=s.results?'1':'0.4';
+    el.style.transition='opacity 0.3s';
+  });
+  s.hi.forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el)return;
+    el.style.opacity='1';
+  });
+
+  // animate token
+  if(s.tok&&!pref){
+    animTok(s.tok);
+  }
+
+  // hash
+  try{history.replaceState(null,'','#step='+n);}catch(e){}
+}
+
+var tokRaf=null;
+function animTok(cfg){
+  var tok=document.getElementById('tok');
+  var c=document.getElementById('tokC');
+  var l=document.getElementById('tokL');
+  if(tokRaf){cancelAnimationFrame(tokRaf);tokRaf=null;}
+  c.setAttribute('fill',cfg.color);
+  l.innerHTML=cfg.lbl||'&#10140;';
+  tok.style.display='';
+  var t0=null, DUR=1800;
+  var fx=cfg.x1,fy=cfg.y1,tx=cfg.x2,ty=cfg.y2;
+  function frame(ts){
+    if(!t0)t0=ts;
+    var p=Math.min(1,(ts-t0)/DUR);
+    var e=p<0.5?2*p*p:-1+(4-2*p)*p;
+    var x=fx+(tx-fx)*e, y=fy+(ty-fy)*e;
+    c.setAttribute('cx',x); c.setAttribute('cy',y);
+    l.setAttribute('x',x); l.setAttribute('y',y+3.5);
+    tok.style.opacity=p<0.08?p/0.08:p>0.88?(1-p)/0.12:1;
+    if(p<1){tokRaf=requestAnimationFrame(frame);}
+    else{tok.style.display='none';}
+  }
+  tokRaf=requestAnimationFrame(frame);
+}
+
+function next(){if(CUR<TOTAL)go(CUR+1);}
+function prev(){if(CUR>1)go(CUR-1);}
+window.nextStep=next;
+window.prevStep=prev;
+
+window.togglePlay=function(){
+  playing=!playing;
+  var btn=document.getElementById('playBtn');
+  if(playing){
+    btn.textContent='&#9646;&#9646; Pause';
+    btn.style.background='#DC2626';
+    if(CUR>=TOTAL)go(1);
+    timer=setInterval(function(){
+      if(CUR>=TOTAL){window.togglePlay();return;}
+      next();
+    },INTERVAL);
+  }else{
+    btn.innerHTML='&#9654; Play';
+    btn.style.background='#7C3AED';
+    clearInterval(timer);
+  }
+};
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')next();
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp')prev();
+  else if(e.key===' '){e.preventDefault();window.togglePlay();}
+});
+
+// Results overlay click dismiss
+document.getElementById('res-ov').addEventListener('click',function(){
+  this.style.display='none';
+});
+
+// Tooltips
+var tip=document.getElementById('tip');
+document.querySelectorAll('.bx').forEach(function(g){
+  var tx=g.getAttribute('data-tip');
+  if(!tx)return;
+  g.style.cursor='pointer';
+  g.addEventListener('mouseenter',function(e){
+    tip.textContent=tx;
+    tip.style.display='block';
+    positionTip(e);
+  });
+  g.addEventListener('mousemove',positionTip);
+  g.addEventListener('mouseleave',function(){tip.style.display='none';});
+  // touch
+  g.addEventListener('click',function(e){
+    if(tip.style.display==='block'){tip.style.display='none';return;}
+    tip.textContent=tx;
+    tip.style.display='block';
+    positionTip(e);
+  });
+});
+function positionTip(e){
+  var x=e.clientX||0, y=e.clientY||0;
+  tip.style.left=Math.min(x+14,window.innerWidth-288)+'px';
+  tip.style.top=(y+16)+'px';
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.bx'))tip.style.display='none';
+});
+
+// Read hash
+function readHash(){
+  var h=window.location.hash,m=h.match(/#step=(\d+)/);
+  if(m){var n=parseInt(m[1],10);if(n>=1&&n<=TOTAL)return n;}
+  return 1;
+}
+
+go(readHash());
+})();
+</script>
+</body>
+</html>

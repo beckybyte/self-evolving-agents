@@ -7,6 +7,8 @@ evaluation and its failures, and writes k child genomes; a child replaces the pa
 
 ![system design](docs/system_design.svg)
 
+Animated, English step-by-step version: [`docs/system_design.html`](docs/system_design.html) (self-contained; download and open in a browser — GitHub does not render HTML).
+
 **v2 (branch `v2-open-ended`, package `src/sea/`)** generalises this from benchmarks to **open-ended product briefs**
 with no dataset: the system restates a vague brief, lists assumptions, asks the human (without waiting), builds its own
 evaluation (personas, scenarios, rubric, complexity model) and revises it when the human answers. Benchmarks
