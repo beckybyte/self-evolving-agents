@@ -75,6 +75,8 @@ def catalog_text() -> str:
             for mid, m in CATALOG.items() if pool() in ("all", "mixed") or m["family"] == "nemotron"]
     if pool() == "mixed":
         rows += [f"- {mid}  (cost x{m['cost']}): {m['good']}" for mid, m in CLAUDE.items()]
+        rows.append("  (Claude workers already answer without extended thinking: measured thinking_tokens 0, so there is "
+                    "no #nothink for claude:*; pick haiku vs sonnet for speed/cost instead)")
     return ("MODELS a role may pick (`model: crusoe:<id>` or `crusoe:<id>#nothink`; `$WORKER` = the run's default). "
             "Team tokens are weighted by cost. A thinking call that spends all of max_tokens thinking and answers nothing is "
             "retried once with #nothink (both calls counted; trace shows fallback). Probe = 2 trials of one small coding task, a prior only:\n" + "\n".join(rows))
