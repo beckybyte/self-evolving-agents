@@ -77,7 +77,10 @@ def _claude(alias: str, messages: list[dict], timeout: int) -> tuple[str, dict]:
     system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
     body = "\n\n".join(m["content"] if m["role"] == "user" else f"[{m['role']}]\n{m['content']}"
                        for m in messages if m["role"] != "system")
-    cmd = ["claude", "-p", "--model", alias, "--tools", "", "--output-format", "json", "--no-session-persistence"]
+    # a bare worker: no user/global settings (hooks), MCP servers or skills. Without these flags every call carried
+    # ~34k hidden tokens of MCP/skill listings (cache_read), counted as team tokens and x15 cost-weighted for sonnet
+    cmd = ["claude", "-p", "--model", alias, "--tools", "", "--output-format", "json", "--no-session-persistence",
+           "--setting-sources", "project", "--strict-mcp-config", "--disable-slash-commands"]
     if system:
         cmd += ["--system-prompt", system]
     with tempfile.TemporaryDirectory() as cwd:  # empty cwd: the model sees nothing but the prompt
