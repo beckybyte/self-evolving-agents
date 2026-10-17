@@ -282,3 +282,21 @@ def test_identical_repeat_call_is_sampled_hotter(tmp_path, monkeypatch):
     fix = [t for c, t in temps if c == "fix S"]
     assert fix == [0.0, 0.7, 0.7]  # first call as configured, identical repeats sampled hotter
     assert sum("repeat_temperature" in t for t in res["trace"]) == 4  # chk and fixer, rounds 2 and 3
+
+
+def test_failed_model_call_fails_the_role_not_the_run(tmp_path, monkeypatch):
+    import subprocess
+    import sea.executor as ex
+
+    def chat(model, msgs, max_tokens=2048, temperature=0.0):
+        if model == "fake:slow":
+            raise subprocess.TimeoutExpired(["claude"], 900)
+        return '<artifact name="index_html"><html></html></artifact>', {"prompt": 1, "completion": 1, "calls": 1}
+    monkeypatch.setattr(ex, "chat", chat)
+    roles = [{"name": "ui", "kind": "llm", "model": "fake:ok", "prompt": "ui"},
+             {"name": "app", "kind": "llm", "model": "fake:slow", "prompt": "app"},
+             {"name": "after", "kind": "llm", "model": "fake:ok", "prompt": "sees {blackboard.app}"}]
+    res = ex.run_team(load_genome(_genome(tmp_path, roles, [{"parallel": ["ui", "app"]}, "after"])), {"id": "e", "input": {"text": "x"}}, "fake:ok")
+    assert res["artifacts"]["index_html"] == "<html></html>"  # ui's file survives
+    assert "failed" in res["blackboard"]["app"] and [t["role"] for t in res["trace"] if t.get("error")] == ["app"]
+    assert [t["role"] for t in res["trace"]][-1] == "after"  # the run went on

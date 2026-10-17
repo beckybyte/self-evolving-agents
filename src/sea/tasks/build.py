@@ -142,6 +142,7 @@ def trace_health(trace: list[dict]) -> dict:
             retries[t.get("model", "?")] = retries.get(t.get("model", "?"), 0) + t["retries"]
     return {"truncated_roles": [t["role"] for t in llm if t.get("finish") == "length"],
             "empty_roles": [t["role"] for t in llm if not t.get("chars")],
+            "failed_roles": [t["role"] for t in llm if t.get("error")],
             "model_retries": retries}
 
 
@@ -326,6 +327,7 @@ class BuildTask(Task):
                     "role_tokens": [x.get("role_tokens") for x in reps], "eval_version": "",
                     "truncated_roles": [x.get("truncated_roles") for x in reps],
                     "empty_roles": [x.get("empty_roles") for x in reps],
+                    "failed_roles": [x.get("failed_roles") for x in reps],
                     "model_retries": [x.get("model_retries") for x in reps]})
         (out / split).mkdir(parents=True, exist_ok=True)
         with open(out / split / "rows.jsonl", "w") as f:
@@ -372,7 +374,8 @@ class BuildTask(Task):
                 f"fails: {r['fail_reasons']}; most-failed checks {worst}"
                 + (f"; team error {r['team_error']}" if r.get("team_error") else "")
                 + (f"; roles cut off at max_tokens per run {r['truncated_roles']}" if any(r.get("truncated_roles") or []) else "")
-                + (f"; roles that emitted nothing per run {r['empty_roles']}" if any(r.get("empty_roles") or []) else ""))
+                + (f"; roles that emitted nothing per run {r['empty_roles']}" if any(r.get("empty_roles") or []) else "")
+                + (f"; roles whose model call failed (timeout/error) per run {r['failed_roles']}" if any(r.get("failed_roles") or []) else ""))
 
     def cases(self, rows: list[dict], role: str, k_fail: int = 6, k_ok: int = 2) -> str:
         rows = sorted(rows, key=lambda r: r["score"])

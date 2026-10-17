@@ -215,8 +215,10 @@ def test_trace_health_flags_truncation_empty_and_retries():
              {"role": "ui", "kind": "llm", "chars": 0, "finish": "stop", "model": "crusoe:b", "retries": 1},
              {"role": "ask", "kind": "human", "tokens": 0}]
     h = trace_health(trace)
-    assert h == {"truncated_roles": ["backend"], "empty_roles": ["ui"], "model_retries": {"crusoe:a": 2, "crusoe:b": 1}}
-    assert trace_health([]) == {"truncated_roles": [], "empty_roles": [], "model_retries": {}}
+    assert h == {"truncated_roles": ["backend"], "empty_roles": ["ui"], "failed_roles": [],
+                 "model_retries": {"crusoe:a": 2, "crusoe:b": 1}}
+    assert trace_health([]) == {"truncated_roles": [], "empty_roles": [], "failed_roles": [], "model_retries": {}}
+    assert trace_health([{"role": "app", "kind": "llm", "chars": 0, "error": "TimeoutExpired"}])["failed_roles"] == ["app"]
 
 
 def test_mixed_pool_allows_claude_workers(tmp_path, monkeypatch):

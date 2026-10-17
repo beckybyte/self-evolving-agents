@@ -197,7 +197,15 @@ class _Run:
             repeat = key in self._seen_calls
             self._seen_calls.add(key)
         temperature = max(r["temperature"], REPEAT_TEMPERATURE) if repeat else r["temperature"]
-        text, u = chat(model, msgs, max_tokens=r["max_tokens"], temperature=temperature)
+        try:
+            text, u = chat(model, msgs, max_tokens=r["max_tokens"], temperature=temperature)
+        except Exception as e:  # a model call that times out or errors fails this role, not the whole team run
+            # (evo_v2_a gen00 r1: a 900 s claude:haiku timeout threw away the run and the ui role's finished file)
+            with self._lock:
+                self.bb[name] = f"(role {name} failed, no output: {e!r:.300})"
+                self.trace.append({"role": name, "kind": "llm", "tokens": 0, "chars": 0, "model": model,
+                                   "error": repr(e)[:300]})
+            return
         with self._lock:
             add_usage(self.usage, u)
             if not g["_legacy"]:
