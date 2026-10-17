@@ -44,7 +44,9 @@ genome.yaml (schema: 2)
                                     one) contains stop_when, tested right after stop_on runs: body [checker, fixer]
                                     with stop_on: checker skips the fixer once the checker says ALL_CLEAR;
                                     check_first: true also tests it BEFORE round 1, so the loop runs 0 rounds when
-                                    e.g. a smoke check that ran just before the loop already passed)
+                                    e.g. a smoke check that ran just before the loop already passed;
+                                    stop_all: [{on: smoke, when: "SMOKE: PASS"}, {on: auditor, when: ALL_CLEAR}]
+                                    instead stops only when ALL hold, tested after each full round)
                                     or {parallel: [names]}: 2..6 roles run concurrently, each starting from the state
                                     before the step (use it for independent pieces, e.g. backend / ui). Default: roles in order.
   artifacts: [{name, format: markdown|json|text, required: bool=true}]
@@ -169,6 +171,11 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
             assert lp.get("body") and all(b in names for b in lp["body"]), f"bad loop {step}"
             assert 1 <= int(lp.get("max_rounds", 2)) <= 6, "loop max_rounds must be 1..6"
             assert lp.get("stop_on", lp["body"][-1]) in lp["body"], f"loop stop_on must be a body role: {step}"
+            for c in lp.get("stop_all") or []:
+                assert isinstance(c, dict) and c.get("on") in lp["body"] and c.get("when"), \
+                    f"loop stop_all entries are {{on: <body role>, when: <text>}}: {step}"
+            assert not (lp.get("stop_all") and (lp.get("stop_when") or lp.get("stop_on"))), \
+                f"loop: use stop_all or stop_when/stop_on, not both: {step}"
         else:
             assert step in names, f"workflow step {step!r} is not a role"
     ans = g["outputs"].get("answer")

@@ -244,3 +244,18 @@ def test_smoke_selftest_option():
     hang = st.replace('raise SystemExit(SELFCODE)', '__import__("time").sleep(60)')
     ok, rep = app_smoke({"app_py": hang}, selftest=True, budget=15)  # a self-test that never exits
     assert not ok and "did not finish" in rep
+
+
+def test_loop_stop_all_needs_every_condition(tmp_path):
+    seq = {"aud": iter(["ALL_CLEAR", "ALL_CLEAR", "ALL_CLEAR"]), "smk": iter(["SMOKE: FAIL", "SMOKE: PASS", "SMOKE: PASS"])}
+    calls = []
+    register_fake("aud", lambda m: calls.append("a") or next(seq["aud"]))
+    register_fake("smk", lambda m: calls.append("s") or next(seq["smk"]))
+    roles = [{"name": "auditor", "kind": "llm", "model": "fake:aud", "prompt": "a"},
+             {"name": "smoke", "kind": "llm", "model": "fake:smk", "prompt": "s"}]
+    loop = {"loop": {"body": ["auditor", "smoke"], "max_rounds": 3,
+                     "stop_all": [{"on": "smoke", "when": "SMOKE: PASS"}, {"on": "auditor", "when": "ALL_CLEAR"}]}}
+    run_team(load_genome(_genome(tmp_path, roles, [loop])), {"id": "e", "input": {"text": "x"}}, "fake:aud")
+    assert calls == ["a", "s", "a", "s"]  # round 1: auditor clear but smoke failing -> keep going
+    with pytest.raises(AssertionError, match="stop_all"):
+        load_genome(_genome(tmp_path, roles, [{"loop": {"body": ["auditor"], "stop_all": [{"on": "nobody", "when": "x"}]}}]))

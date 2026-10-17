@@ -258,13 +258,14 @@ class _Run:
         stop_on is tested right after that role runs, so a checker first in the body ends the loop before the fixer
         reads anything; check_first also tests it before round 1."""
         stop, on = lp.get("stop_when"), lp.get("stop_on", lp["body"][-1])
-        done = lambda: bool(stop) and stop in str(self.bb.get(on, ""))
+        conds = [(c["on"], c["when"]) for c in lp.get("stop_all") or []] or ([(on, stop)] if stop else [])
+        done = lambda: bool(conds) and all(w in str(self.bb.get(o, "")) for o, w in conds)
         if lp.get("check_first") and done():
             return
         for _ in range(int(lp.get("max_rounds", 2))):
             for b in lp["body"]:
                 self.step(b)
-                if b == on and done():
+                if (b == on if not lp.get("stop_all") else b == lp["body"][-1]) and done():
                     return
 
     def run(self) -> dict:
