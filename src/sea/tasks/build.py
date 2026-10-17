@@ -24,6 +24,7 @@ import threading
 import time
 from pathlib import Path
 
+from .. import models
 from ..executor import run_team
 from ..fitness import FitnessSpec, Term
 from ..human import HumanChannel
@@ -158,10 +159,10 @@ class BuildTask(Task):
 
     # ---------------------------------------------------------------- Task protocol
     def describe(self) -> str:
-        return DESC.format(contract=self.contract, scenarios=self.scenario_text())
+        return DESC.format(contract=self.contract, scenarios=self.scenario_text()) + "\n\n" + models.catalog_text()
 
     def moves(self) -> str:
-        return ("split the work by file (architect -> {parallel: [backend, agents, ui]} -> integrator), merge roles that "
+        return ("pick a model per role from MODELS (strong coder for big files, a cheap fast one for plans/checks; thinking on or #nothink per role), split the work by file (architect -> {parallel: [backend, agents, ui]} -> integrator), merge roles that "
                 "only add tokens, add a reviewer that checks the code against the contract's numbered behaviours and "
                 "re-emits fixed files, give a role the exact JSON shapes / ids it keeps getting wrong, make the app "
                 "rule-based where the harness checks fail on LLM flakiness, or add a reviewer/fixer loop. Tool roles are not "
@@ -173,6 +174,10 @@ class BuildTask(Task):
         pasted into the genome (soul, prompts, memory notes) beyond short snippets."""
         g = super().load_child(gdir)
         assert all(r["kind"] != "tool" for r in g["roles"]), "build mode: tool roles are not allowed (the team's models write the code)"
+        for r in g["roles"]:
+            m = r.get("model", "$WORKER")
+            assert m == "$WORKER" or (m.startswith("crusoe:") and models.allowed(m[7:])), (
+                f"build mode: role {r['name']} model {m!r} is not in the catalog pool ({models.pool()}); see MODELS")
         text = "\n".join([g.get("soul", "")] + [r.get("prompt", "") for r in g["roles"]] + list(g["_memory"].values()))
         n = code_lines(text)
         assert n <= MAX_GENOME_CODE_LINES, (f"build mode: the genome holds {n} lines of code (max {MAX_GENOME_CODE_LINES}); "
@@ -226,10 +231,14 @@ class BuildTask(Task):
         t0 = time.time()
         res = self.team_run(gdir, worker, out.parent)
         rows = self.run_harness(out.parent / "app", split, res)[:limit]
-        for r in rows:  # summarize() averages r["tokens"]: every row carries the one team run's tokens
+        g = self.load(gdir)
+        role_model = {r["name"]: (worker if r.get("model", "$WORKER") == "$WORKER" else r["model"]) for r in g["roles"]}
+        weighted = round(sum(t.get("tokens", 0) * models.cost(role_model.get(t["role"], worker))
+                             for t in res.get("trace", [])) if res.get("trace") else res["tokens"] * models.cost(worker))
+        for r in rows:  # summarize() averages r["tokens"]: every row carries the team run's cost-weighted tokens
             r.setdefault("detail", "")
             r.setdefault("hard", r.get("score", 0) >= 1.0)
-            r["tokens"] = res["tokens"]
+            r["tokens"] = weighted
         with open(out / "rows.jsonl", "w") as f:
             for r in rows:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
@@ -239,8 +248,8 @@ class BuildTask(Task):
             for c in r.get("checks") or []:
                 if isinstance(c, dict) and not c.get("ok", c.get("pass", True)):
                     check_fail[str(c.get("name", c.get("id", "?")))] = check_fail.get(str(c.get("name", c.get("id", "?"))), 0) + 1
-        g = self.load(gdir)
-        rep.update({"genome": g.get("id"), "split": split, "worker": worker, "n": len(rows),
+        rep.update({"genome": g.get("id"), "split": split, "worker": worker, "n": len(rows), "raw_tokens": res["tokens"],
+                    "role_models": role_model,
                     "secs": round(time.time() - t0, 1), "team_secs": res.get("team_secs"), "eval_version": "",
                     "files": res["files"], "rejected_files": res["rejected"], "team_error": res.get("error"),
                     "failed_checks": dict(sorted(check_fail.items(), key=lambda x: -x[1])),

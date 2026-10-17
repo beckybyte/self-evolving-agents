@@ -180,3 +180,22 @@ def test_repeats_average_independent_team_runs(tmp_path):
     assert "app_r0/app.py" in ws and "app_r1/app.py" in ws and "team_trace_r1.json" in ws
     again = task.evaluate_fit(ROOT / "genomes/v2/build_P0", "fake:flaky", tmp_path / "ev")  # cached, no new team run
     assert again["metrics"] == ev["metrics"] and n[0] == 2
+
+
+def test_model_catalog_pool_and_cost(tmp_path, monkeypatch):
+    from sea import models
+    monkeypatch.delenv("SEA_MODEL_POOL", raising=False)
+    assert models.allowed("nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B#nothink") and not models.allowed("openai/gpt-oss-120b")
+    assert models.cost("crusoe:nvidia/Nemotron-3.5-Lightning-30B-A3B") == 0.25 and models.cost("fake:x") == 1.0
+    assert "Lightning" in models.catalog_text() and "gpt-oss" not in models.catalog_text()
+    monkeypatch.setenv("SEA_MODEL_POOL", "all")
+    assert models.allowed("openai/gpt-oss-120b") and "gpt-oss" in models.catalog_text()
+    monkeypatch.setenv("SEA_MODEL_POOL", "nemotron")
+    g = tmp_path / "g"
+    g.mkdir()
+    (g / "genome.yaml").write_text("schema: 2\nid: x\nroles:\n- {name: dev, kind: llm, model: 'crusoe:openai/gpt-oss-120b', prompt: hi}\n")
+    task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")
+    import pytest
+    with pytest.raises(AssertionError, match="catalog pool"):
+        task.load_child(g)
+    assert "MODELS a role may pick" in task.describe()
