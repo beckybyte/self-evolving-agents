@@ -225,3 +225,15 @@ instruction; single-mode coder with `{history}`).
   `worker`, `experiment_name` (unique per evaluation, AppWorld logs in
   `experiments/outputs/<it>`), `n`, `secs`.
 - `OUT/traces/<task>.json`: full history, role outputs, failed tests.
+
+### P0 genome reference numbers (qwen3-30b-a3b, `runs/`)
+
+| split | hard_acc (TGC) | score (mean pass fraction) | sgc | tokens/task | wall clock (8 workers) |
+|---|---|---|---|---|---|
+| dev (57) | 0.070 (4/57) | 0.443 | 0.0 | 57k | 57 min under heavy contention on :8101 (3 tasks hit the 20-min kill and were rerun with `--resume`, 7 min) |
+| train (90) | 0.178 (16/90) | 0.482 | 0.067 | 60k | 15 min |
+
+P0 = run_baseline.py prompt and loop (TGC 5.3 there; the 1-task difference is vLLM batch
+nondeterminism at temperature 0). The 30B server is shared; with other agents on it, dev
+went from ~10 min to ~57 min. `--resume` reruns only missing or errored (timeout/crash) tasks;
+`secs` in report.json then covers only the resumed part.

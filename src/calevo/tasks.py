@@ -150,6 +150,24 @@ def build(seed: int = 0):
     _split(rows, seed, out, "drop")
 
 
+def build_math_train(n: int = 400, seed: int = 0):
+    """Experience stream for per-agent learning: MATH *train* Level 5, same 4 types (disjoint from dev/test)."""
+    from datasets import load_dataset
+    rows = []
+    for t in MATH_TYPES:
+        for r in load_dataset("EleutherAI/hendrycks_math", t, split="train"):
+            if r["level"] == "Level 5" and (gold := last_boxed(r["solution"])):
+                rows.append({"id": f"mathtr-{t}-{len(rows)}", "task": "math",
+                             "messages": [{"role": "system", "content": MATH_SYS}, {"role": "user", "content": r["problem"]}],
+                             "state": {"answer": gold, "type": t}})
+    random.Random(seed).shuffle(rows)
+    out = ROOT / "data" / "splits" / "math_train.jsonl"
+    with open(out, "w") as f:
+        for r in rows[:n]:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    print("math_train", min(n, len(rows)), "of", len(rows))
+
+
 def _split(rows, seed, out, name):
     random.Random(seed).shuffle(rows)
     k = len(rows) // 5

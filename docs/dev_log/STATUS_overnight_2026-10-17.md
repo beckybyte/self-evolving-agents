@@ -40,6 +40,11 @@ ood_test 拆开看：evo_full 硬约束 1.00，偏好满足 right_after 12/48、
 ## 进度日志 (UTC, newest first)
 | time | ws | note |
 |---|---|---|
+| 17:31 | 每 agent 学习 | 用户同意先在 MATH 上做每个 agent 的记忆。runner 读 genome/memory/<role>.md 注入到该角色的 prompt；calevo.learn：团队在 math_train（MATH train L5，400 题，和 dev / test 不相交）上做一批题，每个 LLM 角色用 worker 模型自己反思自己的输出，重写笔记（最多 12 条、900 字、只写通用经验）。E1（结构固定、只学习，6 轮 × 40 题，每轮评 math_dev）：learn_math_P0（单 agent）和 learn_math_team（evo_math 最终 6 人团队）。E2：evo_math_learn = evo_math 加上 CALEVO_LEARN=math_train:40，子代继承父代同名角色的笔记、评估前先学一轮（拉马克式），对照组是 evo_math |
+| 17:25 | 阶段 3 | evo_math 结束（最好 gen9，dev 0.851，6 人 / 3 LLM），evo_drop 结束（dev 约 0.92，3 人 / 2 LLM），evo_full_diverse 结束（fit 0.959）。测试集评估已启动：math_test 484 题（最终 genome + P0，8B），drop_test 800 题（最终 genome + P0，30B），diverse 跑 3 个测试集。evo_hard gen9 fit 0.994；evo_appworld 正在评估 gen00（72B，train 90 题） |
+| 17:15 | AppWorld | genome 评测器完成（appworld/run_genome.py）。P0 用 30B：dev TGC 7.0%（基线 5.3%），train TGC 17.8%、平均通过比例 0.482，SGC 6.7%。30B 服务器太挤（running 66 / waiting 84，会超时），所以 evo_appworld 改用 qwen2.5-72b，从 P0 出发，fitness 是 train 平均通过比例 − 0.0005·k-token。tool 代码加了静态检查：引用 appworld 内部、文件或 ground truth 的 genome 一律拒收（负例已验证） |
+| 17:03 | 发布 | 按用户要求整理代码，推到私有仓库 https://github.com/beckybyte/self-evolving-agents（新历史，单个提交 c422c12，106 个文件，含 data/splits）。导出时清掉了本机路径和公司内部镜像地址；AppWorld 加密数据没有上传，也已在本地取消跟踪 |
+| 17:03 | 发布 | 按用户要求整理代码，推到私有仓库 https://github.com/beckybyte/self-evolving-agents（新历史，单个提交 c422c12，106 个文件，含 data/splits）。导出时清掉了本机路径和公司内部镜像地址；AppWorld 加密数据没有上传，也已在本地取消跟踪 |
 | 16:56 | — | 全部健康。math gen9 fit 0.814（dev 0.851，6 人 / 3 LLM），drop gen9 fit 0.904，hard gen4 fit 0.992，diverse gen9 第 3 次尝试。AppWorld P0 在 train 上做验证（子 agent） |
 | 16:29 | 阶段 2/3 | evo_hard gen2 fit 0.991：dev_hard 很快就近乎解决了，关键看留出类型 test_hard_h。evo_prompt 测试集 0.672 / 0.438 / 0.555，每样本约 11k tok；对照 evo_full 1.000 / 0.625 / 0.824，907 tok，纯 LLM 团队贵 12 倍还更差。math gen8 0.798，drop 0.903（gen7 第 2 次尝试），diverse 0.959。AppWorld genomes/P0 已就绪，子 agent 在做验证 |
 | 16:06 | 阶段 2 | hard baseline（score，dev_hard / test_hard_v / test_hard_h）：P0 30B 0.08/0.15/0.11；S0 0.11/0.18/0.15；v1 最佳 30B 0.79/0.65/0.41（test_hard_h 上连硬约束通过率都只有 0.55：自由措辞把 regex 解析弄坏了）；λ=0.005 8B 0.59/0.57/0.59。余量充足，从 v1 最佳 genome 出发启动 evo_hard（0.3·dev_in + 0.7·dev_hard，λ=0.01）。math gen6 0.767，drop gen7 0.903，diverse 0.9575 |

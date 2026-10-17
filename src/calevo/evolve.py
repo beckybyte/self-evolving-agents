@@ -13,6 +13,7 @@ from __future__ import annotations
 import concurrent.futures as cf
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -27,6 +28,8 @@ LAMBDA = float(os.environ.get("CALEVO_LAMBDA", "0.02"))
 SPLIT_W = {k: float(v) for k, v in (x.split(":") for x in
            os.environ.get("CALEVO_SPLITS", "dev_in:0.6,ood_dev:0.4").split(","))}
 SPLITS = tuple(SPLIT_W)
+# per-agent continual learning inside evolution, e.g. CALEVO_LEARN="math_train:40" (see calevo.learn)
+LEARN = os.environ.get("CALEVO_LEARN", "")
 MAX_EVOLVER_CALLS = 300
 
 
@@ -173,8 +176,12 @@ def run(run_dir: str, worker: str, start: str, gens: int = 10, k: int = 3, max_a
         for spec in filter(None, os.environ.get("CALEVO_SPECS", "spec_A.md").split(",")):
             shutil.copy(ROOT / "ood" / spec, ws / spec)
         parent_id = yaml.safe_load(open(Path(st["parent"]) / "genome.yaml")).get("id")
+        learn_note = ("\n\nAGENTS LEARN: every LLM role keeps its own notes in memory/<role>.md, which it rewrites itself after "
+                      "each batch of practice problems; children inherit the parent's notes for roles with the same name. "
+                      "Read parent/memory/ to see what each agent has learned; you may keep, edit or delete notes, and "
+                      "design roles that benefit from accumulated experience.") if LEARN else ""
         prompt = INSTRUCTIONS.format(
-            task_desc=TASK_DESC,
+            task_desc=TASK_DESC + learn_note,
             fitness_formula=" + ".join(f"{w}*score({k})" for k, w in SPLIT_W.items()), lam=LAMBDA,
             worker=worker, parent_fit=st["parent_fit"], k=k, gen_prefix=f"gen{gen:02d}a{att}", parent_id=parent_id,
             tool_line=("add or improve tool code (tools/*.py), extend the constraint/preference representation."
@@ -194,6 +201,22 @@ def run(run_dir: str, worker: str, start: str, gens: int = 10, k: int = 3, max_a
                 if dst.exists():
                     shutil.rmtree(dst)
                 shutil.copytree(c, dst)
+                if LEARN:  # Lamarckian: inherit parent notes for roles that still exist, then learn one round
+                    pm = Path(st["parent"]) / "memory"
+                    if pm.is_dir() and not (dst / "memory").is_dir():
+                        (dst / "memory").mkdir()
+                        for r in g["roles"]:
+                            if (pm / f"{r['name']}.md").exists():
+                                shutil.copy(pm / f"{r['name']}.md", dst / "memory" / f"{r['name']}.md")
+                    from .learn import learn_round
+                    lsplit, lbatch = LEARN.split(":")
+                    off = (st.get("learn_offset", 0)) * int(lbatch)
+                    st["learn_offset"] = st.get("learn_offset", 0) + 1
+                    tmp = dst.with_name(dst.name + "_learned")
+                    lst = learn_round(dst, tmp, worker, lsplit, off, int(lbatch))
+                    shutil.rmtree(dst)
+                    tmp.rename(dst)
+                    st.setdefault("learn_log", []).append({"child": dst.name, **lst})
                 children.append(dst)
             except Exception as e:
                 st["feedback"].append(f"### {tag}/{c.name}: INVALID genome, not evaluated: {e!r}"[:600])
@@ -238,6 +261,12 @@ def _load_appworld_genome(c: Path) -> dict:
     for r in roles:
         if r.get("type", "llm") == "tool":
             assert (c / r["tool"]).exists(), f"missing tool file {r['tool']}"
+    # tools may only use ctx (read-only api_docs); reject anything that could reach environment internals/ground truth
+    banned = re.compile(r"\bimport\s+appworld|from\s+appworld|ground_?truth|evaluat|load_task|AppWorld\(|open\(|"
+                        r"\bos\.|subprocess|sqlite|__import__|importlib|\.db\b|experiments/|/data/")
+    for f in c.rglob("*.py"):
+        m = banned.search(f.read_text())
+        assert not m, f"forbidden construct in {f.name}: {m.group(0)!r} (tools may only use ctx)"
     g["_dir"] = str(c)
     return g
 

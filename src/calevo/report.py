@@ -16,7 +16,8 @@ WORKERS = ("qwen3-30b-a3b", "qwen3-8b")
 RUNS = {"evo_full": "Evolved, tools", "evo_prompt": "Evolved, prompt-only",
         "evo_full_leaky": "Evolved, tools, LEAKY doc (reference only)",
         "evo_full_8b": "Evolved, tools", "evo_full_8b_v2guard": "Evolved, tools, +dev_v2 in fitness",
-        "evo_full_8b_v2guard_lam005": "Evolved, tools, +dev_v2, lambda=0.005"}
+        "evo_full_8b_v2guard_lam005": "Evolved, tools, +dev_v2, lambda=0.005",
+        "evo_full_diverse": "Evolved, tools, +C-type prefs in fitness"}
 
 
 def run_state(run: str) -> dict:

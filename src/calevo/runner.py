@@ -84,6 +84,8 @@ def load_genome(gdir: str | Path) -> dict:
     gdir = Path(gdir)
     g = yaml.safe_load(open(gdir / "genome.yaml"))
     g["_dir"] = str(gdir)
+    # per-agent memory (written by calevo.learn): memory/<role>.md, injected into that role's prompt
+    g["_memory"] = {f.stem: f.read_text().strip() for f in (gdir / "memory").glob("*.md")} if (gdir / "memory").is_dir() else {}
     validate_genome(g)
     return g
 
@@ -136,7 +138,9 @@ def run_genome_on_sample(g: dict, sample: dict, worker: str) -> dict:
                 bb[r["name"] + "_data"] = out
             continue
         model = worker if r.get("model", "$WORKER") == "$WORKER" else r["model"]
-        sys_extra = "\n\n".join(x for x in [g.get("soul", ""), r.get("prompt", "")] if x)
+        mem = g.get("_memory", {}).get(r["name"], "")
+        mem_block = f"## Your own notes from past experience in this role (apply them)\n{mem}" if mem else ""
+        sys_extra = "\n\n".join(x for x in [g.get("soul", ""), r.get("prompt", ""), mem_block] if x)
         if r.get("input", "native") == "native":
             chat = [dict(m) for m in msgs]
             if chat and chat[0]["role"] == "system":
@@ -144,7 +148,7 @@ def run_genome_on_sample(g: dict, sample: dict, worker: str) -> dict:
             elif sys_extra:
                 chat.insert(0, {"role": "system", "content": sys_extra})
         else:
-            prompt = r.get("prompt", "").replace("{conversation}", render_transcript(msgs)).replace(
+            prompt = ((mem_block + "\n\n") if mem_block else "") + r.get("prompt", "").replace("{conversation}", render_transcript(msgs)).replace(
                 "{blackboard}", json.dumps({k: v for k, v in bb.items() if not k.endswith("_data")}, ensure_ascii=False))
             chat = ([{"role": "system", "content": g["soul"]}] if g.get("soul") else []) + [{"role": "user", "content": prompt}]
         extra = {"chat_template_kwargs": {"enable_thinking": False}} if model == "qwen3-8b" else {}

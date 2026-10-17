@@ -60,9 +60,16 @@ PHASE 3 (user, 14:45): add AppWorld + MATH Lv5/DROP in parallel with phase 2.
     splits named appworld_<split> to it. When it reports: write tasks_desc/appworld.md, extract the genome-schema
     section of appworld/README.md to appworld/genome_schema.md, then launch
     CALEVO_SPLITS="appworld_train:1.0" CALEVO_SPECS="" CALEVO_TASK_DESC=tasks_desc/appworld.md CALEVO_SCHEMA_DOC=appworld/genome_schema.md CALEVO_LAMBDA=0.002
-    python3 -m calevo.evolve --run runs/evo_appworld --worker qwen3-30b-a3b --start appworld/genomes/P0 --k 3
+    LAUNCHED 17:1x on qwen2.5-72b (30B server too crowded), CALEVO_LAMBDA=0.0005; tool code statically checked for env/ground-truth access
     (score = unit-test pass fraction; tokens are ~46k/task so lambda must be small). Test on appworld_dev + appworld_test_normal.
  (old note) AppWorld: a subagent is setting it up in appworld/ (README.md there when done: install, splits, ReAct baseline,
     run_task interface). Then add an environment-loop role type to the runner and launch evo_appworld on dev.
 
 PENDING DOC SYNC: insert section "## 第二阶段：迭代数据（方向 A）" after the 中期结果 bullet list mx1exgyzhqr.10226 (content = PHASE 2 plan + table of changes: free-form wording / 8 types with fixed held-out / conflicting weighted prefs / normalised scoring). Delete this line when done.
+PUBLISHING: the user's personal GitHub repo beckybyte/self-evolving-agents (private) holds a sanitized export. Never push to it from the loop; propose an update and wait for the user.
+
+PHASE 4 (user ok 17:3x): per-agent continual learning on MATH.
+ - E1 runs/learn_math_P0, runs/learn_math_team: curve.jsonl per round (eval_score on math_dev). When done, evaluate the
+   final round genome on math_test and compare with the round-0 genome on math_test.
+ - E2 runs/evo_math_learn vs control runs/evo_math: compare fitness per generation, n_roles, and math_test of the best.
+ - Next open-ended pieces after this (do not start without the user): goal escalation, MAP-Elites archive, ask_human.

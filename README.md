@@ -38,6 +38,7 @@ src/calevo/
   verifier.py      calendar verifier (wraps official_grader.py) + preference checks
   solver.py        reference backtracking / max-weight scheduler (feasibility checks, S0 baseline)
   report.py        final test-split table + evolution curves             (python -m calevo.report)
+  learn.py         per-agent continual learning: each LLM role rewrites its own memory/<role>.md (python -m calevo.learn)
 ood/               preference-set builders (build.py: template OOD; build_v2.py: paraphrased hard set) + specs
 genomes/           P0 (single prompt) and S0 (fixed-DSL solver) starting genomes
 tasks_desc/        task descriptions handed to the evolver for non-calendar tasks
@@ -70,6 +71,15 @@ weights), `CALEVO_LAMBDA` (token penalty), `CALEVO_SPECS` (spec files the evolve
 Evolved tool code runs in a subprocess with a 60 s limit; it is written by the evolver, so run this only
 on machines where that is acceptable.
 
+## Beyond a genetic algorithm: agents that keep learning
+
+Every LLM role can own a notebook `memory/<role>.md` that is injected into its prompt. `calevo.learn` runs the
+*fast loop*: the team solves a batch from an experience split, then each role reflects on its own outputs and
+rewrites its notes. With `CALEVO_LEARN="math_train:40"`, `calevo.evolve` (the *slow loop*) lets children inherit
+the parent's notes for same-named roles and learn one round before evaluation (Lamarckian). The broader
+open-ended plan (goal escalation, diversity archive, innovation pressure, asking humans without waiting) and its
+current status are in [`docs/open_ended_design.md`](docs/open_ended_design.md).
+
 ## Findings so far (details in `snapshots/v1_model_top/SNAPSHOT.md`, `docs/dev_log/`)
 
 - Calendar v1 saturates: the evolved team (3 roles, 1 LLM, ~900 tokens/sample) scores 1.000 on test_in vs
@@ -78,6 +88,8 @@ on machines where that is acceptable.
 - A strong token penalty drives evolution to delete the LLM entirely (0-token regex solver): perfect
   in-distribution, brittle under new phrasing (test_v2 0.41). Lowering λ keeps the LLM and generalises better.
 - On harder tasks the team grows instead: MATH Lv5 → 6 roles (3 LLM), DROP → 3 roles (2 LLM).
+- Small dev sets overfit: DROP dev 0.797 → 0.919 after evolution, but test only 0.808 → 0.830.
+- First per-agent learning result is negative (generic notes lengthen answers); verified memory updates are next.
 
 ## Data licences
 
