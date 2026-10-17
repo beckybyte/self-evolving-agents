@@ -82,18 +82,18 @@ def test_build_task_end_to_end(tmp_path, monkeypatch):
     assert "parallel" in task.moves()
     ev = task.evaluate_fit(ROOT / "genomes/v2/build_P0", "fake:dev", tmp_path / "ev")
     fit, hold = ev["reports"]["fit"], ev["holdout"]
-    assert fit["score"] == 1.0 and fit["n"] == 2 and hold["score"] == 1.0 and hold["n"] == 1
-    assert fit["files"] == ["app.py", "index.html"] and fit["rejected_files"] == ["__evil_py"]
-    assert (tmp_path / "ev" / "app" / "app.py").read_text().startswith("import json")
-    # one team run; both splits used the same materialised app
-    team = json.loads((tmp_path / "ev" / "team.json").read_text())
+    assert fit["score"] == 1.0 and fit["n"] == 4 and hold["score"] == 1.0 and hold["n"] == 2  # 2 team runs
+    assert fit["files"] == [["app.py", "index.html"]] * 2 and fit["rejected_files"] == [["__evil_py"]] * 2
+    assert (tmp_path / "ev" / "r0" / "app" / "app.py").read_text().startswith("import json")
+    # each team run: one call, and both splits used that run's materialised app
+    team = json.loads((tmp_path / "ev" / "r0" / "team.json").read_text())
     assert team["usage"]["calls"] == 1 and fit["tokens_per_sample"] == team["tokens"] > 0
     calls = task.harness().CALLS
-    assert [s for _, s in calls] == ["fit", "holdout"] and len({a for a, _ in calls}) == 1
+    assert sorted(s for _, s in calls) == ["fit", "fit", "holdout", "holdout"] and len({a for a, _ in calls}) == 2
     assert ev["fitness"] == round(1.0 - 0.001 * team["tokens"] / 1000, 4)
     assert ev["metrics"]["score:holdout"] == 1.0
     files = task.workspace_files(tmp_path / "ev")
-    assert {"contract.md", "reports.json", "fit_rows.jsonl", "app/app.py", "app/index.html"} <= set(files)
+    assert {"contract.md", "reports.json", "fit_rows.jsonl", "app_r0/app.py", "app_r1/index.html"} <= set(files)
     blob = "\n".join(files.values())
     assert "SECRET" not in blob and "H1" not in blob
     assert json.loads(files["reports.json"])["holdout_aggregate"] == {"score": 1.0}
@@ -105,7 +105,7 @@ def test_build_task_no_app(tmp_path):
     register_fake("mute", lambda msgs: "I could not write anything")
     task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")
     ev = task.evaluate_fit(ROOT / "genomes/v2/build_P0", "fake:mute", tmp_path / "ev")
-    assert ev["reports"]["fit"]["score"] == 0.0 and ev["reports"]["fit"]["fail_reasons"] == {"no_app_py": 2}
+    assert ev["reports"]["fit"]["score"] == 0.0 and ev["reports"]["fit"]["fail_reasons"] == {"no_app_py": 4}
     assert task.harness().CALLS == []
 
 
@@ -128,9 +128,9 @@ def test_build_p1_parallel_and_evolution(tmp_path, monkeypatch):
     register_fake("team", team)
     task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")
     ev = task.evaluate_fit(ROOT / "genomes/v2/build_P1", "fake:team", tmp_path / "ev")
-    assert ev["reports"]["fit"]["files"] == ["agents.py", "app.py", "index.html"]
-    assert (tmp_path / "ev" / "app" / "agents.py").read_text() == "def parse(text): return []\n"
-    assert seen == ["architect"] and ev["reports"]["fit"]["score"] == 1.0
+    assert ev["reports"]["fit"]["files"] == [["agents.py", "app.py", "index.html"]] * 2
+    assert (tmp_path / "ev" / "r0" / "app" / "agents.py").read_text() == "def parse(text): return []\n"
+    assert seen == ["architect"] * 2 and ev["reports"]["fit"]["score"] == 1.0  # one architect call per team run
 
     monkeypatch.setenv("SEA_FAKE_EVOLVER", "1")
     monkeypatch.setenv("SEA_META_SIGNALS", "0")
@@ -138,7 +138,7 @@ def test_build_p1_parallel_and_evolution(tmp_path, monkeypatch):
                    patience=1).run()
     assert st["done"] and st["parent_fit"] is not None
     ws = next((tmp_path / "evo" / "workspaces").glob("gen01_a1"))
-    assert (ws / "app" / "app.py").exists() and (ws / "fit_rows.jsonl").exists()
+    assert (ws / "app_r0" / "app.py").exists() and (ws / "app_r1" / "app.py").exists() and (ws / "fit_rows.jsonl").exists()
     assert "SECRET" not in "".join(p.read_text() for p in ws.rglob("*") if p.is_file() and "parent" not in p.parts)
 
 
@@ -156,3 +156,27 @@ def test_genome_code_guard():
     assert code_lines(prose) == 0
     code = "\n".join(["import json", "def f(x):", "    if x:", "        return 1", "y = 2"] * 6)
     assert code_lines(code) > MAX_GENOME_CODE_LINES
+
+
+def test_repeats_average_independent_team_runs(tmp_path):
+    """Two team runs of one genome: one writes a working app, one forgets index.html -> fitness is their mean."""
+    import threading
+    n, lock = [0], threading.Lock()
+
+    def flaky(msgs):
+        with lock:
+            n[0] += 1
+            k = n[0]
+        ui = '<artifact name="index_html"><html></html></artifact>' if k == 1 else ""
+        return '<artifact name="app_py"># /health\n</artifact>' + ui
+
+    register_fake("flaky", flaky)
+    task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")
+    ev = task.evaluate_fit(ROOT / "genomes/v2/build_P0", "fake:flaky", tmp_path / "ev")
+    fit = ev["reports"]["fit"]
+    assert sorted(fit["per_run"]) == [0.5, 1.0] and fit["score"] == 0.75 and fit["repeats"] == 2
+    assert ev["metrics"]["fit_min"] == 0.5 and ev["metrics"]["fit_max"] == 1.0
+    ws = task.workspace_files(tmp_path / "ev")
+    assert "app_r0/app.py" in ws and "app_r1/app.py" in ws and "team_trace_r1.json" in ws
+    again = task.evaluate_fit(ROOT / "genomes/v2/build_P0", "fake:flaky", tmp_path / "ev")  # cached, no new team run
+    assert again["metrics"] == ev["metrics"] and n[0] == 2

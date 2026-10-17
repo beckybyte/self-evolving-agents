@@ -13,11 +13,14 @@ Fitness = score(fit) - lam_tokens * team_tokens/1000.
 """
 from __future__ import annotations
 
+import os
+import concurrent.futures as cf
 import importlib.util
 import json
 import re
 import shutil
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -128,22 +131,26 @@ class BuildTask(Task):
     context_keys = ("contract", "scenarios")
 
     def __init__(self, spec_dir: str | Path, human: HumanChannel | None = None, lam_tokens: float = 0.001,
-                 harness_timeout: int = HARNESS_TIMEOUT, harness_workers: int = HARNESS_WORKERS):
+                 harness_timeout: int = HARNESS_TIMEOUT, harness_workers: int = HARNESS_WORKERS, repeats: int = 2):
         super().__init__({"fit": 1.0}, "holdout", [], "fit", lam_tokens, human)
         self.spec_dir = Path(spec_dir).resolve()
         self.contract = (self.spec_dir / "contract.md").read_text()
         self.harness_timeout, self.harness_workers = harness_timeout, harness_workers
+        self.repeats = max(1, int(os.environ.get("SEA_BUILD_REPEATS", repeats)))
         self._harness = self._scen = None
+        self._load_lock = threading.Lock()
 
     # ---------------------------------------------------------------- frozen spec pieces (loaded lazily)
     def harness(self):
-        if self._harness is None:
-            self._harness = _load_module(self.spec_dir / "harness.py", f"sea_build_harness_{abs(hash(self.spec_dir))}")
+        with self._load_lock:  # team runs evaluate concurrently: load the module once
+            if self._harness is None:
+                self._harness = _load_module(self.spec_dir / "harness.py", f"sea_build_harness_{abs(hash(self.spec_dir))}")
         return self._harness
 
     def scenarios(self, split: str) -> list[dict]:
-        if self._scen is None:
-            self._scen = _load_module(self.spec_dir / "scenarios.py", f"sea_build_scenarios_{abs(hash(self.spec_dir))}").SPLITS
+        with self._load_lock:
+            if self._scen is None:
+                self._scen = _load_module(self.spec_dir / "scenarios.py", f"sea_build_scenarios_{abs(hash(self.spec_dir))}").SPLITS
         return list(self._scen[split])
 
     def scenario_text(self) -> str:
@@ -242,13 +249,46 @@ class BuildTask(Task):
         return rep
 
     def evaluate_fit(self, gdir, worker: str, out, splits: list[str] | None = None, workers: int = 3) -> dict:
-        """Fit drives fitness; holdout runs on the same materialised app and is logged (score:holdout) but not used."""
-        ev = super().evaluate_fit(gdir, worker, out, splits, workers)
-        f = Path(out) / "holdout" / "report.json"
-        hold = json.loads(f.read_text()) if f.exists() else self.evaluate(gdir, "holdout", worker, Path(out) / "holdout")
-        ev["holdout"] = hold
-        ev["metrics"]["score:holdout"] = hold["score"]
-        return ev
+        """The team writes the app `repeats` times independently (concurrently); each app is scored on fit and holdout,
+        and the per-run scores are averaged. One team run varies a lot (P1: fit 0.745 then 0.248, same genome: files
+        written in parallel disagreed on interfaces), so a single sample decides acceptance by luck.
+        Fit drives fitness; holdout is logged (score:holdout) but not used."""
+        out = Path(out)
+        merged = {s: out / s / "report.json" for s in ("fit", "holdout")}
+        if not all(f.exists() for f in merged.values()):
+            with cf.ThreadPoolExecutor(self.repeats) as ex:
+                runs = list(ex.map(lambda k: {s: self.evaluate(gdir, s, worker, out / f"r{k}" / s) for s in ("fit", "holdout")},
+                                   range(self.repeats)))
+            for s in ("fit", "holdout"):
+                self._merge(out, s, [r[s] for r in runs])
+        fit, hold = (json.loads(merged[s].read_text()) for s in ("fit", "holdout"))
+        metrics = {"score:fit": fit["score"], "tokens": fit["tokens_per_sample"], "score:holdout": hold["score"],
+                   "fit_min": min(fit["per_run"]), "fit_max": max(fit["per_run"])}
+        return {"reports": {"fit": fit}, "holdout": hold, "metrics": metrics, "fitness": self.fitness_spec()(metrics)}
+
+    def _merge(self, out: Path, split: str, reps: list[dict]):
+        rows = []
+        for k in range(len(reps)):
+            for l in open(out / f"r{k}" / split / "rows.jsonl"):
+                r = json.loads(l)
+                rows.append({**r, "id": f"{r['id']}@r{k}"})
+        rep = summarize(rows)
+        check_fail: dict[str, int] = {}
+        for x in reps:
+            for c, n in (x.get("failed_checks") or {}).items():
+                check_fail[c] = check_fail.get(c, 0) + n
+        rep.update({"genome": reps[0]["genome"], "split": split, "worker": reps[0]["worker"], "n": len(rows),
+                    "repeats": len(reps), "per_run": [x["score"] for x in reps],
+                    "team_secs": [x.get("team_secs") for x in reps], "files": [x.get("files") for x in reps],
+                    "rejected_files": [x.get("rejected_files") for x in reps],
+                    "team_error": [x.get("team_error") for x in reps if x.get("team_error")] or None,
+                    "failed_checks": dict(sorted(check_fail.items(), key=lambda x: -x[1])),
+                    "role_tokens": [x.get("role_tokens") for x in reps], "eval_version": ""})
+        (out / split).mkdir(parents=True, exist_ok=True)
+        with open(out / split / "rows.jsonl", "w") as f:
+            for r in rows:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        (out / split / "report.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False))
 
     # ---------------------------------------------------------------- what the evolver sees
     def workspace_files(self, parent_eval: Path) -> dict[str, str]:
@@ -262,26 +302,30 @@ class BuildTask(Task):
             "contract.md": self.contract,
             "reports.json": json.dumps({"fit": rep, "holdout_aggregate": hold}, indent=1, ensure_ascii=False),
             "fit_rows.jsonl": "\n".join(json.dumps({**{k: r.get(k) for k in ("id", "score", "hard", "reason", "detail", "checks", "secs")},
-                                                    "scenario": scen.get(r["id"])}, ensure_ascii=False) for r in rows),
+                                                    "scenario": scen.get(r["id"].split("@")[0])}, ensure_ascii=False) for r in rows),
         }
-        team = parent_eval / "team.json"
-        if team.exists():
-            t = json.loads(team.read_text())
-            files["team_trace.json"] = json.dumps({"trace": t.get("trace", []), "tokens": t.get("tokens"),
-                                                   "team_secs": t.get("team_secs"), "error": t.get("error"),
-                                                   "rejected_files": t.get("rejected", [])}, indent=1)
-        app = parent_eval / "app"
-        for p in sorted(app.rglob("*")) if app.is_dir() else []:
-            if p.is_file() and p.suffix.lstrip(".") in FILE_EXTS:
-                txt = p.read_text(errors="replace")
-                files[f"app/{p.relative_to(app)}"] = txt if len(txt) <= APP_FILE_CAP else txt[:APP_FILE_CAP] + "\n# ... (truncated)\n"
+        roots = sorted(parent_eval.glob("r*/")) or [parent_eval]
+        for root in roots:
+            tag = root.name if root != parent_eval else ""
+            team = root / "team.json"
+            if team.exists():
+                t = json.loads(team.read_text())
+                files[f"team_trace{'_' + tag if tag else ''}.json"] = json.dumps(
+                    {"trace": t.get("trace", []), "tokens": t.get("tokens"), "team_secs": t.get("team_secs"),
+                     "error": t.get("error"), "rejected_files": t.get("rejected", [])}, indent=1)
+            app = root / "app"
+            for p in sorted(app.rglob("*")) if app.is_dir() else []:
+                if p.is_file() and p.suffix.lstrip(".") in FILE_EXTS:
+                    txt = p.read_text(errors="replace")
+                    files[f"app{'_' + tag if tag else ''}/{p.relative_to(app)}"] = (
+                        txt if len(txt) <= APP_FILE_CAP else txt[:APP_FILE_CAP] + "\n# ... (truncated)\n")
         return files
 
     def summarize_child(self, ev: dict) -> str:
         r = ev["reports"]["fit"]
         hold = ev.get("holdout", {}).get("score")
         worst = list((r.get("failed_checks") or {}).items())[:4]
-        return (f"score(fit) {r['score']}, holdout {hold}, team tokens {r['tokens_per_sample']}, files {r.get('files')}; "
+        return (f"score(fit) {r['score']} (per team run {r.get('per_run')}), holdout {hold}, team tokens {r['tokens_per_sample']}, files {r.get('files')}; "
                 f"fails: {r['fail_reasons']}; most-failed checks {worst}"
                 + (f"; team error {r['team_error']}" if r.get("team_error") else ""))
 
