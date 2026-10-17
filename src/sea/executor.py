@@ -10,6 +10,8 @@ import os
 import re
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from .human import HumanChannel
@@ -57,6 +59,7 @@ class _Run:
         self.assumptions: list = []
         self.trace: list = []
         self.messages = episode["input"].get("messages", [])
+        self._lock = threading.RLock()  # parallel steps: state updates after each role's call are serialized
 
     # ------------------------------------------------------------ context selectors
     def input_text(self) -> str:
@@ -155,12 +158,13 @@ class _Run:
             msgs = ([{"role": "system", "content": system}] if system else []) + [
                 {"role": "user", "content": self.render(r["prompt"], name, r["reads"])}]
         text, u = chat(model, msgs, max_tokens=r["max_tokens"], temperature=r["temperature"])
-        add_usage(self.usage, u)
-        if not g["_legacy"]:
-            text = strip_think(text)
-            self.ask_humans(name, text)
-        self.store(r, text)
-        self.trace.append({"role": name, "kind": "llm", "tokens": u["prompt"] + u["completion"], "chars": len(text)})
+        with self._lock:
+            add_usage(self.usage, u)
+            if not g["_legacy"]:
+                text = strip_think(text)
+                self.ask_humans(name, text)
+            self.store(r, text)
+            self.trace.append({"role": name, "kind": "llm", "tokens": u["prompt"] + u["completion"], "chars": len(text)})
 
     def run_tool_role(self, r: dict):
         ctx = {"blackboard": {k: v for k, v in self.bb.items()}, "artifacts": dict(self.artifacts),
@@ -192,11 +196,23 @@ class _Run:
 
     def step(self, name: str):
         r = next(x for x in self.g["roles"] if x["name"] == name)
-        {"llm": self.run_llm, "tool": self.run_tool_role, "human": self.run_human}[r["kind"]](r)
+        if r["kind"] == "llm":
+            return self.run_llm(r)  # takes the lock itself, after the model call
+        with self._lock:
+            {"tool": self.run_tool_role, "human": self.run_human}[r["kind"]](r)
+
+    def parallel(self, names: list[str]):
+        """Run roles concurrently. Each renders its prompt from the state before the step (prompts are built before
+        any model call returns); their writes land as each finishes. A failing role fails the whole step."""
+        with ThreadPoolExecutor(len(names)) as ex:
+            for f in [ex.submit(self.step, n) for n in names]:
+                f.result()
 
     def run(self) -> dict:
         for s in self.g["workflow"]:
-            if isinstance(s, dict):
+            if isinstance(s, dict) and "parallel" in s:
+                self.parallel(list(s["parallel"]))
+            elif isinstance(s, dict):
                 lp = s["loop"]
                 for _ in range(int(lp.get("max_rounds", 2))):
                     for b in lp["body"]:

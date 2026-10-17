@@ -25,7 +25,9 @@ genome.yaml (schema: 2)
       # human (never blocks)
       question: str (template), default: str (template)  -> output = the human's answer if one exists, else the default
   workflow: [step, ...]             step = role name, or {loop: {body: [names], max_rounds: int, stop_when: str}}
-                                    (loop stops early when the last body role's output contains stop_when). Default: roles in order.
+                                    (loop stops early when the last body role's output contains stop_when)
+                                    or {parallel: [names]}: 2..6 roles run concurrently, each starting from the state
+                                    before the step (use it for independent pieces, e.g. backend / ui). Default: roles in order.
   artifacts: [{name, format: markdown|json|text, required: bool=true}]
   outputs: {answer: blackboard.<key> | artifact.<name>}     what a benchmark scores (v1 `final: X` -> blackboard.X)
 
@@ -127,7 +129,12 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
             assert g["channels"] == "messages", "writes: message:<role> needs channels: messages"
             assert w[8:] in names, f"message target {w[8:]} is not a role"
     for step in g["workflow"]:
-        if isinstance(step, dict):
+        if isinstance(step, dict) and "parallel" in step:
+            par = step["parallel"]
+            assert isinstance(par, list) and 2 <= len(par) <= 6 and len(set(par)) == len(par), \
+                f"parallel needs 2..6 distinct roles: {step}"
+            assert all(p in names for p in par), f"bad parallel step {step}"
+        elif isinstance(step, dict):
             lp = step.get("loop") or {}
             assert lp.get("body") and all(b in names for b in lp["body"]), f"bad loop {step}"
             assert 1 <= int(lp.get("max_rounds", 2)) <= 6, "loop max_rounds must be 1..6"
@@ -156,5 +163,6 @@ def check_tool_safety(gdir: str | Path, extra: re.Pattern | None = None):
 def structure_signature(g: dict) -> str:
     """Coarse structural fingerprint (used by the radical-child rule and the archive)."""
     kinds = "".join(r["kind"][0] for r in g["roles"])
-    loops = sum(isinstance(s, dict) for s in g["workflow"])
-    return f"{kinds}|{g['channels'][0]}|L{loops}|S{len(g['workflow'])}"
+    loops = sum(isinstance(s, dict) and "loop" in s for s in g["workflow"])
+    par = sum(isinstance(s, dict) and "parallel" in s for s in g["workflow"])
+    return f"{kinds}|{g['channels'][0]}|L{loops}|S{len(g['workflow'])}" + (f"|P{par}" if par else "")

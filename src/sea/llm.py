@@ -2,6 +2,13 @@
 
   qwen3-8b | qwen3-30b-a3b | qwen2.5-72b   OpenAI-compatible vLLM servers (ENDPOINTS)
   claude:<alias>                           headless `claude -p` (no tools, empty cwd), e.g. claude:sonnet
+  crusoe:<model id>                        Crusoe Managed Inference (OpenAI-compatible), e.g.
+                                           crusoe:nvidia/NVIDIA-Nemotron-3.5-Super-VL. Key: $CRUSOE_API / $CRUSOE_API_KEY
+                                           (or the `export CRUSOE_API=` line in ~/.zshrc). Reasoning models spend
+                                           thousands of tokens thinking first, so max_tokens gets a floor.
+                                           Suffix `#nothink` (crusoe:<id>#nothink) turns thinking off via
+                                           chat_template_kwargs.enable_thinking=false (~4x faster; the only switch
+                                           Crusoe honours — /no_think and reasoning_effort do not).
   fake:<name>                              in-process function registered with register_fake() (tests, dry runs)
 usage = {"prompt": int, "completion": int, "calls": 1}
 """
@@ -12,7 +19,10 @@ import os
 import re
 import subprocess
 import tempfile
+import random
 import threading
+import time
+from pathlib import Path
 from typing import Callable
 
 ENDPOINTS = {
@@ -31,7 +41,7 @@ def register_fake(name: str, fn: Callable[[list[dict]], str]):
 
 
 def known_model(model: str) -> bool:
-    return model in ENDPOINTS or model.startswith("claude:") or model.startswith("fake:") or model == "$WORKER"
+    return (model in ENDPOINTS or model.startswith(("claude:", "fake:", "crusoe:")) or model == "$WORKER")
 
 
 def _client(model: str):
@@ -54,6 +64,8 @@ def chat(model: str, messages: list[dict], max_tokens: int = 2048, temperature: 
         return text, {"prompt": n, "completion": len(text) // 4, "calls": 1}
     if model.startswith("claude:"):
         return _claude(model[7:], messages, timeout)
+    if model.startswith("crusoe:"):
+        return _crusoe(model[7:], messages, max_tokens, temperature, timeout)
     extra = {"chat_template_kwargs": {"enable_thinking": False}} if model in NO_THINKING else {}
     resp = _client(model).chat.completions.create(model=model, messages=messages, temperature=temperature,
                                                   max_tokens=max_tokens, extra_body=extra)
@@ -79,6 +91,66 @@ def _claude(alias: str, messages: list[dict], timeout: int) -> tuple[str, dict]:
     prompt = u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0) + u.get("cache_read_input_tokens", 0)
     return d.get("result", ""), {"prompt": prompt, "completion": u.get("output_tokens", 0), "calls": 1,
                                  "cost_usd": d.get("total_cost_usd", 0.0)}
+
+
+CRUSOE_URL = os.environ.get("CRUSOE_BASE_URL", "https://api.inference.crusoecloud.com/v1")
+CRUSOE_CONCURRENCY = int(os.environ.get("CRUSOE_CONCURRENCY", "4"))
+CRUSOE_MIN_TOKENS = int(os.environ.get("CRUSOE_MIN_TOKENS", "16000"))
+_crusoe_sems: dict[str, threading.Semaphore] = {}
+
+
+def crusoe_key() -> str:
+    k = os.environ.get("CRUSOE_API") or os.environ.get("CRUSOE_API_KEY")
+    if k:
+        return k
+    rc = Path.home() / ".zshrc"
+    if rc.exists():
+        for line in rc.read_text().splitlines():
+            m = re.match(r"\s*export\s+CRUSOE_API(?:_KEY)?=[\"']?([^\"'\s]+)", line)
+            if m:
+                return m.group(1)
+    raise RuntimeError("no Crusoe key: set CRUSOE_API")
+
+
+def _crusoe(model: str, messages: list[dict], max_tokens: int, temperature: float, timeout: int,
+            post: Callable | None = None) -> tuple[str, dict]:
+    """One call, at most CRUSOE_CONCURRENCY in flight per model, jittered backoff on 429/5xx for ~4 minutes."""
+    import urllib.error
+    import urllib.request
+    model, _, flag = model.partition("#")
+    with _lock:
+        sem = _crusoe_sems.setdefault(model, threading.Semaphore(CRUSOE_CONCURRENCY))
+    body = {"model": model, "messages": messages, "temperature": temperature,
+            "max_tokens": max(max_tokens, CRUSOE_MIN_TOKENS)}
+    if flag == "nothink":
+        body["chat_template_kwargs"] = {"enable_thinking": False}
+    elif flag:
+        raise ValueError(f"unknown crusoe model flag #{flag}")
+
+    def _post(b: dict) -> dict:
+        req = urllib.request.Request(f"{CRUSOE_URL}/chat/completions", json.dumps(b).encode(),
+                                     {"Authorization": f"Bearer {crusoe_key()}", "Content-Type": "application/json"})
+        return json.load(urllib.request.urlopen(req, timeout=timeout))
+
+    post = post or _post
+    delay, deadline = 3.0, time.time() + 240
+    while True:
+        try:
+            with sem:
+                r = post(body)
+            break
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 500, 502, 503, 504) or time.time() > deadline:
+                raise RuntimeError(f"crusoe {model} HTTP {e.code}: {e.read()[:300]!r}")
+        except (urllib.error.URLError, TimeoutError) as e:
+            if time.time() > deadline:
+                raise RuntimeError(f"crusoe {model}: {e!r}")
+        time.sleep(delay * (0.5 + random.random()))
+        delay = min(delay * 2, 40)
+    msg = r["choices"][0]["message"]
+    u = r.get("usage") or {}
+    return strip_think(msg.get("content") or ""), {"prompt": u.get("prompt_tokens", 0),
+                                                   "completion": u.get("completion_tokens", 0), "calls": 1}
 
 
 def add_usage(acc: dict, u: dict):

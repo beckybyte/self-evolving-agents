@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evolving Calendar</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fffdf9;--ink:#2f3a3a;--soft:#6c7a78;--line:#e4dfd5;--accent:#5f8f86;--accent2:#d9e9e4;
+--warm:#f1e6d6;--event:#c9d9ec;--agent:#eef4f1;--me:#f3ece1}
+@media (prefers-color-scheme: dark){:root{--bg:#1d2222;--card:#252b2b;--ink:#e3e7e4;--soft:#9aa7a4;--line:#36403f;
+--accent:#86b8ad;--accent2:#2f4440;--warm:#3d362c;--event:#2e3d50;--agent:#28332f;--me:#3a342b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line)}
+header h1{font-size:18px;font-weight:600;margin:0 auto 0 0;letter-spacing:.2px}
+.clock{font-variant-numeric:tabular-nums;color:var(--soft);font-size:14px}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;
+padding:5px 13px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;padding:18px 20px;max-width:1240px;margin:0 auto}
+@media (max-width:860px){main{grid-template-columns:1fr;padding:14px 16px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--soft);margin:0 0 10px;font-weight:600}
+#chat-log{height:56vh;min-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+.msg{max-width:88%;padding:9px 13px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word}
+.msg.agent{background:var(--agent);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.person{background:var(--me);align-self:flex-end;border-bottom-right-radius:4px}
+.msg .meta{display:block;font-size:11px;color:var(--soft);margin-bottom:2px}
+.msg ol{margin:6px 0 2px 18px;padding:0}
+.msg .acts{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap}
+.msg .acts button{padding:3px 11px;font-size:13px}
+.composer{display:flex;gap:8px;margin-top:12px;align-items:center}
+#chat-input{flex:1;border:1px solid var(--line);border-radius:999px;padding:10px 15px;font:inherit;background:var(--bg);color:var(--ink);min-width:0}
+#chat-input:focus{outline:2px solid var(--accent2);border-color:var(--accent)}
+.modes{display:flex;gap:6px;margin-top:8px;font-size:13px;color:var(--soft);align-items:center;flex-wrap:wrap}
+.modes label{cursor:pointer}
+.chip{display:inline-flex;gap:6px;align-items:center;background:var(--accent2);border-radius:999px;padding:2px 10px;font-size:12px}
+.chip button{border:none;background:none;padding:0 2px;color:var(--soft)}
+#focus .step{font-size:20px;font-weight:600;margin:4px 0}
+#focus .why{color:var(--accent);font-style:italic;margin:6px 0 12px}
+#focus .sub{color:var(--soft);font-size:13px}
+#focus .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.timer{font-variant-numeric:tabular-nums;font-size:22px;color:var(--accent)}
+.side{display:flex;flex-direction:column;gap:18px;min-width:0}
+#timeline{display:grid;grid-template-columns:42px 1fr 1fr;gap:0 8px;font-size:12px}
+.daycol{position:relative;border-left:1px solid var(--line);height:520px}
+.dayhead{font-weight:600;color:var(--soft);padding:0 0 6px 6px}
+.hours{position:relative;height:520px}
+.hours span{position:absolute;right:4px;color:var(--soft);font-size:11px;transform:translateY(-50%)}
+.hline{position:absolute;left:0;right:0;border-top:1px dashed var(--line)}
+.blk{position:absolute;left:6px;right:4px;border-radius:9px;padding:3px 7px;overflow:hidden;background:var(--warm);
+border:1px solid transparent;line-height:1.25;min-height:18px}
+.blk.event{background:var(--event)}
+.blk.soft{background:transparent;border:1.5px dashed var(--accent);opacity:.9}
+.blk.step{background:var(--accent2)}
+.blk.done{opacity:.45;text-decoration:line-through}
+.nowline{position:absolute;left:0;right:0;border-top:2px solid var(--accent);z-index:2}
+.loose{margin-top:10px;font-size:13px;color:var(--soft)}
+.loose span{display:inline-block;margin:3px 6px 0 0;padding:2px 9px;border:1.5px dashed var(--line);border-radius:999px;color:var(--ink)}
+.busy{opacity:.6;pointer-events:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Evolving Calendar</h1>
+  <span class="clock" id="clock">…</span>
+  <button onclick="scrub(30)">+30 min</button>
+  <button onclick="scrub(60)">+1 h</button>
+  <button onclick="nextMorning()">Next morning</button>
+  <button class="primary" onclick="seedIris()">Start as Iris</button>
+</header>
+<main>
+  <section class="card">
+    <h2>Talk to me</h2>
+    <div id="chat-log" aria-live="polite"></div>
+    <div class="composer">
+      <input id="chat-input" placeholder="Empty your head here: call mom, portfolio, maybe yoga?…" autocomplete="off">
+      <button class="primary" id="send" onclick="send()">Send</button>
+    </div>
+    <div class="modes">
+      <label><input type="radio" name="mode" value="dump" checked> brain dump</label>
+      <label><input type="radio" name="mode" value="command"> one thing</label>
+      <span id="ctx"></span>
+    </div>
+  </section>
+  <div class="side">
+    <section class="card" id="focus"><h2>Right now</h2><div class="sub">Nothing to do right now. Breathe.</div></section>
+    <section class="card">
+      <h2>Today &amp; tomorrow</h2>
+      <div id="timeline"></div>
+      <div class="loose" id="loose"></div>
+    </section>
+  </div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+let S = {now: null, items: [], messages: []};
+let active = null;          // item the conversation is about
+let timerEnd = null, timerH = null;
+
+async function api(path, body) {
+  const opt = body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)};
+  const r = await fetch(path, opt);
+  return r.json();
+}
+function esc(s){return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function parse(iso){ if(!iso) return null; const [d,t='00:00'] = iso.split('T'); const [y,m,dd] = d.split('-').map(Number); const [h,mi] = t.split(':').map(Number); return new Date(y, m-1, dd, h, mi); }
+function fmt(d){ return d.toLocaleString([], {weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}); }
+function isoOf(d){ const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+async function refresh() {
+  S = await api('/api/state');
+  const f = await api('/api/focus');
+  render(f);
+}
+
+function render(f) {
+  $('#clock').textContent = S.now ? fmt(parse(S.now)) : '';
+  // chat
+  const log = $('#chat-log');
+  log.innerHTML = S.messages.map(m => {
+    const it = S.items.find(i => i.id === m.item_id);
+    let html = `<div class="msg ${m.role}" data-id="${m.id}">`;
+    if (m.role === 'agent' && m.kind !== 'reply') html += `<span class="meta">${esc(m.kind)}</span>`;
+    if (m.kind === 'breakdown') {
+      const first = esc(m.text.split('\n')[0]);
+      html += first + '<ol>' + m.steps.map(s => `<li>${esc(s.title)} <span class="meta" style="display:inline">${s.estimate_min} min</span></li>`).join('') + '</ol>';
+      html += esc(m.text.split('\n').slice(-1)[0]);
+      html += `<div class="acts"><button onclick="reply('${m.item_id}','Looks good')">Looks good</button><button onclick="hint('${m.item_id}','Make the steps smaller')">Change something</button></div>`;
+    } else {
+      html += esc(m.text);
+    }
+    if (m.undo_id) html += `<div class="acts"><button onclick="undo('${m.undo_id}')">Undo</button></div>`;
+    if (m.kind === 'checkin') html += `<div class="acts"><button onclick="reply('${m.item_id}','It feels too big')">Too big</button><button onclick="reply('${m.item_id}','Wrong time')">Wrong time</button><button onclick="reply('${m.item_id}','Not needed anymore')">Not needed</button></div>`;
+    if (m.kind === 'question' && /break it into/.test(m.text)) html += `<div class="acts"><button onclick="reply('${m.item_id}','Yes please')">Yes please</button><button onclick="reply('${m.item_id}','No, it is fine')">Not now</button></div>`;
+    return html + '</div>';
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+  // active conversation: latest agent message that asks something about an item
+  active = null;
+  for (let i = S.messages.length - 1; i >= 0; i--) {
+    const m = S.messages[i];
+    if (m.role === 'person' && !m.item_id) break;
+    if (m.role === 'agent' && m.item_id && ['question','breakdown','checkin'].includes(m.kind)) { active = m.item_id; break; }
+    if (m.role === 'agent' && ['reply','info'].includes(m.kind) && m.item_id) break;
+  }
+  const ai = S.items.find(i => i.id === active);
+  $('#ctx').innerHTML = ai ? `<span class="chip">replying about “${esc(ai.title)}” <button title="new topic" onclick="active=null;this.parentNode.remove()">×</button></span>` : '';
+  renderFocus(f);
+  renderTimeline();
+}
+
+function renderFocus(f) {
+  const el = $('#focus');
+  if (!f || !f.item) { el.innerHTML = '<h2>Right now</h2><div class="sub">Nothing to do right now. Breathe.</div>'; return; }
+  const it = f.item;
+  el.innerHTML = `<h2>Right now, just this</h2>
+    ${f.parent ? `<div class="sub">a tiny step toward “${esc(f.parent.title)}”</div>` : ''}
+    <div class="step">${esc(it.title)}</div>
+    ${f.why ? `<div class="why">because: ${esc(f.why)}</div>` : '<div style="height:10px"></div>'}
+    <div class="row"><button class="primary" id="start5">${esc(f.action || 'Start 5 minutes')}</button>
+    <span class="timer" id="timer"></span>
+    <button onclick="markDone('${it.id}')">I did it</button>
+    ${it.estimate_min ? `<span class="sub">about ${it.estimate_min} min</span>` : ''}</div>`;
+  $('#start5').onclick = startTimer;
+  tick();
+}
+function startTimer(){ timerEnd = Date.now() + 5*60*1000; clearInterval(timerH); timerH = setInterval(tick, 1000); tick(); }
+function tick(){ const t = $('#timer'); if (!t || !timerEnd) return; const s = Math.max(0, Math.round((timerEnd - Date.now())/1000));
+  t.textContent = s ? `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` : 'five minutes, done. Keep going only if you like.'; if (!s) { clearInterval(timerH); timerEnd = null; } }
+
+function renderTimeline() {
+  const el = $('#timeline'); if (!S.now) { el.innerHTML = ''; return; }
+  const now = parse(S.now), H0 = 7, H1 = 24, PX = 520 / (H1 - H0);
+  const days = [0, 1].map(k => { const d = new Date(now); d.setHours(0,0,0,0); d.setDate(d.getDate() + k); return d; });
+  let hours = '<div><div class="dayhead">&nbsp;</div><div class="hours">';
+  for (let h = H0; h <= H1; h += 2) hours += `<span style="top:${(h-H0)*PX}px">${h % 12 || 12}${h < 12 || h === 24 ? 'a' : 'p'}</span>`;
+  hours += '</div></div>';
+  const cols = days.map((d, k) => {
+    let c = `<div><div class="dayhead">${k === 0 ? 'Today' : 'Tomorrow'} · ${d.toLocaleDateString([], {weekday:'short', day:'numeric'})}</div><div class="daycol">`;
+    for (let h = H0; h < H1; h += 2) c += `<div class="hline" style="top:${(h-H0)*PX}px"></div>`;
+    for (const it of S.items) {
+      if (!it.start || it.kind === 'note') continue;
+      const s = parse(it.start); if (s.toDateString() !== d.toDateString()) continue;
+      let e = it.end ? parse(it.end) : new Date(s.getTime() + (it.estimate_min || 30) * 60000);
+      const top = Math.max(0, (s.getHours() + s.getMinutes()/60 - H0) * PX);
+      const ht = Math.max(18, (e - s) / 3600000 * PX - 2);
+      const cls = ['blk', it.kind, it.window ? 'soft' : '', it.parent_id ? 'step' : '', it.status === 'done' ? 'done' : ''].join(' ');
+      c += `<div class="${cls}" style="top:${top}px;height:${ht}px" title="${esc(it.title)}${it.window ? ' · ' + esc(it.window) : ''}">${esc(it.title)}${it.window ? ` <span style="color:var(--soft)">· ${esc(it.window)}</span>` : ''}</div>`;
+    }
+    if (k === 0) c += `<div class="nowline" style="top:${Math.max(0,(now.getHours()+now.getMinutes()/60-H0)*PX)}px"></div>`;
+    return c + '</div></div>';
+  });
+  el.innerHTML = hours + cols.join('');
+  const loose = S.items.filter(i => i.status === 'open' && (!i.start || i.kind === 'note'));
+  $('#loose').innerHTML = loose.length ? 'Soft, no fixed time: ' + loose.map(i => `<span>${esc(i.title)}${i.window ? ' · ' + esc(i.window) : ''}${i.why ? ' ✦' : ''}</span>`).join('') : '';
+}
+
+async function busy(p){ document.body.classList.add('busy'); try { return await p; } finally { document.body.classList.remove('busy'); } }
+async function send() {
+  const inp = $('#chat-input'), text = inp.value.trim(); if (!text) return;
+  inp.value = '';
+  if (active) await busy(api('/api/chat', {item_id: active, text}));
+  else await busy(api('/api/command', {text, mode: document.querySelector('input[name=mode]:checked').value}));
+  refresh();
+}
+async function reply(id, text){ await busy(api('/api/chat', {item_id: id, text})); refresh(); }
+function hint(id, text){ active = id; const i = $('#chat-input'); i.value = text; i.focus(); i.select(); }
+async function undo(id){ await api('/api/undo', {undo_id: id}); refresh(); }
+async function markDone(id){ await api(`/api/items/${id}/done`, {}); timerEnd = null; refresh(); }
+async function scrub(min){ const d = parse(S.now); d.setMinutes(d.getMinutes() + min); await busy(api('/api/clock', {now: isoOf(d)})); refresh(); }
+async function nextMorning(){ const d = parse(S.now); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0); await busy(api('/api/clock', {now: isoOf(d)})); refresh(); }
+
+async function seedIris() {
+  // Monday 5:30 PM. Iris's history: things get done after 8 PM.
+  const items = [
+    {id: 'h1', kind: 'task', title: 'reply to Sam', start: '2026-10-16T20:30', end: '2026-10-16T21:00', status: 'done'},
+    {id: 'h2', kind: 'task', title: 'pay phone bill', start: '2026-10-17T21:00', end: '2026-10-17T21:15', status: 'done'},
+    {id: 'h3', kind: 'task', title: 'sketch zine cover', start: '2026-10-18T20:15', end: '2026-10-18T21:00', status: 'done'},
+    {id: 's1', kind: 'task', title: 'tidy the desk', start: '2026-10-19T18:00', end: '2026-10-19T18:30', estimate_min: 30},
+    {id: 's2', kind: 'note', title: 'look at that ceramics class (maybe)'},
+  ];
+  await api('/api/reset', {now: '2026-10-19T17:30', items});
+  refresh();
+}
+
+$('#chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+refresh();
+</script>
+</body>
+</html>

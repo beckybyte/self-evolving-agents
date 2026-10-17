@@ -2,6 +2,8 @@
   bench:calendar | bench:math | bench:drop     ground-truth benchmarks (regression)
   appworld                                     AppWorld (external env loop)
   brief:<path/to/brief.md>                     open-ended product brief (self-built evaluation)
+  build:<spec dir>                             team writes a runnable app; frozen harness drives it (contract.md,
+                                               harness.py, scenarios.py in <spec dir>)
 """
 from __future__ import annotations
 
@@ -17,8 +19,13 @@ def parse_weights(s: str | None) -> dict[str, float] | None:
 
 
 def make_task(spec: str, run_dir: str | Path, fit: str | None = None, holdout: str | None = None,
-              lam_tokens: float = 0.02, **opts):
+              lam_tokens: float | None = None, **opts):
+    """lam_tokens=None: the task's default (0.001 for build, 0.02 otherwise)."""
     run_dir = Path(run_dir)
+    if spec.startswith("build:"):
+        from .build import BuildTask
+        return BuildTask(spec[6:], human=HumanChannel(run_dir / "inbox"), lam_tokens=0.001 if lam_tokens is None else lam_tokens)
+    lam_tokens = 0.02 if lam_tokens is None else lam_tokens
     human = HumanChannel(run_dir / "inbox")
     if spec.startswith("bench:"):
         from .benchmark import BenchmarkTask
