@@ -51,6 +51,9 @@ PARALLEL WORK: a workflow step `{{parallel: [backend, agents, ui]}}` runs those 
 the blackboard/artifacts as they were before the step (they cannot see each other's output). Use it for independent
 files after an architect has fixed the interfaces, then a sequential integrator to reconcile them.
 
+WHO WRITES THE CODE: the team's models (Nemotron). You design the team; you do not write the product. Tool roles
+are rejected, and a genome whose soul/prompts/notes hold more than 25 lines of code is rejected. Prompts may name
+functions, JSON shapes, ids and rules in prose or short snippets.
 THINKING: the worker is a reasoning model; with thinking on it can spend the whole max_tokens budget thinking and
 emit no file at all. A role may pin `model: crusoe:<model id>#nothink` (thinking off: much faster and cheaper, good
 for writing a file from a precise plan) or keep $WORKER for planning/review roles.
@@ -101,6 +104,17 @@ def materialise(artifacts: dict[str, str], app_dir: Path) -> tuple[list[str], li
     return sorted(written), rejected
 
 
+MAX_GENOME_CODE_LINES = 25
+CODE_LINE = re.compile(r"^\s*(def |class |import |from \S+ import |return\b|if .*:\s*$|for .*:\s*$|while .*:\s*$|elif |else:|try:|except|"
+                       r"function\b|const |let |var |document\.|<(div|script|style|button|input|section|html|body)\b|\}\s*$|"
+                       r"[A-Za-z_][A-Za-z0-9_.\[\]'\"]*\s*=\s*\S)")
+
+
+def code_lines(text: str) -> int:
+    """Lines that look like Python/JS/HTML source (a crude guard against the evolver writing the product itself)."""
+    return sum(bool(CODE_LINE.match(l)) for l in text.splitlines())
+
+
 def _load_module(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, path)
     m = importlib.util.module_from_spec(spec)
@@ -143,9 +157,20 @@ class BuildTask(Task):
         return ("split the work by file (architect -> {parallel: [backend, agents, ui]} -> integrator), merge roles that "
                 "only add tokens, add a reviewer that checks the code against the contract's numbered behaviours and "
                 "re-emits fixed files, give a role the exact JSON shapes / ids it keeps getting wrong, make the app "
-                "rule-based where the harness checks fail on LLM flakiness, add tool code (e.g. a py_compile / import "
-                "check of the artifacts that reports errors to the next role). Look at fit_rows.jsonl (failed checks) "
+                "rule-based where the harness checks fail on LLM flakiness, or add a reviewer/fixer loop. Tool roles are not "
+                "allowed and the genome may hold at most 25 lines of code: describe what to build, the models write it. Look at fit_rows.jsonl (failed checks) "
                 "and app/ (the parent's code) before changing anything.")
+
+    def load_child(self, gdir: Path) -> dict:
+        """The product must be written by the team's models, not by the evolver: no tool roles, and no product code
+        pasted into the genome (soul, prompts, memory notes) beyond short snippets."""
+        g = super().load_child(gdir)
+        assert all(r["kind"] != "tool" for r in g["roles"]), "build mode: tool roles are not allowed (the team's models write the code)"
+        text = "\n".join([g.get("soul", "")] + [r.get("prompt", "") for r in g["roles"]] + list(g["_memory"].values()))
+        n = code_lines(text)
+        assert n <= MAX_GENOME_CODE_LINES, (f"build mode: the genome holds {n} lines of code (max {MAX_GENOME_CODE_LINES}); "
+                                            "describe what to build, the team writes the code")
+        return g
 
     def fitness_spec(self) -> FitnessSpec:
         return FitnessSpec([Term("score:fit", 1.0, label="score(fit)"),

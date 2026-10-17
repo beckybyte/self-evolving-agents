@@ -148,3 +148,11 @@ def test_real_spec_loads(tmp_path):
     fit, hold = task.scenarios("fit"), task.scenarios("holdout")
     assert fit and hold and not ({s["id"] for s in fit} & {s["id"] for s in hold})
     assert all(s["description"] not in task.describe() for s in hold)
+
+
+def test_genome_code_guard():
+    from sea.tasks.build import MAX_GENOME_CODE_LINES, code_lines
+    prose = "Write app_py. Endpoints: POST /api/chat returns {messages}. Ask why first; first step <= 15 min."
+    assert code_lines(prose) == 0
+    code = "\n".join(["import json", "def f(x):", "    if x:", "        return 1", "y = 2"] * 6)
+    assert code_lines(code) > MAX_GENOME_CODE_LINES
