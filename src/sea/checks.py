@@ -82,6 +82,45 @@ def shape_problems(kind: str, data) -> list[str]:
     return out
 
 
+SMART = {"\u201c": '"', "\u201d": '"', "\u2018": "'", "\u2019": "'", "\u2013": "-", "\u2014": "-", "\u00a0": " "}
+
+
+def non_ascii_hint(path: Path, limit: int = 8) -> str:
+    """Lines of a .py file that hold typographic quotes/dashes outside comments (a frequent model slip that breaks
+    compilation: f\u201c...\u201d). Only listed when the file failed to compile."""
+    hits, in_str = [], None  # in_str: the ASCII quote that opened the current string (carried across lines)
+    for i, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
+        bad, j = set(), 0
+        while j < len(line):
+            c = line[j]
+            if in_str:
+                if c == "\\":
+                    j += 2
+                    continue
+                if line.startswith(in_str, j):
+                    j += len(in_str)
+                    in_str = None
+                    continue
+            elif c == "#":
+                break
+            elif c in "'\"":
+                in_str = line[j:j + 3] if line[j:j + 3] in ('"""', "'''") else c
+                j += len(in_str)
+                continue
+            elif c in SMART:
+                bad.add(c)  # used as code (e.g. a string delimiter), not inside an ASCII-quoted string
+            j += 1
+        if in_str in ('"', "'"):
+            in_str = None  # single-quoted strings end at the line end
+        bad = sorted(bad)
+        if bad:
+            hits.append(f"  line {i}: {' '.join(repr(c) for c in bad)}: {line.strip()[:100]}")
+    if not hits:
+        return ""
+    return ("\n typographic quotes/dashes in code (replace with ASCII \" ' -; inside string literals use \\u2019 escapes):\n"
+            + "\n".join(hits[:limit]) + (f"\n  ... {len(hits) - limit} more lines" if len(hits) > limit else ""))
+
+
 def _free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -193,7 +232,7 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
                 try:
                     py_compile.compile(str(app / f), cfile=str(Path(tmp) / "pyc"), doraise=True)
                 except py_compile.PyCompileError as e:
-                    bad.append(f"{f}: {str(e.msg).strip()[-600:]}")
+                    bad.append(f"{f}: {str(e.msg).strip()[-600:]}" + non_ascii_hint(app / f))
         if bad:
             return False, "SMOKE: FAIL (compile errors)\n" + "\n".join(lines + ["compile errors:"] + bad)
         lines.append("compile: ok")

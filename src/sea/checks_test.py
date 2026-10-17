@@ -259,3 +259,9 @@ def test_loop_stop_all_needs_every_condition(tmp_path):
     assert calls == ["a", "s", "a", "s"]  # round 1: auditor clear but smoke failing -> keep going
     with pytest.raises(AssertionError, match="stop_all"):
         load_genome(_genome(tmp_path, roles, [{"loop": {"body": ["auditor"], "stop_all": [{"on": "nobody", "when": "x"}]}}]))
+
+
+def test_smoke_names_typographic_quotes():
+    bad = good().replace('ThreadingHTTPServer((', 'x = f“I’ve moved {1}”\nThreadingHTTPServer((')
+    ok, rep = app_smoke({"app_py": bad})
+    assert not ok and "compile errors" in rep and "typographic quotes" in rep and "line " in rep
