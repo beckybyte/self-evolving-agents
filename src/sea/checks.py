@@ -298,8 +298,45 @@ def run_selftest(app: Path, tmp: Path, wait: float) -> tuple[int, str]:
     return int(code != 0), f"selftest: exit {code} in {time.time() - t0:.1f} s" + (f"\noutput tail:\n{out}" if out.strip() else "")
 
 
+ACCEPT_MAX_STEPS = 30
+
+
+def acceptance_steps(do_raw, spec_text: str, lines: list) -> int:
+    """acceptance: <artifact> -- a team-written HTTP test: a JSON list of {"method", "path", "body"?, "status"?
+    (default 200), "expect"?: [substrings of the response body]}, run in order on the started app after the
+    basic calls. The team writes the assertions (like --selftest); the framework only runs them. Returns problems."""
+    try:
+        steps = json.loads(spec_text)
+        assert isinstance(steps, list)
+    except Exception as e:
+        lines.append(f"acceptance: the artifact is not a JSON list of steps ({e!r:.120})")
+        return 1
+    problems = 0
+    for i, st in enumerate(steps[:ACCEPT_MAX_STEPS], 1):
+        if not isinstance(st, dict) or not st.get("path", "").startswith("/"):
+            lines.append(f"acceptance step {i}: malformed (needs method and a path starting with /)")
+            problems += 1
+            continue
+        res = do_raw(st.get("method", "GET").upper(), st["path"], st.get("body"))
+        if res is None:
+            lines.append(f"acceptance step {i} {st.get('method', 'GET')} {st['path']}: no answer")
+            problems += 1
+            continue
+        status, text = res
+        miss = [x for x in st.get("expect") or [] if str(x) not in text]
+        if status != int(st.get("status", 200)) or miss:
+            problems += 1
+            lines.append(f"acceptance step {i} {st.get('method', 'GET')} {st['path']}: FAIL (status {status}, want "
+                         f"{st.get('status', 200)}; missing {miss}); body: {text[:200]}")
+        else:
+            lines.append(f"acceptance step {i} {st.get('method', 'GET')} {st['path']}: ok")
+    if len(steps) > ACCEPT_MAX_STEPS:
+        lines.append(f"acceptance: only the first {ACCEPT_MAX_STEPS} of {len(steps)} steps were run")
+    return problems
+
+
 def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: str = "basic",
-              selftest: bool = False, selftest_secs: int = 12) -> tuple[bool, str]:
+              selftest: bool = False, selftest_secs: int = 12, acceptance: str | None = None) -> tuple[bool, str]:
     """Compile the team's files, start app.py, make SMOKE_CALLS (+ deep_calls when calls == "deep").
     Returns (passed, report)."""
     from .tasks.build import materialise  # lazy: tasks.build imports the executor, which imports this module
@@ -402,6 +439,20 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
                 v2_calls(do, lines)
             if calls == "v3" and proc.poll() is None:
                 v3_calls(do, lines)
+            if acceptance and proc.poll() is None:
+                if acceptance not in artifacts:
+                    lines.append(f"acceptance: no artifact named {acceptance!r} was emitted")
+                    problems += 1
+                else:
+                    def do_raw(method, path, body):
+                        left = budget - (time.time() - t0)
+                        if left < 1:
+                            return None
+                        try:
+                            return _call(base, method, path, body, min(left, 20))
+                        except Exception:
+                            return None
+                    problems += acceptance_steps(do_raw, artifacts[acceptance], lines)
         finally:
             _kill_tree(proc)
         out = log.read_text(errors="replace")
@@ -413,7 +464,8 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
 
 
 CHECKS = {"app_smoke": app_smoke}
-CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep", "v2", "v3"), "selftest": (False, True), "selftest_secs": (12, 20)}}  # option -> allowed values (first = default)
+CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep", "v2", "v3"), "selftest": (False, True), "selftest_secs": (12, 20),
+                               "acceptance": "artifact"}}  # "artifact" = any artifact name  # option -> allowed values (first = default)
 
 
 def run_check(name: str, artifacts: dict[str, str], **opts) -> tuple[bool, str]:

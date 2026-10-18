@@ -1,4 +1,5 @@
 """Framework check roles: app_smoke on real tiny apps (starts processes), and the check kind in genome/executor."""
+import json
 import os
 import time
 from pathlib import Path
@@ -493,3 +494,22 @@ def test_liveness_flags_a_hung_app_and_skips_the_harness(tmp_path):
     finally:
         b.LIVENESS_LIMIT = old
     assert {r["reason"] for r in rows} == {"hung"} and all(r["score"] == 0 for r in rows)
+
+
+def test_smoke_acceptance_steps_and_reviewer_output_in_trace(tmp_path):
+    steps = json.dumps([{"method": "POST", "path": "/api/command", "body": {"text": "dentist thursday 3pm", "mode": "command"},
+                         "expect": ['"created"']},
+                        {"method": "GET", "path": "/api/state", "expect": ["call mom"]},
+                        {"method": "GET", "path": "/api/nope", "status": 200}])
+    ok, rep = app_smoke({"app_py": good(), "tests_json": steps}, acceptance="tests_json")
+    assert not ok and "acceptance step 1 POST /api/command: ok" in rep and "acceptance step 2 GET /api/state: ok" in rep
+    assert "acceptance step 3 GET /api/nope: FAIL (status 404" in rep
+    ok, rep = app_smoke({"app_py": good()}, acceptance="tests_json")
+    assert not ok and "no artifact named 'tests_json'" in rep
+    register_fake("rv", lambda m: "ALL_CLEAR: the handlers look right")
+    roles = [{"name": "rev", "kind": "llm", "model": "fake:rv", "prompt": "review"},
+             {"name": "smoke", "kind": "check", "check": "app_smoke", "acceptance": "tests_json"}]
+    res = run_team(load_genome(_genome(tmp_path, roles, ["rev"])), {"id": "e", "input": {"text": "x"}}, "fake:rv")
+    assert res["trace"][0]["output_head"].startswith("ALL_CLEAR")
+    with pytest.raises(AssertionError, match="check option"):
+        load_genome(_genome(tmp_path, [{"name": "s", "kind": "check", "check": "app_smoke", "acceptance": "bad name"}], ["s"]))

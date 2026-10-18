@@ -47,6 +47,9 @@ genome.yaml (schema: 2)
                                     -> undo (when a message has an undo_id); still crash/shape problems only, and a
                                     slow deep call (timeout, budget used up) is a note, not a failure.
       selftest_secs: 12 | 20        time limit of that self-test (default 12)
+      acceptance: <artifact name>   app_smoke option: that artifact is a team-written JSON list of HTTP steps
+                                    [{method, path, body?, status? (200), expect?: [substrings of the body]}] (<= 30),
+                                    run in order on the started app after the basic calls; failed steps are reported
       selftest: true                app_smoke option: first runs `python app.py --selftest --data <tmp>` (<= 12 s, must
                                     exit) and reports its exit code and output; nonzero exit = a problem. The team
                                     writes the self-test; the normal start-up path is still what gets started and scored.
@@ -160,7 +163,8 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
             from .checks import CHECK_OPTIONS
             allowed = CHECK_OPTIONS.get(r["check"], {})
             for k, v in r.get("options", {}).items():
-                assert k in allowed and v in allowed[k], (
+                assert k in allowed and (v in allowed[k] if allowed[k] != "artifact" else
+                                         bool(re.fullmatch(r"[A-Za-z0-9_\-]+", str(v)))), (
                     f"role {r['name']}: check option {k}: {v!r} not allowed ({ {o: list(a) for o, a in allowed.items()} })")
         if r["kind"] == "llm":
             assert known_model(r["model"]), f"unknown model {r['model']}"

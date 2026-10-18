@@ -233,6 +233,8 @@ class _Run:
             self._finish[name] = u.get("finish", "")
             self.trace.append({"role": name, "kind": "llm", "tokens": u["prompt"] + u["completion"], "chars": len(text),
                                "model": model, "completion": u["completion"],
+                               # what a non-file role (reviewer, planner) said, for the evolver's team traces
+                               **({"output_head": ART_RE.sub("", text).strip()[:1500]} if not ART_RE.search(text) else {}),
                                **{k: u[k] for k in ("finish", "retries", "secs", "fallback") if k in u},
                                **({"repeat_temperature": temperature} if repeat else {})})
 
