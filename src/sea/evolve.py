@@ -134,6 +134,16 @@ class Evolution:
             self.log_hist({"gen": 0, "id": "gen00", "accepted": True, "fitness": r["fitness"], **self.brief(r, g0)})
             self.save()
         while not st["done"]:
+            cap = getattr(self.task, "max_fitness", lambda: None)()
+            if cap is not None and st["parent_fit"] is not None and st["parent_fit"] + self.margin >= cap:
+                # no child can be accepted any more (it would need > cap): stop instead of paying for more gens
+                # (evo_v2_c0, evo_v3_a, evo_v3_c, evo_v31_b each kept spending after reaching this point)
+                self.log_hist({"event": "ceiling_reached", "parent_fit": st["parent_fit"], "margin": self.margin,
+                               "max_fitness": cap, "gen": st["gen"]})
+                st["done"] = True
+                self.save()
+                self.framework_signals()
+                break
             if st["gen"] >= self.gens or st["stale"] >= self.patience or st["evolver_calls"] >= MAX_EVOLVER_CALLS:
                 st["done"] = True
                 self.save()

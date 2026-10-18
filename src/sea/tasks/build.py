@@ -248,6 +248,10 @@ class BuildTask(Task):
                                             "describe what to build, the team writes the code")
         return g
 
+    def max_fitness(self) -> float:
+        """Best reachable fitness: score(fit) <= 1 and the token term is never positive."""
+        return 1.0
+
     def fitness_spec(self) -> FitnessSpec:
         return FitnessSpec([Term("score:fit", 1.0, label="score(fit)"),
                             Term("tokens", -self.lam_tokens, 1000, "team_tokens/1000")])

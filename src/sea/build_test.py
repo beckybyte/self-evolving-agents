@@ -233,3 +233,17 @@ def test_mixed_pool_allows_claude_workers(tmp_path, monkeypatch):
     (g / "genome.yaml").write_text("schema: 2\nid: x\nroles:\n- {name: dev, kind: llm, model: 'claude:sonnet', prompt: hi}\n")
     task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")
     assert task.load_child(g)["roles"][0]["model"] == "claude:sonnet"
+
+
+def test_run_stops_at_the_fitness_ceiling(tmp_path, monkeypatch):
+    register_fake("dev", fake_dev)
+    task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")
+    monkeypatch.setenv("SEA_FAKE_EVOLVER", "1")
+    monkeypatch.setenv("SEA_META_SIGNALS", "0")
+    calls = []
+    import sea.evolve as ev
+    monkeypatch.setattr(ev.Evolution, "attempt", lambda self: calls.append(1) or (_ for _ in ()).throw(AssertionError("no attempt at the ceiling")))
+    # stub harness scores the P0 app 1.0 -> parent fitness ~1.0; margin 0.01 cannot be beaten
+    st = Evolution(task, tmp_path / "evo", "fake:dev", ROOT / "genomes/v2/build_P0", gens=3, k=1, margin=0.01).run()
+    hist = [json.loads(l) for l in open(tmp_path / "evo" / "history.jsonl")]
+    assert st["done"] and not calls and any(h.get("event") == "ceiling_reached" for h in hist)
