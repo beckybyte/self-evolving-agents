@@ -1,0 +1,324 @@
+[
+ {
+  "name": "Luca",
+  "summary": "freelance photographer who loves capturing moments but struggles to turn shoots into a showcase; prefers quick, concrete tasks, works best late morning, often puts off admin until night.",
+  "traits": [
+   "writes short bullet\u2011point notes, rarely adds times",
+   "procrastinates on invoicing and portfolio work",
+   "most productive around 10\u202fAM",
+   "wants a professional portfolio to attract higher\u2011end clients",
+   "gets uneasy with long forms or many consecutive questions"
+  ],
+  "active_hour": 10,
+  "history": [
+   {
+    "title": "edit sunrise shoot",
+    "days_ago": 1,
+    "hour": 10,
+    "minute": 15,
+    "dur_min": 30
+   },
+   {
+    "title": "client call \u2013 wedding inquiry",
+    "days_ago": 2,
+    "hour": 11,
+    "minute": 0,
+    "dur_min": 20
+   },
+   {
+    "title": "upload photos to cloud",
+    "days_ago": 3,
+    "hour": 12,
+    "minute": 30,
+    "dur_min": 25
+   },
+   {
+    "title": "invoice for last job",
+    "days_ago": 4,
+    "hour": 13,
+    "minute": 45,
+    "dur_min": 15
+   },
+   {
+    "title": "coffee break & sketch ideas",
+    "days_ago": 5,
+    "hour": 9,
+    "minute": 30,
+    "dur_min": 20
+   },
+   {
+    "title": "bike ride around park",
+    "days_ago": 6,
+    "hour": 8,
+    "minute": 0,
+    "dur_min": 40
+   },
+   {
+    "title": "water houseplants",
+    "days_ago": 7,
+    "hour": 7,
+    "minute": 20,
+    "dur_min": 10
+   }
+  ],
+  "open": [
+   {
+    "title": "organize photo portfolio",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 180
+   },
+   {
+    "title": "call dentist to book cleaning",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 16,
+    "window": null,
+    "dur_min": 15
+   },
+   {
+    "title": "order new lenses",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "next week",
+    "dur_min": 10
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "usually says yes, likes a clear list of tiny steps",
+   "why_question": "answers honestly: wants to tell stories that stick with people",
+   "proposed_steps": "accepts if the first step looks tiny (under 15\u202fmin), asks for smaller otherwise",
+   "invented_views": "prefers the familiar list view, feels unsettled by new visualizations",
+   "classic_views": "appreciates the standard calendar layout",
+   "postponed_messages": "feels relieved when wording is kind; dislikes being moved to early morning",
+   "bulk_changes": "sometimes clears an entire weekend when a big shoot is added"
+  },
+  "goals": [
+   "create a 5\u2011photo series for my portfolio",
+   "learn basic video editing (15\u202fmin a day)",
+   "schedule a weekly 30\u2011min walk for fresh ideas",
+   "spend 15\u202fmin each evening reviewing shooting notes"
+  ],
+  "generated_seed": 9200
+ },
+ {
+  "name": "Hiro",
+  "summary": "methodical software engineer who prefers minimal chatter; does his deep work late at night, avoids long forms and likes steps that stay under ten minutes.",
+  "traits": [
+   "writes concise fragments, rarely adds extra detail",
+   "puts off personal errands until weekends",
+   "most productive after 8\u202fPM",
+   "wants to improve code quality and learn an instrument",
+   "gets uneasy with many consecutive prompts"
+  ],
+  "active_hour": 20,
+  "history": [
+   {
+    "title": "push feature branch",
+    "days_ago": 1,
+    "hour": 19,
+    "minute": 10,
+    "dur_min": 25
+   },
+   {
+    "title": "code review for teammate",
+    "days_ago": 2,
+    "hour": 20,
+    "minute": 0,
+    "dur_min": 20
+   },
+   {
+    "title": "lunch break",
+    "days_ago": 3,
+    "hour": 12,
+    "minute": 30,
+    "dur_min": 45
+   },
+   {
+    "title": "jog around block",
+    "days_ago": 4,
+    "hour": 18,
+    "minute": 15,
+    "dur_min": 30
+   },
+   {
+    "title": "dinner with family",
+    "days_ago": 5,
+    "hour": 21,
+    "minute": 0,
+    "dur_min": 60
+   },
+   {
+    "title": "night reading (tech blog)",
+    "days_ago": 6,
+    "hour": 22,
+    "minute": 20,
+    "dur_min": 30
+   }
+  ],
+  "open": [
+   {
+    "title": "refactor legacy module",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 180
+   },
+   {
+    "title": "buy birthday gift for wife",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "next week",
+    "dur_min": 10
+   },
+   {
+    "title": "schedule dentist appointment",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 10,
+    "window": null,
+    "dur_min": 15
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "rarely says yes; prefers to keep tasks whole unless explicitly asked for a small sub\u2011step",
+   "why_question": "answers briefly: wants to keep the codebase efficient and learn ukulele",
+   "proposed_steps": "accepts only if the first step is \u226410\u202fmin, otherwise he skips it",
+   "invented_views": "dislikes them, sticks to the plain list view",
+   "classic_views": "likes the straightforward calendar layout",
+   "postponed_messages": "fine with a gentle shift, less okay if moved to early morning",
+   "bulk_changes": "never uses bulk actions"
+  },
+  "goals": [
+   "reduce build time by 20\u202f%",
+   "learn basic ukulele chords (5\u202fmin a day)",
+   "do a daily 5\u2011minute stretch routine",
+   "organize the home office desk"
+  ],
+  "generated_seed": 9200
+ },
+ {
+  "name": "Evelyn",
+  "summary": "retired nurse who volunteers at the local clinic; enjoys a relaxed rhythm, likes kind reminders, and prefers classic calendar views over experimental ones.",
+  "traits": [
+   "writes short notes, often with friendly tone",
+   "keeps a flexible schedule but likes morning routines",
+   "most productive around 9\u202fAM",
+   "wants to leave a memoir for grandchildren",
+   "gets comforted by gentle wording when tasks slip"
+  ],
+  "active_hour": 9,
+  "history": [
+   {
+    "title": "volunteer shift at clinic",
+    "days_ago": 1,
+    "hour": 9,
+    "minute": 0,
+    "dur_min": 120
+   },
+   {
+    "title": "grocery shopping",
+    "days_ago": 2,
+    "hour": 10,
+    "minute": 30,
+    "dur_min": 45
+   },
+   {
+    "title": "call granddaughter",
+    "days_ago": 3,
+    "hour": 11,
+    "minute": 15,
+    "dur_min": 20
+   },
+   {
+    "title": "garden watering",
+    "days_ago": 4,
+    "hour": 8,
+    "minute": 0,
+    "dur_min": 30
+   },
+   {
+    "title": "read newspaper",
+    "days_ago": 5,
+    "hour": 7,
+    "minute": 20,
+    "dur_min": 25
+   },
+   {
+    "title": "stretching exercises",
+    "days_ago": 6,
+    "hour": 9,
+    "minute": 30,
+    "dur_min": 15
+   },
+   {
+    "title": "bake banana bread",
+    "days_ago": 7,
+    "hour": 14,
+    "minute": 0,
+    "dur_min": 60
+   },
+   {
+    "title": "doctor visit (check\u2011up)",
+    "days_ago": 8,
+    "hour": 13,
+    "minute": 45,
+    "dur_min": 30
+   },
+   {
+    "title": "evening walk",
+    "days_ago": 9,
+    "hour": 17,
+    "minute": 15,
+    "dur_min": 40
+   }
+  ],
+  "open": [
+   {
+    "title": "write memoir chapters",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 240
+   },
+   {
+    "title": "schedule annual flu shot",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 10,
+    "window": null,
+    "dur_min": 15
+   },
+   {
+    "title": "organize family photo album",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "next weekend",
+    "dur_min": 30
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "usually says yes, enjoys a clear tiny\u2011step breakdown",
+   "why_question": "shares that she wants to leave a legacy for her grandchildren",
+   "proposed_steps": "likes steps that are 5\u201110\u202fmin long, asks for even smaller if she feels busy",
+   "invented_views": "doesn't care much, sticks to the classic list view",
+   "classic_views": "feels comfortable and confident using it",
+   "postponed_messages": "appreciates kind wording; okay with any time shift",
+   "bulk_changes": "often clears a whole weekend when she plans a short trip"
+  },
+  "goals": [
+   "finish the first memoir chapter",
+   "learn to use a tablet for video calls with family",
+   "walk 30\u202fmin daily",
+   "plan a family reunion for next summer"
+  ],
+  "generated_seed": 9200
+ }
+]

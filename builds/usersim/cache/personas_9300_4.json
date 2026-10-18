@@ -1,0 +1,399 @@
+[
+ {
+  "name": "Luis",
+  "summary": "34\u2011year\u2011old freelance photographer who loves short morning bursts, wants to launch a photo\u2011book project but has no steps yet, prefers gentle conversation over long forms.",
+  "traits": [
+   "early\u2011bird, most productive around 8\u201110\u202fAM",
+   "likes 15\u2011minute micro\u2011tasks",
+   "gets distracted by client emails",
+   "wants to grow social\u2011media presence",
+   "answers best in concise, friendly tone"
+  ],
+  "active_hour": 9,
+  "history": [
+   {
+    "title": "edit sunrise photos",
+    "days_ago": 1,
+    "hour": 9,
+    "minute": 15,
+    "dur_min": 30
+   },
+   {
+    "title": "send invoice to client",
+    "days_ago": 2,
+    "hour": 10,
+    "minute": 5,
+    "dur_min": 20
+   },
+   {
+    "title": "coffee break",
+    "days_ago": 3,
+    "hour": 8,
+    "minute": 45,
+    "dur_min": 15
+   },
+   {
+    "title": "upload Instagram carousel",
+    "days_ago": 4,
+    "hour": 9,
+    "minute": 30,
+    "dur_min": 20
+   },
+   {
+    "title": "read photography article",
+    "days_ago": 5,
+    "hour": 7,
+    "minute": 50,
+    "dur_min": 25
+   },
+   {
+    "title": "call supplier for prints",
+    "days_ago": 6,
+    "hour": 10,
+    "minute": 10,
+    "dur_min": 20
+   },
+   {
+    "title": "backup drive",
+    "days_ago": 8,
+    "hour": 9,
+    "minute": 0,
+    "dur_min": 15
+   }
+  ],
+  "open": [
+   {
+    "title": "create outline for photo\u2011book",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 180
+   },
+   {
+    "title": "call client about wedding shoot",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 14,
+    "window": null,
+    "dur_min": 15
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "usually says yes, likes concrete steps",
+   "why_question": "wants to capture family memories for future generations",
+   "proposed_steps": "accepts tiny first step, asks for even smaller if it feels big",
+   "invented_views": "enjoys trying new visual calendars and keeps them",
+   "classic_views": "prefers a simple list but is OK with both",
+   "postponed_messages": "feels okay with kind wording; rescheduling to next morning works for him",
+   "bulk_changes": "sometimes imports .ics from Google Calendar"
+  },
+  "goals": [
+   "pick first 15\u2011min photo selection step",
+   "write a short why for the photo\u2011book",
+   "test a soft afternoon window for editing",
+   "see if the app can suggest a single morning view"
+  ],
+  "generated_seed": 9300
+ },
+ {
+  "name": "Aisha",
+  "summary": "28\u2011year\u2011old community health worker on rotating shifts, wants to keep self\u2011care tasks but struggles with unpredictable afternoons, prefers soft windows like \u201cthis evening\u201d.",
+  "traits": [
+   "variable schedule, days off change weekly",
+   "energy boost around mid\u2011day on day shifts",
+   "feels guilty when tasks slip",
+   "values personal well\u2011being",
+   "likes gentle language, avoids long forms"
+  ],
+  "active_hour": 15,
+  "history": [
+   {
+    "title": "prep vaccination kits",
+    "days_ago": 1,
+    "hour": 14,
+    "minute": 20,
+    "dur_min": 45
+   },
+   {
+    "title": "team debrief",
+    "days_ago": 2,
+    "hour": 13,
+    "minute": 0,
+    "dur_min": 30
+   },
+   {
+    "title": "quick walk in clinic garden",
+    "days_ago": 3,
+    "hour": 16,
+    "minute": 10,
+    "dur_min": 20
+   },
+   {
+    "title": "answer community messages",
+    "days_ago": 4,
+    "hour": 12,
+    "minute": 45,
+    "dur_min": 30
+   },
+   {
+    "title": "drink water reminder",
+    "days_ago": 5,
+    "hour": 15,
+    "minute": 5,
+    "dur_min": 5
+   },
+   {
+    "title": "update health flyer",
+    "days_ago": 7,
+    "hour": 14,
+    "minute": 30,
+    "dur_min": 25
+   }
+  ],
+  "open": [
+   {
+    "title": "plan weekly meal prep",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 120
+   },
+   {
+    "title": "30\u2011min walk in the park",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 18,
+    "window": null,
+    "dur_min": 30
+   },
+   {
+    "title": "call Mom",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 20,
+    "window": null,
+    "dur_min": 15
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "often declines, prefers an overall sense",
+   "why_question": "answers with feelings of burnout and desire for balance",
+   "proposed_steps": "wants step no longer than 10\u202fmin, may reject if longer",
+   "invented_views": "skeptical, usually sticks to classic list",
+   "classic_views": "prefers familiar list view",
+   "postponed_messages": "kind wording lifts mood; reschedule to later in the day is fine",
+   "bulk_changes": "rarely imports .ics, sometimes clears an entire weekend"
+  },
+  "goals": [
+   "try a 10\u2011min breathing exercise",
+   "identify why self\u2011care matters to her",
+   "use a \u201cthis weekend\u201d window for grocery run",
+   "see if the app can suggest a single view"
+  ],
+  "generated_seed": 9300
+ },
+ {
+  "name": "Tom",
+  "summary": "45\u2011year\u2011old senior software engineer who codes late, wants to learn Rust but feels overwhelmed by long planning forms, frequently imports work .ics files.",
+  "traits": [
+   "night owl, most productive after 10\u202fPM",
+   "has many recurring meetings",
+   "prefers exact time slots for coding",
+   "dislikes vague windows",
+   "likes concise UI and bulk calendar actions"
+  ],
+  "active_hour": 22,
+  "history": [
+   {
+    "title": "review pull request #42",
+    "days_ago": 1,
+    "hour": 22,
+    "minute": 15,
+    "dur_min": 30
+   },
+   {
+    "title": "debug production issue",
+    "days_ago": 2,
+    "hour": 23,
+    "minute": 0,
+    "dur_min": 45
+   },
+   {
+    "title": "team stand\u2011up",
+    "days_ago": 3,
+    "hour": 19,
+    "minute": 30,
+    "dur_min": 15
+   },
+   {
+    "title": "code refactor session",
+    "days_ago": 4,
+    "hour": 21,
+    "minute": 20,
+    "dur_min": 30
+   },
+   {
+    "title": "read Rust blog post",
+    "days_ago": 5,
+    "hour": 20,
+    "minute": 45,
+    "dur_min": 20
+   },
+   {
+    "title": "push feature branch",
+    "days_ago": 6,
+    "hour": 22,
+    "minute": 10,
+    "dur_min": 15
+   },
+   {
+    "title": "order pizza for late\u2011night work",
+    "days_ago": 8,
+    "hour": 23,
+    "minute": 50,
+    "dur_min": 10
+   },
+   {
+    "title": "backup repo",
+    "days_ago": 10,
+    "hour": 21,
+    "minute": 5,
+    "dur_min": 20
+   }
+  ],
+  "open": [
+   {
+    "title": "learn Rust basics",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 180
+   },
+   {
+    "title": "buy birthday gift for sister",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 18,
+    "window": null,
+    "dur_min": 30
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "usually says no, prefers whole tasks",
+   "why_question": "answers briefly: career growth and better performance",
+   "proposed_steps": "accepts if first step \u226415\u202fmin, otherwise rejects",
+   "invented_views": "neutral, doesn't mind but not essential",
+   "classic_views": "likes the list view",
+   "postponed_messages": "gentle tone reduces annoyance; moving to morning feels off",
+   "bulk_changes": "frequently uses bulk import/export and likes clearing weekends"
+  },
+  "goals": [
+   "break down Rust learning into 15\u2011min code snippets",
+   "explain why Rust is important for his career",
+   "test a \u201clate night\u201d window suggestion for coding",
+   "ask the app to create a bulk change clearing Saturday"
+  ],
+  "generated_seed": 9300
+ },
+ {
+  "name": "Mei",
+  "summary": "22\u2011year\u2011old university senior studying creative writing, works part\u2011time at a cafe, loves poetry, wants to finish a short\u2011story collection but keeps a scattered schedule.",
+  "traits": [
+   "evening creative flow after 6\u202fPM",
+   "writes in short bursts",
+   "values meaning and personal narrative",
+   "dislikes exact times, prefers soft windows",
+   "appreciates kind, gentle wording"
+  ],
+  "active_hour": 19,
+  "history": [
+   {
+    "title": "draft poem for class",
+    "days_ago": 1,
+    "hour": 20,
+    "minute": 10,
+    "dur_min": 30
+   },
+   {
+    "title": "coffee shift",
+    "days_ago": 2,
+    "hour": 13,
+    "minute": 0,
+    "dur_min": 120
+   },
+   {
+    "title": "read literary criticism",
+    "days_ago": 3,
+    "hour": 18,
+    "minute": 45,
+    "dur_min": 25
+   },
+   {
+    "title": "meet friend for tea",
+    "days_ago": 4,
+    "hour": 16,
+    "minute": 30,
+    "dur_min": 45
+   },
+   {
+    "title": "edit short story draft",
+    "days_ago": 5,
+    "hour": 19,
+    "minute": 20,
+    "dur_min": 30
+   },
+   {
+    "title": "submit class assignment",
+    "days_ago": 7,
+    "hour": 21,
+    "minute": 0,
+    "dur_min": 15
+   }
+  ],
+  "open": [
+   {
+    "title": "draft outline for short\u2011story collection",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 150
+   },
+   {
+    "title": "submit literature class assignment",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 23,
+    "window": null,
+    "dur_min": 15
+   },
+   {
+    "title": "coffee with friend",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 17,
+    "window": null,
+    "dur_min": 30
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "sometimes says yes, likes gentle prompts",
+   "why_question": "answers with personal narrative about identity and voice",
+   "proposed_steps": "likes steps under 15\u202fmin, asks for smaller if bigger",
+   "invented_views": "curious, tries new visual view but may revert",
+   "classic_views": "comfortable with list view",
+   "postponed_messages": "kind wording feels supportive; moving to next evening is fine",
+   "bulk_changes": "rarely imports .ics, prefers manual entry"
+  },
+  "goals": [
+   "choose a tiny first step for story outline",
+   "share why the collection matters to her",
+   "experiment with a \u201cthis afternoon\u201d window for editing",
+   "ask to hide completed tasks from view"
+  ],
+  "generated_seed": 9300
+ }
+]

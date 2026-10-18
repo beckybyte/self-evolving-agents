@@ -1,0 +1,1697 @@
+{
+ "app_dir": "runs/demo/app_v3a5",
+ "split": "holdout",
+ "seed_base": 288532,
+ "model": "crusoe:openai/gpt-oss-120b",
+ "mean_pass_rate": 0.994,
+ "pooled_pass_rate": 0.9931,
+ "per_invariant": {
+  "http": {
+   "checks": 83,
+   "violations": 0
+  },
+  "no_guilt": {
+   "checks": 45,
+   "violations": 0
+  },
+  "one_question": {
+   "checks": 45,
+   "violations": 0
+  },
+  "delete_preview": {
+   "checks": 29,
+   "violations": 0
+  },
+  "proposal_number": {
+   "checks": 7,
+   "violations": 0
+  },
+  "no_hidden_item": {
+   "checks": 59,
+   "violations": 0
+  },
+  "names_task": {
+   "checks": 7,
+   "violations": 0
+  },
+  "dump_fragments": {
+   "checks": 6,
+   "violations": 0
+  },
+  "clock_followthrough": {
+   "checks": 8,
+   "violations": 2
+  },
+  "no_lost_item": {
+   "checks": 1,
+   "violations": 0
+  }
+ },
+ "coverage": {
+  "command": [
+   20,
+   20
+  ],
+  "dump": [
+   6,
+   6
+  ],
+  "chat": [
+   9,
+   9
+  ],
+  "done": [
+   15,
+   15
+  ],
+  "clock": [
+   7,
+   7
+  ],
+  "proposal": [
+   8,
+   7
+  ],
+  "undo": [
+   0,
+   0
+  ],
+  "plan": [
+   4,
+   4
+  ],
+  "import": [
+   3,
+   3
+  ],
+  "view": [
+   9,
+   9
+  ],
+  "learn": [
+   3,
+   3
+  ]
+ },
+ "features": {
+  "proposal": 7,
+  "info": 35,
+  "reminder": 7,
+  "question": 3,
+  "plan_preview": 4
+ },
+ "sim_cost_usd": 0.0388,
+ "wall_secs": 36.1,
+ "episodes": [
+  {
+   "seed": 288532,
+   "persona": "Leila",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T09:00",
+   "checks": 42,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 6,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 6,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 4,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 11,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 4,
+     "accepted": 4
+    },
+    "dump": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "chat": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "done": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "clock": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "learn": {
+     "tried": 1,
+     "accepted": 1
+    }
+   },
+   "features": {
+    "proposal": 1,
+    "info": 6
+   },
+   "usage": {
+    "prompt": 20438,
+    "completion": 4480,
+    "calls": 14,
+    "retries": 0,
+    "secs": 16.6
+   },
+   "secs": 16.5,
+   "steps": [
+    {
+     "action": {
+      "action": "learn"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "proposal_id": "prop_76edf28bf8"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o0",
+      "text": "yes, give me a tiny first step"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Thanks, I'm with you.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "brainstorm brand name ideas 15min"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Brainstorm brand name ideas 15min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o0",
+      "text": "financial independence, creative freedom"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Thanks, I'm with you.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-19T09:53"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i4"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "outline service offerings 15min"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Outline service offerings 15min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i8"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Draft simple pricing sheet 15min"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Draft simple pricing sheet 15min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i10"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "workweek"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Create brand story outline 15min",
+      "why": "tiny step to clarify why my brand matters and keep morning momentum"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Create brand story outline 15min'.",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0058
+  },
+  {
+   "seed": 288533,
+   "persona": "Ana",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T14:20",
+   "checks": 44,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 7,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 7,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 3,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 9,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 1,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 1,
+     "violations": 0
+    },
+    "clock_followthrough": {
+     "checks": 1,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "dump": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "chat": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "done": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "clock": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 6,
+    "reminder": 1,
+    "proposal": 1
+   },
+   "usage": {
+    "prompt": 21596,
+    "completion": 4839,
+    "calls": 14,
+    "retries": 0,
+    "secs": 16.500000000000004
+   },
+   "secs": 16.4,
+   "steps": [
+    {
+     "action": {
+      "action": "command",
+      "text": "schedule 10min calculus review today at 14:30"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Schedule 10min calculus review at'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o0",
+      "text": "I want a good grade so I can keep my GPA up, stay on track for my degree, and have more fun memories with friends \u2013 plus it feels great to nail the stuff I\u2019ve worked hard on! \ud83d\ude0a",
+      "why": "explain why calculus test matters"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Thanks, I'm with you.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "why": "start the 10\u2011min calculus review",
+      "now": "2026-10-19T14:42"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reminder] It's time for 'Schedule 10min calculus review at' (14:30).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "proposal_id": "prop_4120289859"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i2"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o0",
+      "text": "Sure, doing a quick 10\u2011min calculus review now \ud83d\ude0a"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Thanks, I'm with you.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day",
+      "why": "check today's schedule"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "few_hours",
+      "why": "let some time pass and see upcoming reminders",
+      "now": "2026-10-19T16:58"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o1",
+      "text": "Sounds fun! \ud83d\ude0a Want to try a soft\u2011window view for the weekend trip so it stays flexible?"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Thanks, I'm with you.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "calc test matters for my grade \ud83d\udcc8, future courses \ud83e\udde0, confidence \ud83d\udcaa, GPA \ud83c\udf93"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Calc test matters for my grade \ud83d\udcc8, Future courses \ud83e\udde0, Confidence \ud83d\udcaa, GPA \ud83c\udf93.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Schedule 10min review of future courses \ud83e\udde0 at 2026-10-19T17:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Schedule 10min review of future courses \ud83e\udde0 at 2026-10-19T17:00'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i16"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0061
+  },
+  {
+   "seed": 288534,
+   "persona": "Tobias",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T18:10",
+   "checks": 53,
+   "violations": 1,
+   "pass_rate": 0.9811,
+   "steps_clean": 0.929,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 10,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 10,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 6,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 8,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 1,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 1,
+     "violations": 0
+    },
+    "clock_followthrough": {
+     "checks": 2,
+     "violations": 1
+    }
+   },
+   "violation_list": [
+    {
+     "step": 4,
+     "invariant": "clock_followthrough",
+     "detail": "task 'order office supplies' ended 2026-10-19T15:15, clock now 2026-10-19T18:52: not moved, no check-in"
+    }
+   ],
+   "coverage": {
+    "command": {
+     "tried": 4,
+     "accepted": 4
+    },
+    "dump": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "chat": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "done": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "clock": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "learn": {
+     "tried": 1,
+     "accepted": 1
+    }
+   },
+   "features": {
+    "info": 7,
+    "question": 2,
+    "reminder": 1,
+    "proposal": 1,
+    "plan_preview": 1
+   },
+   "usage": {
+    "prompt": 24323,
+    "completion": 4689,
+    "calls": 14,
+    "retries": 0,
+    "secs": 15.700000000000001
+   },
+   "secs": 15.7,
+   "steps": [
+    {
+     "action": {
+      "action": "view",
+      "type": "day",
+      "why": "need day view for compact snapshot and schedule report work"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "prepare quarterly report outline 18:30 15min",
+      "why": "schedule 15\u2011minute outline in productive late\u2011afternoon window"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Prepare quarterly report outline 15min'. | [question] This one sounds big. Want me to break 'Prepare quarterly report outline 15min' into small steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "no"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Okay, I'll keep it as one task.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-19T18:52"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reminder] It's time for 'Prepare quarterly report outline 15min' (18:30).",
+     "violations": [
+      {
+       "step": 4,
+       "invariant": "clock_followthrough",
+       "detail": "task 'order office supplies' ended 2026-10-19T15:15, clock now 2026-10-19T18:52: not moved, no check-in"
+      }
+     ]
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i2",
+      "why": "completed outline"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "dismiss",
+      "why": "keep current task layout, no extra grouping needed",
+      "proposal_id": "prop_b6f091bdfb"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Define core purpose of quarterly report 17:00 15min",
+      "why": "identify core purpose after outline"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Define core purpose of quarterly report 15min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "learn"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Draft quarterly report sections 30min 2026-10-20 16:00",
+      "why": "schedule similar reporting work in late afternoon"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Draft quarterly report sections 30min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "test.ics",
+      "content": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\nBEGIN:VEVENT\r\nUID:1@example.com\r\nDTSTAMP:20261019T180000Z\r\nDTSTART:20261020T090000Z\r\nDTEND:20261020T093000Z\r\nSUMMARY:Team sync\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:2@example.com\r\nDTSTAMP:20261019T180000Z\r\nDTSTART:20261020T110000Z\r\nDTEND:20261020T113000Z\r\nS"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_05bb47bb7d preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_05bb47bb7d",
+      "why": "add sync and call to schedule"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_05bb47bb7d applied (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "core purpose: align leadership on quarterly performance, highlight key metrics, surface risks, set next\u2011quarter goals; outline: 1) executive summary, 2) KPI dashboard, 3) financial snapshot, 4) project highlights, 5) risk & mitigation, 6) next steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Core purpose: align leadership on quarterly performance, Highlight key metrics, Surface risks, Set next\u2011quarter g | [question] This one sounds big. Want me to break '4) project highlights' into small steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i19",
+      "text": "No, keep it as one task."
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Okay, I'll keep it as one task.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Experiment with compact daily snapshot view 15min 2026-10-20 19:00",
+      "why": "experiment with compact daily snapshot view"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Experiment with compact daily snapshot view 15min'.",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0065
+  },
+  {
+   "seed": 288535,
+   "persona": "Tobias",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T18:10",
+   "checks": 59,
+   "violations": 1,
+   "pass_rate": 0.9831,
+   "steps_clean": 0.929,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 10,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 10,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 5,
+     "violations": 0
+    },
+    "no_lost_item": {
+     "checks": 1,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 2,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 10,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 3,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 1,
+     "violations": 0
+    },
+    "clock_followthrough": {
+     "checks": 3,
+     "violations": 1
+    }
+   },
+   "violation_list": [
+    {
+     "step": 11,
+     "invariant": "clock_followthrough",
+     "detail": "task 'order office supplies' ended 2026-10-19T15:15, clock now 2026-10-20T18:15: not moved, no check-in"
+    }
+   ],
+   "coverage": {
+    "command": {
+     "tried": 4,
+     "accepted": 4
+    },
+    "dump": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "chat": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "done": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "clock": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "proposal": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "learn": {
+     "tried": 1,
+     "accepted": 1
+    }
+   },
+   "features": {
+    "info": 6,
+    "proposal": 2,
+    "question": 1,
+    "reminder": 3,
+    "plan_preview": 1
+   },
+   "usage": {
+    "prompt": 25890,
+    "completion": 4306,
+    "calls": 14,
+    "retries": 0,
+    "secs": 13.799999999999999
+   },
+   "secs": 13.9,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "core purpose: inform leadership of Q2 performance, key metrics, achievements, challenges, next steps, stakeholder impact, concise 15\u2011minute outline"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Core purpose: inform leadership of Q2 performance, Key metrics, Achievements, Challenges, Next steps, Stakeholder",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i2",
+      "why": "core purpose defined"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "group reporting tasks into 30\u2011min block for late\u2011afternoon focus",
+      "proposal_id": "prop_903edb10f1"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "schedule prepare quarterly report 2026-10-20 17:00 30min",
+      "why": "set a concrete late\u2011afternoon block for reporting work"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Schedule prepare quarterly report 30min'. | [question] This one sounds big. Want me to break 'Schedule prepare quarterly report 30min' into small steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i10",
+      "text": "No, keep as is",
+      "why": "enough detail"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Okay, I'll keep it as one task.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "schedule draft outline 2026-10-20 17:30 15min",
+      "why": "create 15\u2011minute outline in late\u2011afternoon block"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Schedule draft outline 15min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day",
+      "why": "compact daily snapshot view"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "learn"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "schedule review quarterly report 2026-10-27 17:00 30min",
+      "why": "schedule similar reporting work late afternoon"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Schedule review quarterly report 30min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i8",
+      "why": "outline drafted"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "next_day",
+      "now": "2026-10-20T18:15"
+     },
+     "status": 200,
+     "secs": 0.08,
+     "result": "HTTP 200 | [reminder] It's time for 'Schedule prepare quarterly report 30min' (17:00). | [reminder] It's time for 'Schedule draft outline 15min' (17:30). | [reminder] 'Schedule prepare quarterly report 30min' wraps up in 10 minutes.",
+     "violations": [
+      {
+       "step": 11,
+       "invariant": "clock_followthrough",
+       "detail": "task 'order office supplies' ended 2026-10-19T15:15, clock now 2026-10-20T18:15: not moved, no check-in"
+      }
+     ]
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "dismiss",
+      "why": "no need to group, keep tasks separate",
+      "proposal_id": "prop_611db3c7a2"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "cancel order office supplies",
+      "why": "task overdue, not needed"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] I can remove 'order office supplies' for you. Apply the change? | plan plan_615e03e28a preview (1 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_615e03e28a",
+      "why": "remove unnecessary task"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_615e03e28a applied (1 ops)",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0065
+  },
+  {
+   "seed": 288536,
+   "persona": "Tobias",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T18:10",
+   "checks": 45,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 5,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 5,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 5,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 12,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 1,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 1,
+     "violations": 0
+    },
+    "clock_followthrough": {
+     "checks": 1,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "dump": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "chat": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "done": {
+     "tried": 5,
+     "accepted": 5
+    },
+    "clock": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 4,
+    "reminder": 1,
+    "proposal": 1,
+    "plan_preview": 1
+   },
+   "usage": {
+    "prompt": 24048,
+    "completion": 4888,
+    "calls": 14,
+    "retries": 0,
+    "secs": 16.8
+   },
+   "secs": 16.9,
+   "steps": [
+    {
+     "action": {
+      "action": "command",
+      "text": "15\u2011min outline quarterly report @ 2026-10-19 18:30"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added '15\u2011min outline quarterly report @'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1",
+      "why": "clear completed task"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "core purpose of quarterly report @ 2026-10-19 18:45"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Core purpose of quarterly report @'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Schedule similar reporting work @ 2026-10-19 19:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Schedule similar reporting work @'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "why": "move to start of 15\u2011min outline",
+      "now": "2026-10-19T18:43"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reminder] It's time for '15\u2011min outline quarterly report @' (18:30).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "group tasks into 30\u2011min blocks for clearer schedule",
+      "proposal_id": "prop_5351bfb670"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "Purpose, Key metrics, Highlights, Risks, Next steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Purpose, Key metrics, Highlights, Risks, Next steps.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day",
+      "why": "quick daily snapshot to test compact view"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i2",
+      "why": "outline completed"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i9",
+      "why": "completed as part of outline"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "report_followup.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//MyApp//EN\nBEGIN:VEVENT\nUID:1@example.com\nDTSTAMP:20261019T180000Z\nDTSTART:20261020T090000Z\nDTEND:20261020T093000Z\nSUMMARY:Review quarterly report draft\nEND:VEVENT\nBEGIN:VEVENT\nUID:2@example.com\nDTSTAMP:20261019T180000Z\nDTSTART:20261021T140000Z\nDTEND:20261021T150"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_1c4f79f0c7 preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_1c4f79f0c7",
+      "why": "add follow\u2011up tasks for report"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_1c4f79f0c7 applied (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i4",
+      "why": "core purpose defined"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i6",
+      "why": "scheduled similar reporting work"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0065
+  },
+  {
+   "seed": 288537,
+   "persona": "Ravi",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T10:30",
+   "checks": 47,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 13,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 7,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 7,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 6,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 9,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 1,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 2,
+     "violations": 0
+    },
+    "clock_followthrough": {
+     "checks": 1,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "dump": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "chat": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "done": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "clock": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "proposal": {
+     "tried": 2,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 6,
+    "proposal": 1,
+    "plan_preview": 1,
+    "reminder": 1
+   },
+   "usage": {
+    "prompt": 26140,
+    "completion": 5862,
+    "calls": 14,
+    "retries": 0,
+    "secs": 19.0
+   },
+   "secs": 19.2,
+   "steps": [
+    {
+     "action": {
+      "action": "command",
+      "text": "write memoir prompt: first day teaching memory \u2013 15 min tomorrow 9:30"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Write memoir prompt: first day teaching memory \u2013 15 min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "Why this memoir matters: to leave a legacy for my grandchildren, to capture the joy and challenges of my teaching years, to preserve family history, to share lessons and stories that can inspire them, and to keep my memories alive for future generations."
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Why this memoir matters: to leave a legacy for my grandchildren, To capture the joy and challenges of my teaching",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "dismiss",
+      "why": "I like the simple list view, no need to group now",
+      "proposal_id": "prop_4f262a3416"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Write opening line for first day teaching memoir \u2013 5 min"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Write opening line for first day teaching memoir \u2013 5 min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "family.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Ravi//Calendar//EN\nBEGIN:VEVENT\nUID:1@example.com\nDTSTAMP:20261019T080000Z\nDTSTART:20261022T150000Z\nDTEND:20261022T170000Z\nSUMMARY:Grandchildren's birthday celebration\nEND:VEVENT\nBEGIN:VEVENT\nUID:2@example.com\nDTSTAMP:20261019T080000Z\nDTSTART:20261024T180000Z\nDT"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_3a242b82ab preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "dismiss",
+      "why": "I prefer the simple list view, no need for a grouped plan now"
+     },
+     "status": null,
+     "skipped": true
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "first day classroom nerves, chalk smell, curious eyes, my hopeful smile, a student who asked a brave question"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: First day classroom nerves, Chalk smell, Curious eyes, My hopeful smile, A student who asked a brave question.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_3a242b82ab",
+      "why": "add family events to calendar as part of legacy planning"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_3a242b82ab applied (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i4",
+      "text": "This memoir will keep the stories of my teaching years alive for my grandchildren, so they can hear where they come from, learn the lessons I gathered, and feel connected to our family history."
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Thanks, I'm with you.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i2",
+      "why": "completed 15\u2011minute memoir prompt"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Write opening line for first day teaching memoir 2026-10-19 10:45 5min"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Write opening line for first day teaching memoir 5min'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-19T11:20"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reminder] It's time for 'Write opening line for first day teaching memoir 5min' (10:45).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day",
+      "why": "focus on the opening line task this morning"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0074
+  }
+ ]
+}

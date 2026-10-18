@@ -1,0 +1,398 @@
+[
+ {
+  "name": "Leila",
+  "summary": "finds planning a bit overwhelming; prefers short gentle prompts; gets most tasks done in the morning; wants to launch a freelance branding service but hasn't broken it down",
+  "traits": [
+   "writes in short fragments, often without times",
+   "gets a gentle push from the app and feels motivated",
+   "most productive between 8\u202fAM\u201311\u202fAM",
+   "wants financial independence through creative work",
+   "gets uneasy with long forms or many questions"
+  ],
+  "active_hour": 9,
+  "history": [
+   {
+    "title": "brew coffee",
+    "days_ago": 1,
+    "hour": 8,
+    "minute": 5,
+    "dur_min": 30
+   },
+   {
+    "title": "reply to client email",
+    "days_ago": 2,
+    "hour": 9,
+    "minute": 15,
+    "dur_min": 15
+   },
+   {
+    "title": "sketch logo draft",
+    "days_ago": 3,
+    "hour": 10,
+    "minute": 0,
+    "dur_min": 30
+   },
+   {
+    "title": "pay rent",
+    "days_ago": 4,
+    "hour": 9,
+    "minute": 45,
+    "dur_min": 15
+   },
+   {
+    "title": "walk the dog",
+    "days_ago": 5,
+    "hour": 7,
+    "minute": 30,
+    "dur_min": 20
+   },
+   {
+    "title": "update portfolio thumbnail",
+    "days_ago": 6,
+    "hour": 10,
+    "minute": 30,
+    "dur_min": 30
+   },
+   {
+    "title": "meditate",
+    "days_ago": 8,
+    "hour": 6,
+    "minute": 0,
+    "dur_min": 15
+   }
+  ],
+  "open": [
+   {
+    "title": "launch freelance branding package",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 180
+   },
+   {
+    "title": "call mom",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 16,
+    "window": null,
+    "dur_min": 15
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "usually says yes, eager for step\u2011by\u2011step",
+   "why_question": "wants independence to support herself and creative freedom",
+   "proposed_steps": "likes tiny first steps, will ask for even smaller if unsure",
+   "invented_views": "likes trying new views, keeps them if they feel calm",
+   "classic_views": "neutral, okay with default",
+   "postponed_messages": "feels reassured by kind wording, ok with shifting to later morning",
+   "bulk_changes": "occasionally imports .ics from client calendar"
+  },
+  "goals": [
+   "break the branding launch into 15\u2011minute chunks",
+   "clarify why the brand matters to me",
+   "align tasks with my high\u2011energy morning",
+   "test a new weekly overview view"
+  ],
+  "generated_seed": 288532
+ },
+ {
+  "name": "Tobias",
+  "summary": "busy project manager, prefers structure but feels overwhelmed by long lists; most productive late afternoon; wants to streamline team reporting",
+  "traits": [
+   "answers in concise bullet points",
+   "likes clear deadlines, dislikes vague windows",
+   "most productive around 5\u202fPM\u20138\u202fPM",
+   "wants to show leadership and hit targets",
+   "gets annoyed by extra steps that feel unnecessary"
+  ],
+  "active_hour": 18,
+  "history": [
+   {
+    "title": "review sprint board",
+    "days_ago": 1,
+    "hour": 17,
+    "minute": 30,
+    "dur_min": 30
+   },
+   {
+    "title": "write status email",
+    "days_ago": 2,
+    "hour": 18,
+    "minute": 0,
+    "dur_min": 30
+   },
+   {
+    "title": "schedule meeting",
+    "days_ago": 3,
+    "hour": 19,
+    "minute": 15,
+    "dur_min": 15
+   },
+   {
+    "title": "process invoices",
+    "days_ago": 4,
+    "hour": 17,
+    "minute": 45,
+    "dur_min": 30
+   },
+   {
+    "title": "quick jog",
+    "days_ago": 5,
+    "hour": 18,
+    "minute": 30,
+    "dur_min": 30
+   },
+   {
+    "title": "read industry article",
+    "days_ago": 6,
+    "hour": 20,
+    "minute": 0,
+    "dur_min": 30
+   },
+   {
+    "title": "call vendor",
+    "days_ago": 7,
+    "hour": 16,
+    "minute": 15,
+    "dur_min": 20
+   },
+   {
+    "title": "update project timeline",
+    "days_ago": 9,
+    "hour": 19,
+    "minute": 45,
+    "dur_min": 15
+   }
+  ],
+  "open": [
+   {
+    "title": "prepare quarterly report",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 240
+   },
+   {
+    "title": "order office supplies",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 15,
+    "window": null,
+    "dur_min": 15
+   },
+   {
+    "title": "team retro brainstorm",
+    "kind": "task",
+    "days_ahead": 1,
+    "hour": null,
+    "window": "this afternoon",
+    "dur_min": 30
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "often declines, feels enough detail already",
+   "why_question": "wants to show leadership and hit targets",
+   "proposed_steps": "prefers concise steps, may reject if too tiny",
+   "invented_views": "dislikes invented views, sticks to classic list",
+   "classic_views": "appreciates familiar list view",
+   "postponed_messages": "doesn't like vague wording, prefers exact shift",
+   "bulk_changes": "frequently imports .ics and clears weekends"
+  },
+  "goals": [
+   "create a 15\u2011minute outline for the quarterly report",
+   "identify the core purpose of the report",
+   "schedule similar reporting work in the late afternoon",
+   "experiment with a compact daily snapshot view"
+  ],
+  "generated_seed": 288532
+ },
+ {
+  "name": "Ana",
+  "summary": "19\u2011year\u2011old university student juggling classes and a part\u2011time job; likes a casual chatty tone; most productive mid\u2011day; wants to keep up with studies and social life",
+  "traits": [
+   "writes with emojis and informal language",
+   "loves short, friendly questions",
+   "most productive around 1\u202fPM\u20134\u202fPM",
+   "wants good grades and fun memories",
+   "gets stressed when plans feel too rigid"
+  ],
+  "active_hour": 14,
+  "history": [
+   {
+    "title": "attend lecture biology",
+    "days_ago": 1,
+    "hour": 13,
+    "minute": 0,
+    "dur_min": 30
+   },
+   {
+    "title": "study notes chemistry",
+    "days_ago": 2,
+    "hour": 14,
+    "minute": 15,
+    "dur_min": 30
+   },
+   {
+    "title": "grab lunch with friends",
+    "days_ago": 3,
+    "hour": 12,
+    "minute": 45,
+    "dur_min": 20
+   },
+   {
+    "title": "complete assignment draft",
+    "days_ago": 4,
+    "hour": 15,
+    "minute": 30,
+    "dur_min": 15
+   },
+   {
+    "title": "morning jog",
+    "days_ago": 5,
+    "hour": 10,
+    "minute": 0,
+    "dur_min": 15
+   },
+   {
+    "title": "pay tuition installment",
+    "days_ago": 7,
+    "hour": 13,
+    "minute": 30,
+    "dur_min": 30
+   }
+  ],
+  "open": [
+   {
+    "title": "study for calculus test",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 120
+   },
+   {
+    "title": "plan weekend trip with friends",
+    "kind": "task",
+    "days_ahead": 2,
+    "hour": null,
+    "window": "this weekend",
+    "dur_min": 30
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "usually says ok, likes the question but wants short",
+   "why_question": "wants good grades and fun memories",
+   "proposed_steps": "accepts if first step is 10\u201115 minutes, asks for even smaller if feels busy",
+   "invented_views": "finds invented views playful, keeps if not too many",
+   "classic_views": "uses classic view for assignments",
+   "postponed_messages": "kind wording makes her feel okay to shift",
+   "bulk_changes": "occasionally imports .ics from university schedule"
+  },
+  "goals": [
+   "break study session into a 10\u2011minute review",
+   "articulate why the calculus test matters",
+   "group similar study tasks in the early afternoon",
+   "try the new \u2018soft window\u2019 view for weekend plans"
+  ],
+  "generated_seed": 288532
+ },
+ {
+  "name": "Ravi",
+  "summary": "61\u2011year\u2011old retired teacher who enjoys a leisurely pace; prefers clear but gentle prompts; most productive mid\u2011morning; wants to document life stories for his grandchildren",
+  "traits": [
+   "writes in calm, full sentences",
+   "likes gentle reminders, not pressure",
+   "most productive between 9\u202fAM\u201311\u202fAM",
+   "wants to leave a legacy for family",
+   "prefers classic list view over experimental layouts"
+  ],
+  "active_hour": 10,
+  "history": [
+   {
+    "title": "read news",
+    "days_ago": 1,
+    "hour": 9,
+    "minute": 0,
+    "dur_min": 30
+   },
+   {
+    "title": "water plants",
+    "days_ago": 2,
+    "hour": 10,
+    "minute": 15,
+    "dur_min": 20
+   },
+   {
+    "title": "write diary entry",
+    "days_ago": 3,
+    "hour": 11,
+    "minute": 30,
+    "dur_min": 30
+   },
+   {
+    "title": "call former colleague",
+    "days_ago": 4,
+    "hour": 10,
+    "minute": 45,
+    "dur_min": 15
+   },
+   {
+    "title": "walk in the park",
+    "days_ago": 5,
+    "hour": 9,
+    "minute": 30,
+    "dur_min": 30
+   },
+   {
+    "title": "review old photos",
+    "days_ago": 6,
+    "hour": 10,
+    "minute": 0,
+    "dur_min": 30
+   },
+   {
+    "title": "pay electricity bill",
+    "days_ago": 8,
+    "hour": 12,
+    "minute": 0,
+    "dur_min": 30
+   }
+  ],
+  "open": [
+   {
+    "title": "write memoir chapter on teaching years",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 180
+   },
+   {
+    "title": "call old friends for catch\u2011up",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 14,
+    "window": null,
+    "dur_min": 15
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "prefers not to break down, likes to keep the big picture",
+   "why_question": "wants to leave a legacy for grandchildren",
+   "proposed_steps": "will accept a tiny step if framed as gentle",
+   "invented_views": "doesn't like invented views, sticks to classic list",
+   "classic_views": "likes the simple list view",
+   "postponed_messages": "appreciates soft wording, okay with moving to later morning",
+   "bulk_changes": "often clears the whole weekend and imports .ics from family calendar"
+  },
+  "goals": [
+   "identify a small 15\u2011minute writing prompt for memoir",
+   "express why the memoir matters to family",
+   "schedule writing during his high\u2011energy mid\u2011morning",
+   "test a minimal weekly overview view"
+  ],
+  "generated_seed": 288532
+ }
+]

@@ -1,0 +1,1628 @@
+{
+ "app_dir": "builds/evolving_calendar_v3/reference",
+ "split": "fit",
+ "seed_base": null,
+ "model": "crusoe:openai/gpt-oss-120b",
+ "mean_pass_rate": 1.0,
+ "pooled_pass_rate": 1.0,
+ "per_invariant": {
+  "http": {
+   "checks": 84,
+   "violations": 0
+  },
+  "no_guilt": {
+   "checks": 84,
+   "violations": 0
+  },
+  "one_question": {
+   "checks": 84,
+   "violations": 0
+  },
+  "breakdown_shape": {
+   "checks": 8,
+   "violations": 0
+  },
+  "delete_preview": {
+   "checks": 24,
+   "violations": 0
+  },
+  "proposal_number": {
+   "checks": 6,
+   "violations": 0
+  },
+  "no_hidden_item": {
+   "checks": 41,
+   "violations": 0
+  }
+ },
+ "coverage": {
+  "command": [
+   13,
+   13
+  ],
+  "dump": [
+   4,
+   4
+  ],
+  "chat": [
+   41,
+   41
+  ],
+  "done": [
+   4,
+   4
+  ],
+  "clock": [
+   0,
+   0
+  ],
+  "proposal": [
+   6,
+   6
+  ],
+  "undo": [
+   0,
+   0
+  ],
+  "plan": [
+   6,
+   6
+  ],
+  "import": [
+   7,
+   7
+  ],
+  "view": [
+   3,
+   3
+  ],
+  "learn": [
+   0,
+   0
+  ]
+ },
+ "features": {
+  "reply": 24,
+  "question": 35,
+  "proposal": 6,
+  "breakdown": 8,
+  "plan_preview": 7
+ },
+ "sim_cost_usd": 0.0432,
+ "wall_secs": 94.3,
+ "episodes": [
+  {
+   "seed": 0,
+   "persona": "Iris",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T19:30",
+   "checks": 54,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 16,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 16,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 2,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 1,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 4,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "dump": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "chat": {
+     "tried": 12,
+     "accepted": 12
+    },
+    "done": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "reply": 3,
+    "question": 11,
+    "proposal": 1,
+    "breakdown": 2
+   },
+   "usage": {
+    "prompt": 33573,
+    "completion": 3801,
+    "calls": 14,
+    "retries": 0,
+    "secs": 15.200000000000001
+   },
+   "secs": 42.2,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "portfolio ideas, need a case study, sketch wireframes, collect old projects, update resume, research UX jobs, feeling anxious about long forms, want to start tonight, need a tiny first step"
+     },
+     "status": 200,
+     "secs": 17.57,
+     "result": "HTTP 200 | [reply] portfolio ideas, need a case study, sketch wireframes, collect old projects, update resume, research UX jobs, feeling an | [reply] Got it, I caught 9 things: portfolio ideas; need a case study; sketch wireframes; collect old projects; update resume; r | [question] \u201cportfolio ideas\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_cb7e3e64",
+      "text": "yes"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes | [question] Lovely. First, why does \u201cportfolio ideas\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_cb7e3e64",
+      "text": "to prove I can design, feel proud, get a creative job"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] to prove I can design, feel proud, get a creative job | [question] That's a good reason: to prove I can design, feel proud, get a creative job. What would \u201cportfolio ideas\u201d look like when",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_cb7e3e64",
+      "text": "a mood board, 2\u20113 sketch concepts, short notes on each"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] a mood board, 2\u20113 sketch concepts, short notes on each | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_cb7e3e64",
+      "text": "by next week"
+     },
+     "status": 200,
+     "secs": 4.11,
+     "result": "HTTP 200 | [reply] by next week | [breakdown] Here's a gentle plan for \u201cportfolio ideas\u201d (to prove I can design, feel proud, get a creative job), finishing by Friday ",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "evenings work",
+      "proposal_id": "pr_cdfadbd9"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_cb7e3e64",
+      "text": "looks good"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] looks good | [reply] Done! I added 5 small steps for \u201cportfolio ideas\u201d. First up: \u201cOpen a new folder for your portfolio\u201d, today (Mon Oct 19)  | [question] \u201cneed a case study\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_984f3117",
+      "text": "yes, please break it into tiny steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, please break it into tiny steps | [question] Lovely. First, why does \u201cneed a case study\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_984f3117",
+      "text": "I need a case study to show how I solve problems and prove I can do real UX work, so I feel confident applying for creative jobs."
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] I need a case study to show how I solve problems and prove I can do real UX work, so I feel confident applying for creat | [question] That's a good reason: I need a case study to show how I solve problems and prove I can do real UX work, so I feel confid",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_984f3117",
+      "text": "a short doc: problem, my process, mockups, results"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] a short doc: problem, my process, mockups, results | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_984f3117",
+      "text": "by next Friday"
+     },
+     "status": 200,
+     "secs": 5.3,
+     "result": "HTTP 200 | [reply] by next Friday | [breakdown] Here's a gentle plan for \u201cneed a case study\u201d (I need a case study to show how I solve problems and prove I can do real U",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_984f3117",
+      "text": "ok yes"
+     },
+     "status": 200,
+     "secs": 0.01,
+     "result": "HTTP 200 | [reply] ok yes | [reply] Done! I added 4 small steps for \u201cneed a case study\u201d. First up: \u201cList the problem and goals for your project\u201d, today (Mon | [question] \u201cupdate resume\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_c579a5aa",
+      "text": "ok yes"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] ok yes | [question] Lovely. First, why does \u201cupdate resume\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_c579a5aa",
+      "text": "so I can show my new UX skills and feel ready for creative job apps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] so I can show my new UX skills and feel ready for creative job apps | [question] That's a good reason: I can show my new UX skills and feel ready for creative job apps. What would \u201cupdate resume\u201d look ",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0073
+  },
+  {
+   "seed": 1,
+   "persona": "Mina",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T07:10",
+   "checks": 59,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 12,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 12,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 8,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 12,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 5,
+     "accepted": 5
+    },
+    "dump": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "chat": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "done": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "import": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "view": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "plan_preview": 3,
+    "proposal": 1,
+    "reply": 5
+   },
+   "usage": {
+    "prompt": 26124,
+    "completion": 6149,
+    "calls": 14,
+    "retries": 0,
+    "secs": 21.700000000000003
+   },
+   "secs": 29.1,
+   "steps": [
+    {
+     "action": {
+      "action": "import",
+      "filename": "shifts_nextweek.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:1@example.com\nDTSTART:20261020T190000\nDTEND:20261021T070000\nSUMMARY:night shift\nEND:VEVENT\nBEGIN:VEVENT\nUID:2@example.com\nDTSTART:20261022T070000\nDTEND:20261022T190000\nSUMMARY:day shift\nEND:VEVENT\nBEGIN:VEVENT\nUID:3@example.com\nDTSTART:20261024T190000\nDTE",
+      "why": "import next week's shifts"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_af15ab54 preview (3 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "pl_af15ab54"
+     },
+     "status": 200,
+     "secs": 7.29,
+     "result": "HTTP 200 | plan pl_af15ab54 applied (3 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "proposal_id": "pr_9cc514e6"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "buy coffee 2026-10-20 17:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] buy coffee 2026-10-20 17:00 | [reply] Added \u201cbuy coffee 2026-10-20\u201d for today (Mon Oct 19) at 5:00 PM (17:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "laundry dropoff 2026-10-20 16:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] laundry dropoff 2026-10-20 16:00 | [reply] Added \u201claundry dropoff 2026-10-20\u201d for today (Mon Oct 19) at 4:00 PM (16:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1",
+      "why": "finished taxes"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "next_week_shifts.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//example.com//Cal//EN\nBEGIN:VEVENT\nUID:1@example.com\nDTSTAMP:20261019T070000Z\nDTSTART:20261027T070000\nDTEND:20261027T150000\nSUMMARY:day shift\nEND:VEVENT\nBEGIN:VEVENT\nUID:2@example.com\nDTSTAMP:20261019T070000Z\nDTSTART:20261028T190000\nDTEND:20261029T030000\nSUMMARY:"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_06457c26 preview (1 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "pl_06457c26",
+      "why": "add shift"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_06457c26 applied (1 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "grocery 2026-10-22 06:30"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] grocery 2026-10-22 06:30 | [reply] Added \u201cgrocery 2026-10-22\u201d for tomorrow (Tue Oct 20) at 6:30 AM (06:30).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "pick up meds 2026-10-20 08:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] pick up meds 2026-10-20 08:00 | [reply] Added \u201cpick up meds 2026-10-20\u201d for today (Mon Oct 19) at 8:00 AM (08:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "fill prescription 2026-10-20 09:00",
+      "why": "add errand before night shift"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] fill prescription 2026-10-20 09:00 | [reply] Added \u201cfill prescription 2026-10-20\u201d for today (Mon Oct 19) at 9:00 AM (09:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "next_week_shifts.ics",
+      "content": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Mina//ShiftRoster//EN\r\nBEGIN:VEVENT\r\nUID:shift1@example.com\r\nDTSTART:20261028T070000\r\nDTEND:20261028T150000\r\nSUMMARY:day shift\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:shift2@example.com\r\nDTSTART:20261029T190000\r\nDTEND:20261030T030000\r\nSUMMARY:night shift\r\nEND:VEVENT\r\nB"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_d38ad7f9 preview (3 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "pl_d38ad7f9"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_d38ad7f9 applied (3 ops)",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0076
+  },
+  {
+   "seed": 2,
+   "persona": "Jordan",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T13:00",
+   "checks": 56,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 16,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 16,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 3,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 2,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 4,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "dump": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "chat": {
+     "tried": 11,
+     "accepted": 11
+    },
+    "done": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "reply": 4,
+    "question": 9,
+    "proposal": 1,
+    "breakdown": 3
+   },
+   "usage": {
+    "prompt": 33104,
+    "completion": 4604,
+    "calls": 14,
+    "retries": 0,
+    "secs": 17.0
+   },
+   "secs": 64.1,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "client call Lumen Friday 15:00, need prep slides, figure out pricing for 2027 this month, drinks with Theo Monday night, want to empty out weekend for a spontaneous trip, maybe move Lumen call to Thursday afternoon, think about new view, maybe try day view later"
+     },
+     "status": 200,
+     "secs": 24.44,
+     "result": "HTTP 200 | [reply] client call Lumen Friday 15:00, need prep slides, figure out pricing for 2027 this month, drinks with Theo Monday night, | [reply] Got it, I caught 8 things: client call Lumen (Fri Oct 23, 3:00 PM); need prep slides; figure out pricing for 2027 this m | [question] \u201cfigure out pricing for 2027 this month\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ab28dcca",
+      "text": "make step 2 smaller"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] make step 2 smaller | [question] Lovely. First, why does \u201cfigure out pricing for 2027 this month\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ab28dcca",
+      "text": "because the client needs a proposal soon, the budget affects my next illustration contract, I want to lock rates before the new fiscal quarter, it helps me plan pricing for my course materials, and honestly I'm nervous about undercharging, so breaking it down will keep me sane"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] because the client needs a proposal soon, the budget affects my next illustration contract, I want to lock rates before  | [question] That's a good reason: the client needs a proposal soon, the budget affects my next illustration contract, I want to lock",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "eager to try the new working hours view",
+      "proposal_id": "pr_1b07b3d1"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ab28dcca",
+      "text": "yes, breaking it into tiny steps would help, maybe start with gathering last year's rates"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, breaking it into tiny steps would help, maybe start with gathering last year's rates | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ab28dcca",
+      "text": "by next Friday, Oct 27, that gives me the weekend to finalize the proposal and send it before the client\u2019s deadline"
+     },
+     "status": 200,
+     "secs": 4.07,
+     "result": "HTTP 200 | [reply] by next Friday, Oct 27, that gives me the weekend to finalize the proposal and send it before the client\u2019s deadline | [breakdown] Here's a gentle plan for \u201cfigure out pricing for 2027 this month\u201d (the client needs a proposal soon, the budget affects ",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ab28dcca",
+      "text": "make step 2 smaller"
+     },
+     "status": 200,
+     "secs": 7.91,
+     "result": "HTTP 200 | [reply] make step 2 smaller | [breakdown] Here's a revised plan for \u201cfigure out pricing for 2027 this month\u201d (the client needs a proposal soon, the budget affects",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_69405c90",
+      "text": "yes, clear the whole weekend, I'm thinking a spontaneous road trip"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, clear the whole weekend, I'm thinking a spontaneous road trip | [reply] Noted. I'll keep that with \u201cempty out for a spontaneous trip\u201d.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "client Lumen call prep, need to shift that Thursday afternoon, gather 2027 rates, sketch pricing table, think about new view options, spontaneous road trip plans, pack snacks, check car, course reading notes, update website backlog, tax receipts sorted, thumbnail sketches for upcoming illustration, "
+     },
+     "status": 200,
+     "secs": 6.02,
+     "result": "HTTP 200 | [reply] client Lumen call prep, need to shift that Thursday afternoon, gather 2027 rates, sketch pricing table, think about new  | [reply] Got it, I caught 16 things: client Lumen call prep; shift that (Thursday afternoon); gather 2027 rates; sketch pricing t | [question] \u201cthink about new view options\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_d5382203",
+      "text": "yes, break it into tiny steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, break it into tiny steps | [question] Lovely. First, why does \u201cthink about new view options\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_d5382203",
+      "text": "because the way I see my schedule, the interface, the whole visual flow can spark a fresh burst of ideas, it\u2019s like when I flip to a new view and suddenly a color palette pops in my head, or a composition idea for a client slides into place, I love that playful surprise, it keeps the part\u2011time cours"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] because the way I see my schedule, the interface, the whole visual flow can spark a fresh burst of ideas, it\u2019s like when | [question] That's a good reason: the way I see my schedule, the interface, the whole visual flow can spark a fresh burst of ideas, ",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_d5382203",
+      "text": "yes, let's split it into three tiny steps: explore a palette view for color ideas, test a timeline view for workflow flow, and try a grid view for layout inspiration"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, let's split it into three tiny steps: explore a palette view for color ideas, test a timeline view for workflow flo | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_d5382203",
+      "text": "make step 2 smaller"
+     },
+     "status": 200,
+     "secs": 4.52,
+     "result": "HTTP 200 | [reply] make step 2 smaller | [breakdown] Here's a gentle plan for \u201cthink about new view options\u201d (the way I see my schedule, the interface, the whole visual flow",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_d5382203",
+      "text": "yes, looks good"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, looks good | [reply] Done! I added 4 small steps for \u201cthink about new view options\u201d. First up: \u201cTake 10 minutes to jot down a mini plan for:  | [question] \u201cempty out for a spontaneous trip\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0077
+  },
+  {
+   "seed": 3,
+   "persona": "Sam",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T20:10",
+   "checks": 48,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 11,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 11,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 1,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 4,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 6,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "dump": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "chat": {
+     "tried": 6,
+     "accepted": 6
+    },
+    "done": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "reply": 4,
+    "question": 4,
+    "proposal": 1,
+    "breakdown": 1,
+    "plan_preview": 1
+   },
+   "usage": {
+    "prompt": 29299,
+    "completion": 3517,
+    "calls": 14,
+    "retries": 0,
+    "secs": 11.500000000000002
+   },
+   "secs": 38.8,
+   "steps": [
+    {
+     "action": {
+      "action": "command",
+      "text": "what's on thursday?"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] what's on thursday? | [reply] On Thursday (Thu Oct 22): \u201cparent-teacher meeting\u201d (5:00 PM).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "workweek",
+      "why": "prefer classic workweek view"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o1",
+      "text": "yes, break it down"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, break it down | [question] Lovely. First, why does \u201cdeal with the garage clutter\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o1",
+      "text": "I need space for the kids' sports gear and to keep the garage safe."
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] I need space for the kids' sports gear and to keep the garage safe. | [question] That's a good reason: I need space for the kids' sports gear and to keep the garage safe. What would \u201cgarage clutter\u201d lo",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o1",
+      "text": "A clean floor, shelves installed, sports gear in bins, and a safe walkway."
+     },
+     "status": 200,
+     "secs": 21.99,
+     "result": "HTTP 200 | [reply] A clean floor, shelves installed, sports gear in bins, and a safe walkway. | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o1",
+      "text": "by next Friday, Oct 24"
+     },
+     "status": 200,
+     "secs": 5.29,
+     "result": "HTTP 200 | [reply] by next Friday, Oct 24 | [breakdown] Here's a gentle plan for \u201cdeal with the garage clutter\u201d (I need space for the kids' sports gear and to keep the garage s",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "start quick wins",
+      "proposal_id": "pr_0c26d8b7"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o1",
+      "text": "looks good"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] looks good | [reply] Done! I added 4 small steps for \u201cdeal with the garage clutter\u201d. First up: \u201cList items to keep, donate, or toss\u201d, tomorro",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "what's on Thursday?"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] what's on Thursday? | [reply] On Thursday (Thu Oct 22): \u201cInstall simple wall shelves for bins\u201d (morning); \u201cparent-teacher meeting\u201d (5:00 PM).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "school.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Example//EN\nBEGIN:VEVENT\nUID:1@example.com\nDTSTAMP:20261019T200000Z\nDTSTART:20261026T090000Z\nDTEND:20261026T110000Z\nSUMMARY:School field trip\nEND:VEVENT\nBEGIN:VEVENT\nUID:2@example.com\nDTSTAMP:20261019T200000Z\nDTSTART:20261028T180000Z\nDTEND:20261028T200000Z\nSUMMA"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_4c777090 preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "pl_4c777090",
+      "why": "add school events"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_4c777090 applied (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "workweek",
+      "why": "see weekday schedule"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "what's on Friday?"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] what's on Friday? | [reply] On Friday (Fri Oct 23): \u201cPlace sports gear into labeled bins\u201d (morning).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o1",
+      "text": "Can we split this into smaller steps?"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] Can we split this into smaller steps? | [question] Lovely. First, why does \u201cdeal with the garage clutter\u201d matter to you?",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0065
+  },
+  {
+   "seed": 4,
+   "persona": "Iris",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T19:10",
+   "checks": 54,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 16,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 16,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 2,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 1,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 4,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "dump": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "chat": {
+     "tried": 12,
+     "accepted": 12
+    },
+    "done": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "reply": 3,
+    "question": 11,
+    "proposal": 1,
+    "breakdown": 2
+   },
+   "usage": {
+    "prompt": 32495,
+    "completion": 4075,
+    "calls": 14,
+    "retries": 0,
+    "secs": 13.899999999999997
+   },
+   "secs": 51.5,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "portfolio ideas, need case studies, learn Figma basics, find inspiration on Dribbble, sketch wireframes, write project descriptions, set up Behance page, schedule 30\u2011min design session tomorrow night"
+     },
+     "status": 200,
+     "secs": 20.27,
+     "result": "HTTP 200 | [reply] portfolio ideas, need case studies, learn Figma basics, find inspiration on Dribbble, sketch wireframes, write project d | [reply] Got it, I caught 8 things: portfolio ideas; need case studies; learn Figma basics; find inspiration on Dribbble; sketch  | [question] \u201cportfolio ideas\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_6ee69ffe",
+      "text": "yes"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes | [question] Lovely. First, why does \u201cportfolio ideas\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_6ee69ffe",
+      "text": "I want a job that feels creative"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] I want a job that feels creative | [question] That's a good reason: I want a job that feels creative. What would \u201cportfolio ideas\u201d look like when it's done?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_6ee69ffe",
+      "text": "a few concrete project concepts \u2013 like 3 ideas with a quick sketch each"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] a few concrete project concepts \u2013 like 3 ideas with a quick sketch each | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_6ee69ffe",
+      "text": "by next Friday night"
+     },
+     "status": 200,
+     "secs": 12.19,
+     "result": "HTTP 200 | [reply] by next Friday night | [breakdown] Here's a gentle plan for \u201cportfolio ideas\u201d (I want a job that feels creative), finishing by Friday (Fri Oct 23):\n1. List",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "evenings feel productive",
+      "proposal_id": "pr_1f600dc6"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_6ee69ffe",
+      "text": "looks good, let's start"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] looks good, let's start | [reply] Done! I added 4 small steps for \u201cportfolio ideas\u201d. First up: \u201cList your favorite topics or problems you enjoy solving\u201d,  | [question] \u201cfind inspiration on Dribbble\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ea83db0f",
+      "text": "yes, break it into tiny steps"
+     },
+     "status": 200,
+     "secs": 0.01,
+     "result": "HTTP 200 | [reply] yes, break it into tiny steps | [question] Lovely. First, why does \u201cfind inspiration on Dribbble\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ea83db0f",
+      "text": "to see cool ideas, get vibes, know what's trending, help me feel creative"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] to see cool ideas, get vibes, know what's trending, help me feel creative | [question] That's a good reason: to see cool ideas, get vibes, know what's trending, help me feel creative. What would \u201cfind inspir",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ea83db0f",
+      "text": "a mood board of 5 images I like"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] a mood board of 5 images I like | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ea83db0f",
+      "text": "by tonight 10pm"
+     },
+     "status": 200,
+     "secs": 5.01,
+     "result": "HTTP 200 | [reply] by tonight 10pm | [breakdown] Here's a gentle plan for \u201cfind inspiration on Dribbble\u201d (to see cool ideas, get vibes, know what's trending, help me fee",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ea83db0f",
+      "text": "ok yes, maybe"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] ok yes, maybe | [reply] Done! I added 3 small steps for \u201cfind inspiration on Dribbble\u201d. First up: \u201cOpen Dribbble and browse the homepage\u201d, today | [question] \u201cwrite project descriptions\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ad7b9629",
+      "text": "yes, break it into tiny steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, break it into tiny steps | [question] Lovely. First, why does \u201cwrite project descriptions\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_ad7b9629",
+      "text": "I want a job that feels creative"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] I want a job that feels creative | [question] That's a good reason: I want a job that feels creative. What would \u201cwrite project descriptions\u201d look like when it's done",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0073
+  },
+  {
+   "seed": 5,
+   "persona": "Mina",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T07:20",
+   "checks": 60,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 13,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 13,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 8,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 11,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 5,
+     "accepted": 5
+    },
+    "dump": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "chat": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "done": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "import": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "view": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "plan_preview": 3,
+    "proposal": 1,
+    "reply": 5
+   },
+   "usage": {
+    "prompt": 25742,
+    "completion": 4965,
+    "calls": 14,
+    "retries": 0,
+    "secs": 17.0
+   },
+   "secs": 29.8,
+   "steps": [
+    {
+     "action": {
+      "action": "import",
+      "filename": "next_week_shifts.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Mina//ShiftRoster//EN\nBEGIN:VEVENT\nUID:shift1@mina\nDTSTAMP:20261019T070000Z\nDTSTART:20261022T190000Z\nDTEND:20261023T070000Z\nSUMMARY:night shift\nEND:VEVENT\nBEGIN:VEVENT\nUID:shift2@mina\nDTSTAMP:20261019T070000Z\nDTSTART:20261024T190000Z\nDTEND:20261025T070000Z\nSUMMA"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_294b1661 preview (3 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "pl_294b1661"
+     },
+     "status": 200,
+     "secs": 12.61,
+     "result": "HTTP 200 | plan pl_294b1661 applied (3 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "dismiss",
+      "proposal_id": "pr_eaba4602"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "laundry Thursday 9am",
+      "why": "add errand before night shift"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] laundry Thursday 9am | [reply] Added \u201claundry\u201d for Thursday (Thu Oct 22) at 9:00 AM (09:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "grocery run Friday 8am",
+      "why": "errand before night shift"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] grocery run Friday 8am | [reply] Added \u201cgrocery run\u201d for Friday (Fri Oct 23) at 8:00 AM (08:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1",
+      "why": "finished taxes"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "next_week_shifts.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:shift1@example.com\nDTSTART:20261027T190000Z\nDTEND:20261028T030000Z\nSUMMARY:night shift\nEND:VEVENT\nBEGIN:VEVENT\nUID:shift2@example.com\nDTSTART:20261029T190000Z\nDTEND:20261030T030000Z\nSUMMARY:night shift\nEND:VEVENT\nBEGIN:VEVENT\nUID:shift3@example.com\nDTSTAR"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_259f1fd5 preview (3 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "pl_259f1fd5"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_259f1fd5 applied (3 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "it_03f666f7",
+      "why": "finished"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "extra shift Oct 25 19:00",
+      "why": "pick up extra shift"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] extra shift Oct 25 19:00 | [reply] Added \u201cextra shift\u201d for Sunday (Sun Oct 25) at 7:00 PM (19:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "pick up meds 2026-10-23 07:30",
+      "why": "errand before grocery"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] pick up meds 2026-10-23 07:30 | [reply] Added \u201cpick up meds 2026-10-23\u201d for today (Mon Oct 19) at 7:30 AM (07:30).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "clear Oct 22",
+      "why": "free day for extra shift"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] clear Oct 22 | [reply] Added \u201cclear\u201d for Oct 22. It's a soft window, no exact time needed.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "next_week_shifts.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:shift1@example.com\nDTSTART:20261028T190000Z\nDTEND:20261028T070000Z\nSUMMARY:night shift\nEND:VEVENT\nBEGIN:VEVENT\nUID:shift2@example.com\nDTSTART:20261030T190000Z\nDTEND:20261030T070000Z\nSUMMARY:night shift\nEND:VEVENT\nBEGIN:VEVENT\nUID:shift3@example.com\nDTSTAR"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan pl_90110b4f preview (0 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "it_2feafddf"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0068
+  }
+ ]
+}

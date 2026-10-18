@@ -1,0 +1,405 @@
+[
+ {
+  "name": "Carlos",
+  "summary": "34-year-old freelance photographer who loves sunrise shoots, finds planning helpful if it\u2019s quick, usually gets things done early morning, wants to build an online portfolio but gets distracted by editing.",
+  "traits": [
+   "writes short fragments, often without exact times",
+   "prefers tiny steps and early\u2011morning work",
+   "most productive around 9\u202fAM",
+   "wants more clients and creative freedom",
+   "gets uneasy with long forms or many questions"
+  ],
+  "active_hour": 9,
+  "history": [
+   {
+    "title": "upload recent photos to cloud",
+    "days_ago": 1,
+    "hour": 8,
+    "minute": 15,
+    "dur_min": 20
+   },
+   {
+    "title": "backup camera cards",
+    "days_ago": 2,
+    "hour": 7,
+    "minute": 45,
+    "dur_min": 15
+   },
+   {
+    "title": "reply to client email",
+    "days_ago": 3,
+    "hour": 9,
+    "minute": 5,
+    "dur_min": 10
+   },
+   {
+    "title": "drink water reminder",
+    "days_ago": 4,
+    "hour": 10,
+    "minute": 0,
+    "dur_min": 5
+   },
+   {
+    "title": "edit portrait series",
+    "days_ago": 5,
+    "hour": 11,
+    "minute": 30,
+    "dur_min": 30
+   },
+   {
+    "title": "pay rent",
+    "days_ago": 6,
+    "hour": 12,
+    "minute": 0,
+    "dur_min": 10
+   },
+   {
+    "title": "research new lens",
+    "days_ago": 9,
+    "hour": 8,
+    "minute": 30,
+    "dur_min": 15
+   },
+   {
+    "title": "run 2\u202fkm",
+    "days_ago": 12,
+    "hour": 6,
+    "minute": 0,
+    "dur_min": 20
+   }
+  ],
+  "open": [
+   {
+    "title": "organize portfolio website",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "someday",
+    "dur_min": 180
+   },
+   {
+    "title": "call printer shop",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 14,
+    "window": null,
+    "dur_min": 15
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "usually says yes, enjoys a quick step\u2011by\u2011step",
+   "why_question": "wants more clients and creative freedom",
+   "proposed_steps": "likes tiny first steps, will ask for even smaller if it feels big",
+   "invented_views": "enthusiastic, loves trying new visual layouts",
+   "classic_views": "neutral",
+   "postponed_messages": "appreciates gentle wording, okay with moving later same day",
+   "bulk_changes": "occasionally imports .ics from photo events"
+  },
+  "goals": [
+   "set up a simple landing page",
+   "schedule a 15\u2011minute photo review",
+   "capture sunrise tomorrow",
+   "clear weekend meet\u2011ups"
+  ],
+  "generated_seed": 9100
+ },
+ {
+  "name": "Aisha",
+  "summary": "27-year-old junior software engineer at a fintech startup, prefers night coding sprints, often feels overwhelmed by long forms, likes emojis and a casual tone, wants to master React but hasn't started.",
+  "traits": [
+   "writes in chats with emojis",
+   "postpones if asked many questions",
+   "most productive after 7\u202fPM",
+   "hopes to lead a project soon",
+   "gets anxious with too many prompts"
+  ],
+  "active_hour": 20,
+  "history": [
+   {
+    "title": "push code to repo",
+    "days_ago": 1,
+    "hour": 19,
+    "minute": 45,
+    "dur_min": 20
+   },
+   {
+    "title": "review PRs",
+    "days_ago": 2,
+    "hour": 20,
+    "minute": 15,
+    "dur_min": 25
+   },
+   {
+    "title": "quick yoga stretch",
+    "days_ago": 3,
+    "hour": 21,
+    "minute": 0,
+    "dur_min": 10
+   },
+   {
+    "title": "order dinner",
+    "days_ago": 4,
+    "hour": 18,
+    "minute": 30,
+    "dur_min": 10
+   },
+   {
+    "title": "read fintech article",
+    "days_ago": 5,
+    "hour": 22,
+    "minute": 5,
+    "dur_min": 15
+   },
+   {
+    "title": "pay credit card",
+    "days_ago": 7,
+    "hour": 23,
+    "minute": 0,
+    "dur_min": 5
+   },
+   {
+    "title": "call mom",
+    "days_ago": 9,
+    "hour": 17,
+    "minute": 30,
+    "dur_min": 15
+   }
+  ],
+  "open": [
+   {
+    "title": "learn React hooks",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "anytime",
+    "dur_min": 120
+   },
+   {
+    "title": "prepare for quarterly review",
+    "kind": "task",
+    "days_ahead": 2,
+    "hour": 15,
+    "window": null,
+    "dur_min": 30
+   },
+   {
+    "title": "update budget spreadsheet",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 16,
+    "window": null,
+    "dur_min": 15
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "often declines, says 'maybe later, I want to keep it simple'",
+   "why_question": "wants to build confidence to lead a team",
+   "proposed_steps": "prefers micro\u2011tasks, otherwise says no",
+   "invented_views": "likes them but finds them a bit busy",
+   "classic_views": "prefers classic list view",
+   "postponed_messages": "needs kind phrasing, gets annoyed if called 'missed'",
+   "bulk_changes": "asks to clear all weekend events in one go"
+  },
+  "goals": [
+   "complete one hook example in 15\u202fmin",
+   "write a short reflection on why React matters",
+   "reduce evening notifications",
+   "clear Saturday schedule"
+  ],
+  "generated_seed": 9100
+ },
+ {
+  "name": "Hiro",
+  "summary": "45-year-old high school science teacher who values structure, prefers concise formal language, works best mid\u2011afternoon, wants to redesign the semester curriculum but feels stuck.",
+  "traits": [
+   "writes in bullet points",
+   "avoids vague tasks",
+   "most productive at 3\u202fPM",
+   "aims to improve student engagement",
+   "dislikes long conversational UI"
+  ],
+  "active_hour": 15,
+  "history": [
+   {
+    "title": "grade lab reports",
+    "days_ago": 1,
+    "hour": 14,
+    "minute": 30,
+    "dur_min": 40
+   },
+   {
+    "title": "prepare next lecture",
+    "days_ago": 2,
+    "hour": 15,
+    "minute": 0,
+    "dur_min": 45
+   },
+   {
+    "title": "attend staff meeting",
+    "days_ago": 3,
+    "hour": 13,
+    "minute": 0,
+    "dur_min": 30
+   },
+   {
+    "title": "buy classroom supplies",
+    "days_ago": 5,
+    "hour": 16,
+    "minute": 20,
+    "dur_min": 15
+   },
+   {
+    "title": "reply to parent email",
+    "days_ago": 7,
+    "hour": 12,
+    "minute": 45,
+    "dur_min": 10
+   },
+   {
+    "title": "run 5k after school",
+    "days_ago": 10,
+    "hour": 17,
+    "minute": 30,
+    "dur_min": 30
+   }
+  ],
+  "open": [
+   {
+    "title": "plan semester curriculum",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "sometime",
+    "dur_min": 300
+   },
+   {
+    "title": "grade assignments",
+    "kind": "task",
+    "days_ahead": 0,
+    "hour": 16,
+    "window": null,
+    "dur_min": 25
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "usually declines, says 'I prefer the whole picture'",
+   "why_question": "wants students to see real\u2011world connections",
+   "proposed_steps": "won't accept if first step exceeds 15\u202fmin",
+   "invented_views": "doesn't like them, prefers classic list",
+   "classic_views": "prefers classic view",
+   "postponed_messages": "needs formal tone, appreciates 'moved forward gently'",
+   "bulk_changes": "rarely uses bulk features"
+  },
+  "goals": [
+   "draft week\u20111 lesson outline (15\u202fmin)",
+   "write a short note on why curriculum matters",
+   "align lab activities with learning goals",
+   "keep afternoon slot free for grading"
+  ],
+  "generated_seed": 9100
+ },
+ {
+  "name": "Elena",
+  "summary": "52-year-old part\u2011time gardener and language learner who enjoys calm mornings, likes gentle phrasing, wants to improve Spanish conversation and organize garden planting, often imports calendar files for community events.",
+  "traits": [
+   "writes in a relaxed tone",
+   "prefers soft windows like 'this morning'",
+   "most productive at 7\u202fAM",
+   "wants learning to stay enjoyable",
+   "gets uneasy with abrupt changes"
+  ],
+  "active_hour": 7,
+  "history": [
+   {
+    "title": "water roses",
+    "days_ago": 1,
+    "hour": 7,
+    "minute": 15,
+    "dur_min": 10
+   },
+   {
+    "title": "check email",
+    "days_ago": 2,
+    "hour": 8,
+    "minute": 0,
+    "dur_min": 5
+   },
+   {
+    "title": "read Spanish article",
+    "days_ago": 3,
+    "hour": 9,
+    "minute": 30,
+    "dur_min": 20
+   },
+   {
+    "title": "buy compost",
+    "days_ago": 4,
+    "hour": 10,
+    "minute": 45,
+    "dur_min": 15
+   },
+   {
+    "title": "call neighbor",
+    "days_ago": 5,
+    "hour": 11,
+    "minute": 0,
+    "dur_min": 10
+   },
+   {
+    "title": "plant seedlings",
+    "days_ago": 6,
+    "hour": 7,
+    "minute": 30,
+    "dur_min": 20
+   },
+   {
+    "title": "pay garden club dues",
+    "days_ago": 9,
+    "hour": 12,
+    "minute": 0,
+    "dur_min": 5
+   },
+   {
+    "title": "stretch",
+    "days_ago": 12,
+    "hour": 6,
+    "minute": 0,
+    "dur_min": 10
+   }
+  ],
+  "open": [
+   {
+    "title": "practice Spanish conversation",
+    "kind": "task",
+    "days_ahead": null,
+    "hour": null,
+    "window": "anytime",
+    "dur_min": 180
+   },
+   {
+    "title": "order seeds for garden",
+    "kind": "task",
+    "days_ahead": 1,
+    "hour": 9,
+    "window": null,
+    "dur_min": 15
+   }
+  ],
+  "reactions": {
+   "breakdown_offer": "says yes, likes one question at a time",
+   "why_question": "wants to travel to Spain and feel confident speaking",
+   "proposed_steps": "accepts tiny first step, asks for clear purpose",
+   "invented_views": "neutral, will try if explained",
+   "classic_views": "prefers classic list",
+   "postponed_messages": "feels reassured by kind wording, prefers moving later same day",
+   "bulk_changes": "wants to import .ics from community gardening club"
+  },
+  "goals": [
+   "spend 15\u202fmin on a Spanish dialogue practice",
+   "write why gardening matters to me",
+   "schedule a short seed\u2011ordering window",
+   "keep mornings free for planting"
+  ],
+  "generated_seed": 9100
+ }
+]

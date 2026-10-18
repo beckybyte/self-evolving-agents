@@ -1,0 +1,1153 @@
+{
+ "app_dir": "builds/evolving_calendar_v3/reference",
+ "split": "fit",
+ "seed_base": null,
+ "model": "crusoe:openai/gpt-oss-120b",
+ "mean_pass_rate": 1.0,
+ "pooled_pass_rate": 1.0,
+ "per_invariant": {
+  "http": {
+   "checks": 56,
+   "violations": 0
+  },
+  "no_guilt": {
+   "checks": 57,
+   "violations": 0
+  },
+  "one_question": {
+   "checks": 57,
+   "violations": 0
+  },
+  "breakdown_shape": {
+   "checks": 4,
+   "violations": 0
+  },
+  "delete_preview": {
+   "checks": 11,
+   "violations": 0
+  },
+  "proposal_number": {
+   "checks": 4,
+   "violations": 0
+  },
+  "no_hidden_item": {
+   "checks": 30,
+   "violations": 0
+  },
+  "dump_fragments": {
+   "checks": 8,
+   "violations": 0
+  },
+  "no_lost_item": {
+   "checks": 1,
+   "violations": 0
+  },
+  "undo_exact": {
+   "checks": 1,
+   "violations": 0
+  }
+ },
+ "coverage": {
+  "command": [
+   3,
+   3
+  ],
+  "dump": [
+   8,
+   8
+  ],
+  "chat": [
+   27,
+   27
+  ],
+  "done": [
+   8,
+   8
+  ],
+  "clock": [
+   0,
+   0
+  ],
+  "proposal": [
+   4,
+   4
+  ],
+  "undo": [
+   1,
+   1
+  ],
+  "plan": [
+   0,
+   0
+  ],
+  "import": [
+   0,
+   0
+  ],
+  "view": [
+   4,
+   4
+  ],
+  "learn": [
+   1,
+   1
+  ]
+ },
+ "features": {
+  "reply": 13,
+  "question": 31,
+  "proposal": 4,
+  "breakdown": 4
+ },
+ "sim_cost_usd": 0.0286,
+ "wall_secs": 45.4,
+ "episodes": [
+  {
+   "seed": 0,
+   "persona": "Iris",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T19:30",
+   "checks": 51,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 13,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 13,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 1,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 1,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 7,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 1,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "dump": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "chat": {
+     "tried": 8,
+     "accepted": 8
+    },
+    "done": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "reply": 2,
+    "question": 8,
+    "proposal": 1,
+    "breakdown": 1
+   },
+   "usage": {
+    "prompt": 28776,
+    "completion": 3851,
+    "calls": 14,
+    "retries": 0,
+    "secs": 12.9
+   },
+   "secs": 40.3,
+   "steps": [
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "portfolio ideas, research UX case studies, pick a project, outline one page, gather images, write short intro"
+     },
+     "status": 200,
+     "secs": 20.81,
+     "result": "HTTP 200 | [reply] portfolio ideas, research UX case studies, pick a project, outline one page, gather images, write short intro | [reply] Got it, I caught 6 things: portfolio ideas; research UX case studies; pick a project; outline one page; gather images; w | [question] \u201cportfolio ideas\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_1e8448e8",
+      "text": "ok yes, maybe, break it into tiny steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] ok yes, maybe, break it into tiny steps | [question] Lovely. First, why does \u201cportfolio ideas\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_1e8448e8",
+      "text": "because I need something to show for job apps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] because I need something to show for job apps | [question] That's a good reason: I need something to show for job apps. What would \u201cportfolio ideas\u201d look like when it's done?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_1e8448e8",
+      "text": "a few clear concepts, sketches, maybe 2\u20113 themes to show my style"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] a few clear concepts, sketches, maybe 2\u20113 themes to show my style | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_1e8448e8",
+      "text": "maybe by end of November, like the 30th?"
+     },
+     "status": 200,
+     "secs": 6.35,
+     "result": "HTTP 200 | [reply] maybe by end of November, like the 30th? | [breakdown] Here's a gentle plan for \u201cportfolio ideas\u201d (I need something to show for job apps), finishing by Monday (Mon Nov 30):\n1.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "proposal_id": "pr_d99ac6e5"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_1e8448e8",
+      "text": "looks good, let's start"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] looks good, let's start | [reply] Done! I added 3 small steps for \u201cportfolio ideas\u201d. First up: \u201cList three design themes you enjoy\u201d, today (Mon Oct 19) at | [question] \u201cresearch UX case studies\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_af95b956",
+      "text": "yes, break it into tiny steps",
+      "why": "make it feel doable"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, break it into tiny steps | [question] Lovely. First, why does \u201cresearch UX case studies\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "it_99549365",
+      "why": "finished early"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_af95b956",
+      "text": "I need examples to see how real UX work looks, get ideas and show I understand the process"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] I need examples to see how real UX work looks, get ideas and show I understand the process | [question] That's a good reason: I need examples to see how real UX work looks, get ideas and show I understand the process. What w",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_af95b956",
+      "text": "a short list of 3 case studies with key takeaways and screenshots",
+      "why": "define done"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] a short list of 3 case studies with key takeaways and screenshots | [question] And by when would you like it finished?",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0066
+  },
+  {
+   "seed": 0,
+   "persona": "Iris",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T19:30",
+   "checks": 56,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 13,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 13,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 1,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 4,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 9,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 1,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "dump": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "chat": {
+     "tried": 4,
+     "accepted": 4
+    },
+    "done": {
+     "tried": 4,
+     "accepted": 4
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "learn": {
+     "tried": 1,
+     "accepted": 1
+    }
+   },
+   "features": {
+    "reply": 4,
+    "question": 4,
+    "proposal": 1,
+    "breakdown": 1
+   },
+   "usage": {
+    "prompt": 27191,
+    "completion": 4472,
+    "calls": 14,
+    "retries": 0,
+    "secs": 14.000000000000002
+   },
+   "secs": 33.4,
+   "steps": [
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "sketch homepage, collect case studies, write about process, choose fonts, make mood board, set up Behance profile"
+     },
+     "status": 200,
+     "secs": 13.75,
+     "result": "HTTP 200 | [reply] sketch homepage, collect case studies, write about process, choose fonts, make mood board, set up Behance profile | [reply] Got it, I caught 6 things: sketch homepage; collect case studies; write about process; choose fonts; make mood board; se | [question] \u201cset up Behance profile\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_acb7b95e",
+      "text": "yes, maybe break it into tiny steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, maybe break it into tiny steps | [question] Lovely. First, why does \u201cset up Behance profile\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_acb7b95e",
+      "text": "to showcase my work and get noticed"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] to showcase my work and get noticed | [question] That's a good reason: to showcase my work and get noticed. What would \u201cset up Behance profile\u201d look like when it's done?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_acb7b95e",
+      "text": "a live profile with my projects, a short bio, contact links, and a nice cover image"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] a live profile with my projects, a short bio, contact links, and a nice cover image | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_acb7b95e",
+      "text": "maybe by the end of this month"
+     },
+     "status": 200,
+     "secs": 5.42,
+     "result": "HTTP 200 | [reply] maybe by the end of this month | [breakdown] Here's a gentle plan for \u201cset up Behance profile\u201d (to showcase my work and get noticed), finishing by Saturday (Sat Oct ",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "evenings work best",
+      "proposal_id": "pr_1dec2925"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "create behance account",
+      "why": "start tiny step"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] create behance account | [reply] Added \u201ccreate behance account\u201d to your list.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "it_03f72002",
+      "why": "finished tiny step"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "it_c45ef8bc",
+      "why": "small step"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "move set up Behaviour profile to Saturday 20:00",
+      "why": "focus weekend"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] move set up Behaviour profile to Saturday 20:00 | [reply] Moved \u201cset up Behance profile\u201d to Saturday (Sat Oct 24) at 8:00 PM (20:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "it_47bb301e",
+      "why": "tiny step"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "move set up Behance profile to Monday 20:00",
+      "why": "free weekend for portfolio"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] move set up Behance profile to Monday 20:00 | [reply] Moved \u201cset up Behance profile\u201d to Monday (Mon Oct 26) at 8:00 PM (20:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "learn",
+      "why": "help me get better at evening planning"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0068
+  },
+  {
+   "seed": 2,
+   "persona": "Jordan",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T13:00",
+   "checks": 58,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 15,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 15,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 1,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 3,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 6,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 3,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "dump": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "chat": {
+     "tried": 8,
+     "accepted": 8
+    },
+    "done": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "reply": 3,
+    "question": 10,
+    "proposal": 1,
+    "breakdown": 1
+   },
+   "usage": {
+    "prompt": 33698,
+    "completion": 4454,
+    "calls": 14,
+    "retries": 0,
+    "secs": 14.899999999999999
+   },
+   "secs": 41.0,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "client Lumen call Friday, need to prep slides, Theo drinks Saturday night maybe cancel, weekend trip to mountains, need pack gear, course reading done, pricing for 2027 still pending, update website backlog, tax receipts sorted, thumbnail sketches done, color pass on cover done, feeling scattered, w"
+     },
+     "status": 200,
+     "secs": 13.23,
+     "result": "HTTP 200 | [reply] client Lumen call Friday, need to prep slides, Theo drinks Saturday night maybe cancel, weekend trip to mountains, need  | [reply] Got it, I caught 14 things: client Lumen call (Friday); prep slides; Theo drinks cancel (Saturday tonight); trip to moun | [question] \u201ccourse reading done\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_6d360981",
+      "text": "make step 2 smaller"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] make step 2 smaller | [question] Lovely. First, why does \u201ccourse reading done\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_6d360981",
+      "text": "It\u2019s the core of my part\u2011time course, keeps my skills fresh for the clients, the certificate will open a new illustration gig, plus I feel less scattered when I finish it"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] It\u2019s the core of my part\u2011time course, keeps my skills fresh for the clients, the certificate will open a new illustratio | [question] That's a good reason: It\u2019s the core of my part\u2011time course, keeps my skills fresh for the clients, the certificate will ",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "new layout sounds playful",
+      "proposal_id": "pr_33860708"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_6d360981",
+      "text": "Sure, break it into tiny steps: read chapter\u202f1, jot quick notes, write a one\u2011page summary"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] Sure, break it into tiny steps: read chapter\u202f1, jot quick notes, write a one\u2011page summary | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_6d360981",
+      "text": "by next Friday, so I can wrap up before the weekend trip"
+     },
+     "status": 200,
+     "secs": 6.55,
+     "result": "HTTP 200 | [reply] by next Friday, so I can wrap up before the weekend trip | [breakdown] Here's a gentle plan for \u201ccourse reading done\u201d (It\u2019s the core of my part\u2011time course, keeps my skills fresh for the clie",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "client Lumen call on Friday, need to move it, trip to mountains this weekend, need to pack gear, drinks with Theo on Saturday night, pricing for 2027 still pending, update website backlog, tax receipts sorted, feeling scattered, want bursts in afternoon, thumbnail sketches done, color pass on cover "
+     },
+     "status": 200,
+     "secs": 2.93,
+     "result": "HTTP 200 | [reply] client Lumen call on Friday, need to move it, trip to mountains this weekend, need to pack gear, drinks with Theo on Sat | [reply] Got it, I caught 14 things: client Lumen call (Friday); move it; trip to mountains (this weekend); pack gear; drinks wit | [question] \u201cmove it\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_c66094bb",
+      "text": "yes, break it into tiny steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] yes, break it into tiny steps | [question] Lovely. First, why does \u201cmove it\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_c66094bb",
+      "text": "I need to move the Lumen call because the timing collides with my mountain getaway, I want a clear headspace for the hike, plus I\u2019m juggling the Theo drinks later, the call feels like a pressure point in my week, shifting it would free up Friday afternoon for packing, breathing, and a quick sketch s"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] I need to move the Lumen call because the timing collides with my mountain getaway, I want a clear headspace for the hik | [question] That's a good reason: I need to move the Lumen call because the timing collides with my mountain getaway, I want a clear",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "it_854b3984",
+      "why": "moved Lumen call to next week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "client Lumen call moved to next week, need to finalize pricing for 2027, update website backlog, sort tax receipts, pack gear for mountain weekend, mountain trip this weekend, drinks with Theo Saturday night maybe cancel, feeling scattered, want afternoon bursts for illustration work, course reading"
+     },
+     "status": 200,
+     "secs": 3.37,
+     "result": "HTTP 200 | [reply] client Lumen call moved to next week, need to finalize pricing for 2027, update website backlog, sort tax receipts, pack | [reply] Got it, I caught 10 things: client Lumen call moved to (next week); finalize pricing for 2027; update website backlog; s | [question] \u201cfinalize pricing for 2027\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_03943a8c",
+      "text": "make step 2 smaller",
+      "why": "suggest breaking pricing task into smaller steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] make step 2 smaller | [question] Lovely. First, why does \u201cfinalize pricing for 2027\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_03943a8c",
+      "text": "Because the 2027 pricing is the anchor for the next big contract, it keeps the studio cash\u2011flow steady, lets me finally budget that mountain getaway without worrying, gives the client confidence so I can free up mental space for my afternoon illustration bursts, and it ties into the course fees I ne"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] Because the 2027 pricing is the anchor for the next big contract, it keeps the studio cash\u2011flow steady, lets me finally  | [question] That's a good reason: the 2027 pricing is the anchor for the next big contract, it keeps the studio cash\u2011flow steady, le",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0077
+  },
+  {
+   "seed": 2,
+   "persona": "Jordan",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T13:00",
+   "checks": 64,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 16,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 16,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 1,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 3,
+     "violations": 0
+    },
+    "no_lost_item": {
+     "checks": 1,
+     "violations": 0
+    },
+    "undo_exact": {
+     "checks": 1,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 8,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 3,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "dump": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "chat": {
+     "tried": 7,
+     "accepted": 7
+    },
+    "done": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "reply": 4,
+    "question": 9,
+    "proposal": 1,
+    "breakdown": 1
+   },
+   "usage": {
+    "prompt": 33595,
+    "completion": 4040,
+    "calls": 14,
+    "retries": 0,
+    "secs": 14.800000000000002
+   },
+   "secs": 45.0,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "lots of sketches pending, need to finish Lumen illustration, think about new color palette, course assignment due next week, want to clear Saturday and Sunday for a road trip, maybe move client call Lumen to later in the day, drinks with Theo might clash with trip, need to check pricing task deadlin"
+     },
+     "status": 200,
+     "secs": 16.09,
+     "result": "HTTP 200 | [reply] lots of sketches pending, need to finish Lumen illustration, think about new color palette, course assignment due next w | [reply] Got it, I caught 8 things: lots of sketches pending; finish Lumen illustration; think about new color palette; course as | [question] \u201clots of sketches pending\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_aa3e9ae1",
+      "text": "make step 2 smaller"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] make step 2 smaller | [question] Lovely. First, why does \u201clots of sketches pending\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_aa3e9ae1",
+      "text": "Because those sketches are the lifeblood of my freelance flow, they keep the Lumen client happy, they feed my portfolio, they block my course assignment if they linger, they create a creative pressure that spikes my stress, and clearing them frees mental space for the road\u2011trip vibe I\u2019m craving"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] Because those sketches are the lifeblood of my freelance flow, they keep the Lumen client happy, they feed my portfolio, | [question] That's a good reason: those sketches are the lifeblood of my freelance flow, they keep the Lumen client happy, they feed",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "new layout looks playful",
+      "proposal_id": "pr_2aeaccea"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "need to finish Lumen illustration by Friday, sketch ideas for new client X, prep color palette experiments tonight, course assignment due next Wednesday, clear Saturday and Sunday for road trip to the coast, maybe shift client call Lumen from 3pm to 5pm, drinks with Theo could clash, need to pack ge"
+     },
+     "status": 200,
+     "secs": 1.21,
+     "result": "HTTP 200 | [reply] need to finish Lumen illustration by Friday, sketch ideas for new client X, prep color palette experiments tonight, cour | [reply] Got it, I caught 10 things: finish Lumen illustration (Friday); sketch ideas for new client X; prep color palette experi | [question] \u201cfinish Lumen illustration\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_e59a2f9e",
+      "text": "make step 2 smaller"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] make step 2 smaller | [question] Lovely. First, why does \u201cfinish Lumen illustration\u201d matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_e59a2f9e",
+      "text": "Because the Lumen illustration is the keystone for the upcoming campaign, it keeps the client happy, it fuels my portfolio, it frees up mental space for my course, it lets me charge a good rate, and it feels like a personal win after weeks of sketching"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] Because the Lumen illustration is the keystone for the upcoming campaign, it keeps the client happy, it fuels my portfol | [question] That's a good reason: the Lumen illustration is the keystone for the upcoming campaign, it keeps the client happy, it fu",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "workweek",
+      "why": "trying a fresh layout"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_e59a2f9e",
+      "text": "Exactly, that's why I'm motivated, thanks for getting it"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] Exactly, that's why I'm motivated, thanks for getting it | [question] And by when would you like it finished?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_e59a2f9e",
+      "text": "By Friday end of day, ideally early afternoon so I can review before the weekend."
+     },
+     "status": 200,
+     "secs": 11.47,
+     "result": "HTTP 200 | [reply] By Friday end of day, ideally early afternoon so I can review before the weekend. | [breakdown] Here's a gentle plan for \u201cfinish Lumen illustration\u201d (the Lumen illustration is the keystone for the upcoming campaign, ",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "it_e59a2f9e",
+      "text": "Yes, that plan looks good, let's go"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reply] Yes, that plan looks good, let's go | [reply] Done! I added 4 small steps for \u201cfinish Lumen illustration\u201d. First up: \u201cOpen the Lumen file in Illustrator\u201d, today (Mon  | [question] \u201cfinish Lumen illustration\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "it_4a1edf8b"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "undo",
+      "undo_id": "u_8e7c829c",
+      "why": "maybe want to adjust steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "client Lumen call at 3pm on Friday, need to shift to 5pm, drinks with Theo on Saturday night might clash, want weekend free for road trip to the coast, need to prep color palette experiments tonight, finish Lumen illustration steps, course assignment due Wednesday, think about pricing for 2027, sket"
+     },
+     "status": 200,
+     "secs": 1.34,
+     "result": "HTTP 200 | [reply] client Lumen call at 3pm on Friday, need to shift to 5pm, drinks with Theo on Saturday night might clash, want weekend f | [reply] Got it, I caught 11 things: client Lumen call (Fri Oct 23, 3:00 PM); shift to (Mon Oct 19, 5:00 PM); drinks with Theo mi | [question] \u201cwant free for road trip to the coast\u201d sounds like a big one. Would it help to break it into a few tiny steps?",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0075
+  }
+ ]
+}

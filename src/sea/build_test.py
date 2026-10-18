@@ -247,3 +247,22 @@ def test_run_stops_at_the_fitness_ceiling(tmp_path, monkeypatch):
     st = Evolution(task, tmp_path / "evo", "fake:dev", ROOT / "genomes/v2/build_P0", gens=3, k=1, margin=0.01).run()
     hist = [json.loads(l) for l in open(tmp_path / "evo" / "history.jsonl")]
     assert st["done"] and not calls and any(h.get("event") == "ceiling_reached" for h in hist)
+
+
+def test_usersim_term_in_fitness(tmp_path, monkeypatch):
+    from sea.tasks import build as B
+    sim = tmp_path / "fake_usersim.py"
+    sim.write_text("import json,sys\na=sys.argv\nout=a[a.index('--out')+1]\n"
+                   "json.dump({'mean_pass_rate': 0.97, 'sim_cost_usd': 0.01, 'per_invariant': {'x': {'checks': 3, 'violations': 1}}, 'episodes': [{'violations': 0}]*9 + [{'violations': 2}]}, open(out,'w'))\n")
+    monkeypatch.setattr(B, "USERSIM", sim)
+    monkeypatch.setenv("SEA_BUILD_SIM_WEIGHT", "0.3")
+    register_fake("dev", fake_dev)
+    task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")
+    ev = task.evaluate_fit(ROOT / "genomes/v2/build_P0", "fake:dev", tmp_path / "ev")
+    assert ev["metrics"]["score:sim"] == 0.9
+    tok = ev["metrics"]["tokens"]
+    assert ev["fitness"] == round(0.7 * ev["metrics"]["score:fit"] + 0.3 * 0.9 - 0.001 * tok / 1000, 4)
+    sj = json.loads((tmp_path / "ev" / "sim.json").read_text())
+    assert len(sj["per_run"]) == 2 and all(r["seed_base"] >= 10**6 for r in sj["per_run"]) and sj["per_run"][0]["violations"] == {"x": {"checks": 3, "violations": 1}}
+    assert "usersim.json" in task.workspace_files(tmp_path / "ev")
+    assert "usersim_pass_rate" in task.fitness_spec().formula()

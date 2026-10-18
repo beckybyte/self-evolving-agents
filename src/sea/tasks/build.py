@@ -270,7 +270,8 @@ class BuildTask(Task):
 
     def run_usersim(self, out: Path) -> dict:
         """LLM user simulator (builds/usersim) on every team run's app, fresh random seeds each evaluation (recorded),
-        so a team cannot memorize it. Score = mean pass rate over runs; a run without app.py scores 0."""
+        so a team cannot memorize it. Score = share of episodes with zero invariant violations, averaged over runs;
+        a run without app.py scores 0."""
         f = out / "sim.json"
         if f.exists():
             return json.loads(f.read_text())
@@ -288,7 +289,12 @@ class BuildTask(Task):
                                 "--seed-base", str(base), "--parallel", "5", "--out", str(rf)],
                                capture_output=True, text=True, timeout=900)
                 d = json.loads(rf.read_text())
-                per.append({"run": r.name, "score": d["mean_pass_rate"], "seed_base": base, "cost_usd": d.get("sim_cost_usd"),
+                eps = d.get("episodes") or []
+                # clean-episode rate: the invariant pass rate sits at 0.98-1.0 for every app (too compressed to rank);
+                # the share of episodes with zero violations spreads apps 0.3-0.8 (noise sd ~0.06 at 20 episodes)
+                clean = sum(1 for e in eps if not e.get("violations")) / len(eps) if eps else 0.0
+                per.append({"run": r.name, "score": round(clean, 4), "pass_rate": d["mean_pass_rate"], "seed_base": base,
+                            "cost_usd": d.get("sim_cost_usd"),
                             "violations": {k: v for k, v in (d.get("per_invariant") or {}).items()
                                            if isinstance(v, dict) and v.get("violations")}})
             except Exception as e:

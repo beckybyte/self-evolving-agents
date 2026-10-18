@@ -1,0 +1,1645 @@
+{
+ "app_dir": "runs/demo/app_v3a5",
+ "split": "holdout",
+ "seed_base": 288532,
+ "model": "crusoe:openai/gpt-oss-120b",
+ "mean_pass_rate": 1.0,
+ "pooled_pass_rate": 1.0,
+ "per_invariant": {
+  "http": {
+   "checks": 84,
+   "violations": 0
+  },
+  "no_guilt": {
+   "checks": 41,
+   "violations": 0
+  },
+  "one_question": {
+   "checks": 41,
+   "violations": 0
+  },
+  "delete_preview": {
+   "checks": 26,
+   "violations": 0
+  },
+  "proposal_number": {
+   "checks": 8,
+   "violations": 0
+  },
+  "no_hidden_item": {
+   "checks": 55,
+   "violations": 0
+  },
+  "names_task": {
+   "checks": 15,
+   "violations": 0
+  },
+  "dump_fragments": {
+   "checks": 14,
+   "violations": 0
+  }
+ },
+ "coverage": {
+  "command": [
+   18,
+   18
+  ],
+  "dump": [
+   3,
+   3
+  ],
+  "chat": [
+   4,
+   4
+  ],
+  "done": [
+   17,
+   17
+  ],
+  "clock": [
+   15,
+   15
+  ],
+  "proposal": [
+   8,
+   8
+  ],
+  "undo": [
+   0,
+   0
+  ],
+  "plan": [
+   5,
+   5
+  ],
+  "import": [
+   5,
+   5
+  ],
+  "view": [
+   7,
+   7
+  ],
+  "learn": [
+   2,
+   2
+  ]
+ },
+ "features": {
+  "proposal": 8,
+  "plan_preview": 6,
+  "reminder": 14,
+  "info": 25,
+  "question": 1,
+  "postponed": 1
+ },
+ "sim_cost_usd": 0.0373,
+ "wall_secs": 32.9,
+ "episodes": [
+  {
+   "seed": 288532,
+   "persona": "Leila",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T09:00",
+   "checks": 47,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 7,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 7,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 3,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 2,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 9,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 5,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "dump": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "chat": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "done": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "clock": {
+     "tried": 4,
+     "accepted": 4
+    },
+    "proposal": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "learn": {
+     "tried": 1,
+     "accepted": 1
+    }
+   },
+   "features": {
+    "proposal": 2,
+    "plan_preview": 1,
+    "reminder": 5,
+    "info": 2
+   },
+   "usage": {
+    "prompt": 22018,
+    "completion": 3842,
+    "calls": 14,
+    "retries": 0,
+    "secs": 12.200000000000001
+   },
+   "secs": 12.2,
+   "steps": [
+    {
+     "action": {
+      "action": "learn"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "see morning lane",
+      "proposal_id": "prop_42a8409edd"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "branding_steps.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Leila//Brand//EN\nBEGIN:VEVENT\nUID:1@leila\nDTSTAMP:20261019T080000Z\nDTSTART:20261019T091500Z\nDTEND:20261019T093000Z\nSUMMARY:Brand purpose brainstorm\nEND:VEVENT\nBEGIN:VEVENT\nUID:2@leila\nDTSTAMP:20261019T080000Z\nDTSTART:20261019T093000Z\nDTEND:20261019T094500Z\nSUMMA"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_43861a96b9 preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_43861a96b9"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_43861a96b9 applied (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-19T09:53"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reminder] It's time for 'Brand purpose brainstorm' (09:15). | [reminder] 'Brand purpose brainstorm' wraps up in 10 minutes. | [reminder] It's time for 'Define first deliverable' (09:30).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "itm_9cb20ae974",
+      "why": "finished brainstorm"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "few_hours",
+      "now": "2026-10-19T12:38"
+     },
+     "status": 200,
+     "secs": 0.01,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "itm_804ddfe09d",
+      "why": "finished defining first deliverable"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "move call mom to tomorrow 09:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Moved 'call mom' to Tue Oct 20 at 16:00.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "next_day",
+      "why": "see how plan looks tomorrow",
+      "now": "2026-10-20T09:45"
+     },
+     "status": 200,
+     "secs": 0.02,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "use morning lane for branding steps",
+      "proposal_id": "prop_fd17a9c990"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "schedule 'Branding step 1: outline package' at 10:00 for 15 minutes"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Schedule 'Branding step 1: outline package' at for 15 minutes'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-20T10:18"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reminder] It's time for 'Schedule 'Branding step 1: outline package' at for 15 minutes' (10:00).",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0056
+  },
+  {
+   "seed": 288533,
+   "persona": "Ana",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T14:20",
+   "checks": 50,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 9,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 9,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 5,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 6,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 2,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 4,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "dump": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "chat": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "done": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "clock": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 7,
+    "proposal": 1,
+    "reminder": 2,
+    "plan_preview": 2
+   },
+   "usage": {
+    "prompt": 23524,
+    "completion": 5092,
+    "calls": 14,
+    "retries": 0,
+    "secs": 16.400000000000002
+   },
+   "secs": 16.6,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "need good grade, keep scholarship, understand future physics, impress professor"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Need good grade, Keep scholarship, Understand future physics, Impress professor.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o0",
+      "text": "Sure! Let's start with a quick 10\u2011minute review. This test matters for my grade, scholarship, future physics understanding, and impressing the professor. \ud83d\ude0a"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Thanks, I'm with you.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "dismiss",
+      "why": "Prefer 10\u2011minute chunk",
+      "proposal_id": "prop_f549959c86"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "study calculus 14:30-14:40",
+      "why": "start 10\u2011minute review"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Study calculus -14:40'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "why": "start the 10\u2011minute calculus review",
+      "now": "2026-10-19T14:47"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reminder] It's time for 'Study calculus -14:40' (14:30).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i9",
+      "why": "finished 10\u2011minute review"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o1",
+      "text": "Sounds fun! Let's try the soft\u2011window view for the weekend trip \u2013 just keep it flexible \ud83d\ude0a"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Thanks, I'm with you.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "study calculus 15:00-15:10",
+      "why": "continue 10\u2011minute review"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Study calculus -15:10'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "o0",
+      "text": "I need a good grade on the calculus test because it\u2019s a big chunk of my final grade, keeps my scholarship safe, and boosts my confidence for the next topics \ud83d\ude0a"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Thanks, I'm with you.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "why": "finish the 15:00\u201115:10 calculus review",
+      "now": "2026-10-19T15:27"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [reminder] It's time for 'Study calculus -15:10' (15:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i14",
+      "why": "finished 10\u2011minute calculus review"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "weekend_trip.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Ana//Calendar//EN\nBEGIN:VEVENT\nUID:1@example.com\nDTSTAMP:20261019T150000Z\nDTSTART:20261021T100000Z\nDTEND:20261021T120000Z\nSUMMARY:Friend meetup\nEND:VEVENT\nBEGIN:VEVENT\nUID:2@example.com\nDTSTAMP:20261019T150000Z\nDTSTART:20261022T140000Z\nDTEND:20261022T160000Z\nSUM"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_68eb0a4d57 preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_68eb0a4d57",
+      "why": "accept soft\u2011window weekend plan"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_68eb0a4d57 applied (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "cancel Beach outing",
+      "why": "keep weekend flexible"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] I can remove 'Beach outing' for you. Apply the change? | plan plan_bed26e84af preview (1 ops)",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0066
+  },
+  {
+   "seed": 288534,
+   "persona": "Tobias",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T18:10",
+   "checks": 38,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 4,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 4,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 5,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 10,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 4,
+     "accepted": 4
+    },
+    "dump": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "chat": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "done": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "clock": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 4,
+    "proposal": 1,
+    "plan_preview": 1
+   },
+   "usage": {
+    "prompt": 23463,
+    "completion": 4325,
+    "calls": 14,
+    "retries": 0,
+    "secs": 13.999999999999998
+   },
+   "secs": 14.0,
+   "steps": [
+    {
+     "action": {
+      "action": "view",
+      "type": "day"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "15\u2011min outline for quarterly report 2026-10-19T18:15 2026-10-19T18:30",
+      "why": "start report outline now"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added '15\u2011min outline for quarterly report 2026-10-19T18:15 2026-10-19T18:30'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-19T18:31"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "group similar 30\u2011min tasks",
+      "proposal_id": "prop_9768ab8830"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i2"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "30\u2011min draft for quarterly report 2026-10-19T18:45 2026-10-19T19:15",
+      "why": "schedule similar reporting work"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added '30\u2011min draft for quarterly report 2026-10-19T18:45 2026-10-19T19:15'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "15\u2011min define core purpose for quarterly report 2026-10-19T19:30 2026-10-19T19:45",
+      "why": "identify core purpose before drafting"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added '15\u2011min define core purpose for quarterly report 2026-10-19T19:30 2026-10-19T19:45'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day",
+      "why": "review late\u2011afternoon reporting slots"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-19T18:47"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "15\u2011min compact daily snapshot view 2026-10-19T20:00 2026-10-19T20:15",
+      "why": "experiment with a compact daily snapshot view"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added '15\u2011min compact daily snapshot view 2026-10-19T20:00 2026-10-19T20:15'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-19T19:45"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i6",
+      "why": "core purpose defined"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "reporting.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Tobias//Calendar//EN\nBEGIN:VEVENT\nUID:20261020T170000-1@tobias\nDTSTAMP:20261019T120000Z\nDTSTART:20261020T170000Z\nDTEND:20261020T173000Z\nSUMMARY:Quarterly report review\nEND:VEVENT\nBEGIN:VEVENT\nUID:20261021T180000-2@tobias\nDTSTAMP:20261019T120000Z\nDTSTART:20261021"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_89f098ed5e preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_89f098ed5e",
+      "why": "schedule reporting sync"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_89f098ed5e applied (2 ops)",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0061
+  },
+  {
+   "seed": 288535,
+   "persona": "Tobias",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T18:10",
+   "checks": 53,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 5,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 5,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 6,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 12,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 10,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "dump": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "chat": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "done": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "clock": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 5,
+    "proposal": 1,
+    "plan_preview": 1
+   },
+   "usage": {
+    "prompt": 25880,
+    "completion": 4757,
+    "calls": 14,
+    "retries": 0,
+    "secs": 17.4
+   },
+   "secs": 17.5,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "core purpose: showcase Q3 performance, align next quarter goals, highlight risks, key metrics, action items"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Core purpose: showcase Q3 performance, Align next quarter goals, Highlight risks, Key metrics, Action items.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o2"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "group report tasks into 30\u2011min blocks for late\u2011afternoon scheduling",
+      "proposal_id": "prop_43ef2f3855"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Create 15\u2011min outline for quarterly report 2026-10-19T18:30",
+      "why": "schedule reporting work in productive late\u2011afternoon window"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Create 15\u2011min outline for quarterly report 2026-10-19T18:30'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Create 15\u2011min experiment for compact daily snapshot view 2026-10-19T17:00",
+      "why": "schedule similar reporting work in productive late\u2011afternoon"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Create 15\u2011min experiment for compact daily snapshot view 2026-10-19T17:00'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Create 30\u2011min block for report tasks 2026-10-19T19:00",
+      "why": "schedule detailed reporting work after outline in productive late\u2011afternoon"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Create 30\u2011min block for report tasks 2026-10-19T19:00'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i10"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "why": "let time reach 18:30 outline",
+      "now": "2026-10-19T18:51"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "Core purpose: showcase Q3 performance, Align next quarter goals, Highlight risks, Key metrics, Action items"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Core purpose: showcase Q3 performance, Align next quarter goals, Highlight risks, Key metrics, Action items.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "report_experiment.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Tobias//Calendar//EN\nBEGIN:VEVENT\nUID:1@example.com\nDTSTAMP:20261019T180000Z\nDTSTART:20261019T183000Z\nDTEND:20261019T184500Z\nSUMMARY:15\u2011min outline for quarterly report\nEND:VEVENT\nBEGIN:VEVENT\nUID:2@example.com\nDTSTAMP:20261019T180000Z\nDTSTART:20261019T190000Z\nD"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_257e6568e0 preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_257e6568e0",
+      "why": "confirm imported schedule"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_257e6568e0 applied (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "workweek",
+      "why": "see afternoon blocks for report tasks"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i8",
+      "why": "outline completed"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0067
+  },
+  {
+   "seed": 288536,
+   "persona": "Tobias",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T18:10",
+   "checks": 47,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 8,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 8,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 4,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 9,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 3,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "dump": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "chat": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "done": {
+     "tried": 5,
+     "accepted": 5
+    },
+    "clock": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 4,
+    "question": 1,
+    "proposal": 1,
+    "plan_preview": 1,
+    "reminder": 3
+   },
+   "usage": {
+    "prompt": 23938,
+    "completion": 4548,
+    "calls": 14,
+    "retries": 0,
+    "secs": 16.5
+   },
+   "secs": 16.5,
+   "steps": [
+    {
+     "action": {
+      "action": "command",
+      "text": "prepare quarterly report outline 15min 2026-10-19T18:30",
+      "why": "schedule 15\u2011min outline now in productive window"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Prepare quarterly report outline 15min 2026-10-19T18:30'. | [question] This one sounds big. Want me to break 'Prepare quarterly report outline 15min 2026-10-19T18:30' into small steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "No, keep it as is."
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Okay, I'll keep it as one task.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1",
+      "why": "clear completed task"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i2",
+      "why": "completed 15\u2011min outline in productive window"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Define core purpose of quarterly report 2026-10-19T18:45",
+      "why": "identify purpose before full report"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Define core purpose of quarterly report 2026-10-19T18:45'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "dismiss",
+      "why": "keep current task granularity",
+      "proposal_id": "prop_5826dea14f"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i7",
+      "why": "core purpose defined"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o2",
+      "why": "completed retro brainstorm"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "why": "let time pass to see next prompts",
+      "now": "2026-10-19T19:02"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Schedule quarterly report data gathering 2026-10-20T17:00",
+      "why": "set up next reporting slot in late afternoon"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Schedule quarterly report data gathering 2026-10-20T17:00'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "quick_events.ics",
+      "content": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Tobias//CalendarApp//EN\nBEGIN:VEVENT\nUID:1@example.com\nDTSTAMP:20261019T180000Z\nDTSTART:20261019T193000Z\nDTEND:20261019T200000Z\nSUMMARY:Team sync\nEND:VEVENT\nBEGIN:VEVENT\nUID:2@example.com\nDTSTAMP:20261019T180000Z\nDTSTART:20261020T180000Z\nDTEND:20261020T190000Z\nS"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_6a83143df7 preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_6a83143df7",
+      "why": "add team sync and report review for reporting workflow"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_6a83143df7 applied (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "next_day",
+      "now": "2026-10-20T18:00"
+     },
+     "status": 200,
+     "secs": 0.04,
+     "result": "HTTP 200 | [reminder] It's time for 'Team sync' (19:30). | [reminder] 'Team sync' wraps up in 10 minutes. | [reminder] It's time for 'Report review' (18:00).",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "itm_123eb4585a",
+      "why": "complete report review now"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0063
+  },
+  {
+   "seed": 288537,
+   "persona": "Ravi",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T10:30",
+   "checks": 49,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 8,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 8,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 3,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 2,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 9,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 5,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "dump": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "chat": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "done": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "clock": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "proposal": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "learn": {
+     "tried": 1,
+     "accepted": 1
+    }
+   },
+   "features": {
+    "info": 3,
+    "proposal": 2,
+    "reminder": 4,
+    "postponed": 1
+   },
+   "usage": {
+    "prompt": 21857,
+    "completion": 4581,
+    "calls": 14,
+    "retries": 0,
+    "secs": 15.900000000000002
+   },
+   "secs": 15.9,
+   "steps": [
+    {
+     "action": {
+      "action": "command",
+      "text": "write memoir prompt: favorite student memory 15min at 10:45"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Write memoir prompt: favorite student memory 15min at'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i2"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "learn",
+      "why": "to help schedule future memoir writing sessions in my productive mid\u2011morning"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "dismiss",
+      "proposal_id": "prop_f2acd3c6bf"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-19T10:48"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Write memoir prompt: first day of teaching memory 15min at 2026-10-20T10:30"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Write memoir prompt: first day of teaching memory 15min at 2026-10-20T10:30'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "next_day",
+      "why": "to see tomorrow's memoir writing prompt",
+      "now": "2026-10-20T10:15"
+     },
+     "status": 200,
+     "secs": 0.02,
+     "result": "HTTP 200 | [reminder] It's time for 'call old friends for catch\u2011up' (14:00). | [reminder] 'call old friends for catch\u2011up' wraps up in 10 minutes. | [postponed] No worries, I moved 'call old friends for catch\u2011up' to Tue Oct 20 at 10:00. Undo if you'd rather keep it.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1",
+      "why": "finished call"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "why": "let the 15\u2011minute memoir prompt start",
+      "now": "2026-10-20T10:51"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "dismiss",
+      "proposal_id": "prop_7bc7d797ea"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i4",
+      "why": "finished the 15\u2011minute memoir prompt"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "Write memoir prompt: favorite student memory 15min at 2026-10-21 10:30",
+      "why": "schedule next 15\u2011minute memoir writing in my productive mid\u2011morning"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added 'Write memoir prompt: favorite student memory 15min at'.",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.006
+  }
+ ]
+}

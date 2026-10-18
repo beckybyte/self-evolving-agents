@@ -1,0 +1,1188 @@
+{
+ "app_dir": "runs/demo/app_v3a5",
+ "split": "fit",
+ "seed_base": null,
+ "model": "crusoe:openai/gpt-oss-120b",
+ "mean_pass_rate": 0.9908,
+ "pooled_pass_rate": 0.9908,
+ "per_invariant": {
+  "http": {
+   "checks": 56,
+   "violations": 0
+  },
+  "no_guilt": {
+   "checks": 39,
+   "violations": 0
+  },
+  "one_question": {
+   "checks": 39,
+   "violations": 0
+  },
+  "breakdown_shape": {
+   "checks": 2,
+   "violations": 0
+  },
+  "delete_preview": {
+   "checks": 20,
+   "violations": 0
+  },
+  "proposal_number": {
+   "checks": 4,
+   "violations": 0
+  },
+  "no_hidden_item": {
+   "checks": 39,
+   "violations": 0
+  },
+  "dump_fragments": {
+   "checks": 11,
+   "violations": 2
+  },
+  "names_task": {
+   "checks": 3,
+   "violations": 0
+  },
+  "clock_followthrough": {
+   "checks": 1,
+   "violations": 0
+  },
+  "no_lost_item": {
+   "checks": 2,
+   "violations": 0
+  },
+  "undo_exact": {
+   "checks": 2,
+   "violations": 0
+  }
+ },
+ "coverage": {
+  "command": [
+   8,
+   8
+  ],
+  "dump": [
+   11,
+   11
+  ],
+  "chat": [
+   13,
+   13
+  ],
+  "done": [
+   4,
+   4
+  ],
+  "clock": [
+   2,
+   2
+  ],
+  "proposal": [
+   4,
+   4
+  ],
+  "undo": [
+   2,
+   2
+  ],
+  "plan": [
+   4,
+   4
+  ],
+  "import": [
+   1,
+   1
+  ],
+  "view": [
+   7,
+   7
+  ],
+  "learn": [
+   0,
+   0
+  ]
+ },
+ "features": {
+  "info": 21,
+  "question": 13,
+  "proposal": 4,
+  "breakdown": 2,
+  "reminder": 2,
+  "postponed": 1,
+  "plan_preview": 5
+ },
+ "sim_cost_usd": 0.0267,
+ "wall_secs": 18.3,
+ "episodes": [
+  {
+   "seed": 0,
+   "persona": "Iris",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T19:30",
+   "checks": 50,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 11,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 11,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 1,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 2,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 8,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 2,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "dump": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "chat": {
+     "tried": 7,
+     "accepted": 7
+    },
+    "done": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 3,
+    "question": 7,
+    "proposal": 1,
+    "breakdown": 1
+   },
+   "usage": {
+    "prompt": 27820,
+    "completion": 3768,
+    "calls": 14,
+    "retries": 0,
+    "secs": 14.499999999999998
+   },
+   "secs": 14.7,
+   "steps": [
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "portfolio ideas, sketch UI for app, research UX job listings, gather old design work, set up Behance profile, create simple homepage mockup"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Portfolio ideas, Sketch UI for app, Research UX job listings, Gather old design work, Set up Behance profile, Cre | [question] This one sounds big. Want me to break 'Portfolio ideas' into small steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "yes, maybe make the first step tiny"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [question] Why does this matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "I want a creative job that feels expressive, so building a portfolio helps me show that."
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [question] What does done look like for you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "a simple page with my best pieces, ready to share"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [question] Is there a deadline, a day you'd like it finished by?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "no real deadline, just when I can finish a simple page, maybe sometime next week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [breakdown] Here's a gentle plan for 'Portfolio ideas'. Does this look ok?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "looks good"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Done, the first tiny step is 'List the projects you are proudest of'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "curious to see evening lane",
+      "proposal_id": "prop_ec694944dd"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "redesign app for local charity, branding package for coffee shop, illustration series for children's book, website revamp for freelance portfolio, photo series of city nightscapes"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Redesign app for local charity, Branding package for coffee shop, Illustration series for children's book, Websit | [question] This one sounds big. Want me to break 'Website revamp for freelance portfolio' into small steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i19"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i27",
+      "text": "yes, please break it into smaller steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [question] Why does this matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i27",
+      "text": "to prove I can design, get a creative UX job"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [question] What does done look like for you?",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0064
+  },
+  {
+   "seed": 0,
+   "persona": "Iris",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T19:30",
+   "checks": 59,
+   "violations": 0,
+   "pass_rate": 1.0,
+   "steps_clean": 1.0,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 12,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 12,
+     "violations": 0
+    },
+    "breakdown_shape": {
+     "checks": 1,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 3,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 9,
+     "violations": 0
+    },
+    "names_task": {
+     "checks": 3,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 3,
+     "violations": 0
+    },
+    "clock_followthrough": {
+     "checks": 1,
+     "violations": 0
+    }
+   },
+   "violation_list": [],
+   "coverage": {
+    "command": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "dump": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "chat": {
+     "tried": 5,
+     "accepted": 5
+    },
+    "done": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "clock": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 4,
+    "question": 4,
+    "proposal": 1,
+    "breakdown": 1,
+    "reminder": 2,
+    "postponed": 1
+   },
+   "usage": {
+    "prompt": 29532,
+    "completion": 4477,
+    "calls": 14,
+    "retries": 0,
+    "secs": 16.2
+   },
+   "secs": 16.2,
+   "steps": [
+    {
+     "action": {
+      "action": "done",
+      "item_id": "o1",
+      "why": "mark dentist call as done"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "portfolio outline, pick a project to showcase, find UI kit, set up Figma file, research UX case study format, feeling anxious about starting, want to work after 8pm, need a tiny first step, maybe just open Figma"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Portfolio outline, Pick a project to showcase, Find UI kit, Set up Figma file, Research UX case study format, Fee | [question] This one sounds big. Want me to break 'Portfolio outline' into small steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "yes",
+      "why": "break it into tiny steps"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [question] Why does this matter to you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "I want a creative job in UX, need a portfolio to prove I can design, and it feels like a concrete step toward changing careers, which eases my anxiety about not having anything tangible."
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [question] What does done look like for you?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "Done means I have a written outline with the main sections (intro, problem, process, solution, results) and a quick sketch of the flow, so I can start filling in details."
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [question] Is there a deadline, a day you'd like it finished by?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "maybe by next Friday evening, if I can get to it after 8pm"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [breakdown] Here's a gentle plan for 'Portfolio outline'. Does this look ok?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i2",
+      "text": "yes, looks good"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Done, the first tiny step is 'List the projects you are proudest of'.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "redesign e-commerce site, mobile health app, volunteer community portal, personal blog redesign, onboarding flow for startup"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Redesign e-commerce site, Mobile health app, Volunteer community portal, Personal blog redesign, Onboarding flow ",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "evening view fits my after\u20118\u202fpm productivity",
+      "proposal_id": "prop_0b6f276a85"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "done",
+      "item_id": "i8",
+      "why": "starting after 8pm"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week",
+      "why": "check my evening tasks"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "a_bit",
+      "now": "2026-10-19T19:49"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "clock",
+      "advance": "few_hours",
+      "why": "wait until after 8\u202fpm to start the first tiny step",
+      "now": "2026-10-19T23:49"
+     },
+     "status": 200,
+     "secs": 0.02,
+     "result": "HTTP 200 | [reminder] It's time for 'List the projects you are proudest of' (21:00). | [reminder] 'List the projects you are proudest of' wraps up in 10 minutes. | [postponed] No worries, I moved 'List the projects you are proudest of' to Tue Oct 20 at 20:00. Undo if you'd rather keep it.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "Redesign e-commerce site, Mobile health app, Volunteer community portal, Personal blog redesign, Onboarding flow for startup"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Redesign e-commerce site, Mobile health app, Volunteer community portal, Personal blog redesign, Onboarding flow ",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0071
+  },
+  {
+   "seed": 2,
+   "persona": "Jordan",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T13:00",
+   "checks": 54,
+   "violations": 1,
+   "pass_rate": 0.9815,
+   "steps_clean": 0.929,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 9,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 9,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 8,
+     "violations": 0
+    },
+    "no_lost_item": {
+     "checks": 1,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 9,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 3,
+     "violations": 1
+    }
+   },
+   "violation_list": [
+    {
+     "step": 1,
+     "invariant": "dump_fragments",
+     "detail": "12/12 fragments lost: 'client deadlines looming' (lost ['client', 'deadlines', 'looming']); 'Lumen call feels tight' (lost ['lumen', 'call', 'feels', 'tight']); 'need to shift it' (lost ['shift']); created titles: []"
+    }
+   ],
+   "coverage": {
+    "command": {
+     "tried": 4,
+     "accepted": 4
+    },
+    "dump": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "chat": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "done": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "plan": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "import": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "view": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 7,
+    "plan_preview": 3,
+    "proposal": 1,
+    "question": 2
+   },
+   "usage": {
+    "prompt": 23893,
+    "completion": 4822,
+    "calls": 14,
+    "retries": 0,
+    "secs": 16.600000000000005
+   },
+   "secs": 16.6,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "client deadlines looming, Lumen call feels tight, need to shift it, weekend empty for a spontaneous road trip, Theo drinks could be moved, pricing task still hanging, course reading done, sketch thumbnails done, tax receipts sorted, website update finished, feeling scattered, want to try a day view "
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] I can clear 1 item(s). Shall I apply it? | plan plan_b7c33a31d9 preview (1 ops)",
+     "violations": [
+      {
+       "step": 1,
+       "invariant": "dump_fragments",
+       "detail": "12/12 fragments lost: 'client deadlines looming' (lost ['client', 'deadlines', 'looming']); 'Lumen call feels tight' (lost ['lumen', 'call', 'feels', 'tight']); 'need to shift it' (lost ['shift']); created titles: []"
+      }
+     ]
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_b7c33a31d9",
+      "why": "clear Theo drinks to free weekend"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_b7c33a31d9 applied (1 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "move o0 to 2026-10-28T10:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] I couldn't find that one. Which item do you mean?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "reschedule o0 to 2026-10-28 10:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] I couldn't find that one. Which item do you mean?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "reschedule client call Lumen to 2026-10-22 10:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Moved 'client call Lumen' to Thu Oct 22 at 15:00.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "client deadlines looming, Lumen call shifted to Thu, need to free weekend for a spontaneous road trip, Theo drinks cleared, pricing task still pending, course reading done, sketch ideas swirling, trying a new view soon"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Client deadlines looming, Lumen call shifted to, Need to free weekend for a spontaneous road trip, Theo drinks cl",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "proposal_id": "prop_894e6f6ab2"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "clear weekend"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] I can clear 0 item(s). Shall I apply it? | plan plan_2f62caf476 preview (0 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "import",
+      "filename": "weekend_trip.ics",
+      "content": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//MyApp//EN\r\nBEGIN:VEVENT\r\nUID:trip-start-20261021@example.com\r\nDTSTAMP:20261019T130000Z\r\nDTSTART:20261021T080000\r\nDTEND:20261021T120000\r\nSUMMARY:Road trip start\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:trip-end-20261022@example.com\r\nDTSTAMP:20261019T130000Z\r\nDTSTART:2026"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_edb4ef50b2 preview (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_edb4ef50b2",
+      "why": "apply weekend trip"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_edb4ef50b2 applied (2 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "day",
+      "why": "try a new view"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "client sketches swirling, pricing anxiety for 2027, course reading deadline looming, weekend road trip excitement, need to move some deadlines, Lumen call prep, trying new view curiosity, brain\u2011dump of the week"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Client sketches swirling, Pricing anxiety for 2027, Course reading deadline looming, Weekend road trip excitement | [question] This one sounds big. Want me to break 'Need to move some deadlines' into small steps?",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "chat",
+      "item_id": "i15",
+      "text": "yes, make step 2 smaller"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [question] Why does this matter to you?",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0065
+  },
+  {
+   "seed": 2,
+   "persona": "Jordan",
+   "model": "crusoe:openai/gpt-oss-120b",
+   "start_now": "2026-10-19T13:00",
+   "checks": 55,
+   "violations": 1,
+   "pass_rate": 0.9818,
+   "steps_clean": 0.929,
+   "per_invariant": {
+    "http": {
+     "checks": 14,
+     "violations": 0
+    },
+    "no_guilt": {
+     "checks": 7,
+     "violations": 0
+    },
+    "one_question": {
+     "checks": 7,
+     "violations": 0
+    },
+    "delete_preview": {
+     "checks": 7,
+     "violations": 0
+    },
+    "no_lost_item": {
+     "checks": 1,
+     "violations": 0
+    },
+    "undo_exact": {
+     "checks": 2,
+     "violations": 0
+    },
+    "proposal_number": {
+     "checks": 1,
+     "violations": 0
+    },
+    "no_hidden_item": {
+     "checks": 13,
+     "violations": 0
+    },
+    "dump_fragments": {
+     "checks": 3,
+     "violations": 1
+    }
+   },
+   "violation_list": [
+    {
+     "step": 1,
+     "invariant": "dump_fragments",
+     "detail": "13/13 fragments lost: 'client call Lumen on Friday 3pm' (lost ['client', 'call', 'lumen']); 'drinks with Theo Saturday night' (lost ['drinks', 'theo']); 'need to shift Lumen call to Thursday morning' (lost ['shift', 'lumen', 'call']); created titles: []"
+    }
+   ],
+   "coverage": {
+    "command": {
+     "tried": 4,
+     "accepted": 4
+    },
+    "dump": {
+     "tried": 3,
+     "accepted": 3
+    },
+    "chat": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "done": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "clock": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "proposal": {
+     "tried": 1,
+     "accepted": 1
+    },
+    "undo": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "plan": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "import": {
+     "tried": 0,
+     "accepted": 0
+    },
+    "view": {
+     "tried": 2,
+     "accepted": 2
+    },
+    "learn": {
+     "tried": 0,
+     "accepted": 0
+    }
+   },
+   "features": {
+    "info": 7,
+    "plan_preview": 2,
+    "proposal": 1
+   },
+   "usage": {
+    "prompt": 24417,
+    "completion": 5038,
+    "calls": 14,
+    "retries": 0,
+    "secs": 17.9
+   },
+   "secs": 18.0,
+   "steps": [
+    {
+     "action": {
+      "action": "dump",
+      "text": "client call Lumen on Friday 3pm, drinks with Theo Saturday night, need to shift Lumen call to Thursday morning, weekend empty for a short trip to the coast, brain swirling about pricing for 2027, course reading notes, tax receipts sorted, update website done, color pass done, thumbnail sketches read"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] I can clear 1 item(s). Shall I apply it? | plan plan_e0e1c89caf preview (1 ops)",
+     "violations": [
+      {
+       "step": 1,
+       "invariant": "dump_fragments",
+       "detail": "13/13 fragments lost: 'client call Lumen on Friday 3pm' (lost ['client', 'call', 'lumen']); 'drinks with Theo Saturday night' (lost ['drinks', 'theo']); 'need to shift Lumen call to Thursday morning' (lost ['shift', 'lumen', 'call']); created titles: []"
+      }
+     ]
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_e0e1c89caf",
+      "why": "clear drinks for weekend trip"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_e0e1c89caf applied (1 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "client call Lumen shift to Thursday morning, pricing brainstorm for 2027, course reading notes, sketch ideas for new client, weekend coast trip itinerary, curious about trying a new calendar view"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Client call Lumen shift to, Pricing brainstorm for 2027, Course reading notes, Sketch ideas for new client, Weeke",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "month",
+      "why": "try a new calendar view"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "proposal",
+      "op": "accept",
+      "why": "group tasks into focused blocks",
+      "proposal_id": "prop_e63071eb17"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "move client call Lumen to Thursday 09:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Moved 'client call Lumen' to Thu Oct 22 at 15:00.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "undo",
+      "undo_id": "undo_70abe2a275",
+      "why": "wrong time"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "view",
+      "type": "week",
+      "why": "trying a new view"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "empty out my weekend for a trip"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] I can clear 0 item(s) and add 'Trip'. Shall I apply it? | plan plan_b0eb73f288 preview (1 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "plan",
+      "op": "apply",
+      "plan_id": "plan_b0eb73f288",
+      "why": "yes, want the trip"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | plan plan_b0eb73f288 applied (1 ops)",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "move client call Lumen to Thursday 09:00",
+      "why": "correct time"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Moved 'client call Lumen' to Thu Oct 22 at 15:00.",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "dump",
+      "text": "client call Lumen shift to 09:00, need to confirm time, sketch ideas for new client, pricing brainstorm for 2027, course reading notes, weekend coast trip itinerary, curious about trying a new calendar view, maybe try day view, consider importing external events"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Added: Client call Lumen shift to, Need to confirm time, Sketch ideas for new client, Pricing brainstorm for 2027, Cours",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "undo",
+      "undo_id": "undo_a1854bb85c",
+      "why": "move was wrong, need 09:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200",
+     "violations": []
+    },
+    {
+     "action": {
+      "action": "command",
+      "text": "move client call Lumen to Thursday 09:00"
+     },
+     "status": 200,
+     "secs": 0.0,
+     "result": "HTTP 200 | [info] Moved 'Client call Lumen shift to' to Thu Oct 22 at 09:00.",
+     "violations": []
+    }
+   ],
+   "cost_usd": 0.0067
+  }
+ ]
+}
