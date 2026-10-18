@@ -265,4 +265,14 @@ def test_usersim_term_in_fitness(tmp_path, monkeypatch):
     sj = json.loads((tmp_path / "ev" / "sim.json").read_text())
     assert len(sj["per_run"]) == 2 and all(r["seed_base"] >= 10**6 for r in sj["per_run"]) and sj["per_run"][0]["violations"] == {"x": {"checks": 3, "violations": 1}}
     assert "usersim.json" in task.workspace_files(tmp_path / "ev")
-    assert "usersim_pass_rate" in task.fitness_spec().formula()
+    assert "usersim_clean_episode_rate" in task.fitness_spec().formula()
+
+
+def test_summarize_child_reports_usersim():
+    from sea.tasks.build import BuildTask
+    ev = {"reports": {"fit": {"score": 0.9, "per_run": [0.9, 0.9], "tokens_per_sample": 10, "files": [], "fail_reasons": {},
+                              "failed_checks": {}}}, "holdout": {"score": 0.8},
+          "sim": {"score": 0.55, "per_run": [{"run": "r0", "score": 0.5, "violations": {"needs_yes": {"violations": 2, "checks": 3}}},
+                                             {"run": "r1", "score": 0.0, "reason": "usersim_error TimeoutExpired"}]}}
+    txt = BuildTask.summarize_child(None, ev)
+    assert "clean-episode rate 0.55" in txt and "'needs_yes': 2" in txt and "usersim_error" in txt

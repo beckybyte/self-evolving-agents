@@ -265,7 +265,7 @@ class BuildTask(Task):
         w = self.sim_weight
         terms = [Term("score:fit", 1.0 - w, label="score(fit)")]
         if w:
-            terms.append(Term("score:sim", w, label="usersim_pass_rate(fresh seeds)"))
+            terms.append(Term("score:sim", w, label="usersim_clean_episode_rate(fresh seeds)"))
         return FitnessSpec(terms + [Term("tokens", -self.lam_tokens, 1000, "team_tokens/1000")])
 
     def run_usersim(self, out: Path) -> dict:
@@ -440,9 +440,12 @@ class BuildTask(Task):
         fit, hold = (json.loads(merged[s].read_text()) for s in ("fit", "holdout"))
         metrics = {"score:fit": fit["score"], "tokens": fit["tokens_per_sample"], "score:holdout": hold["score"],
                    "fit_min": min(fit["per_run"]), "fit_max": max(fit["per_run"])}
+        sim = None
         if self.sim_weight:
-            metrics["score:sim"] = self.run_usersim(out)["score"]
-        return {"reports": {"fit": fit}, "holdout": hold, "metrics": metrics, "fitness": self.fitness_spec()(metrics)}
+            sim = self.run_usersim(out)
+            metrics["score:sim"] = sim["score"]
+        return {"reports": {"fit": fit}, "holdout": hold, "metrics": metrics, "fitness": self.fitness_spec()(metrics),
+                **({"sim": sim} if sim is not None else {})}
 
     def _merge(self, out: Path, split: str, reps: list[dict]):
         rows = []
@@ -513,7 +516,10 @@ class BuildTask(Task):
                 + (f"; team error {r['team_error']}" if r.get("team_error") else "")
                 + (f"; roles cut off at max_tokens per run {r['truncated_roles']}" if any(r.get("truncated_roles") or []) else "")
                 + (f"; roles that emitted nothing per run {r['empty_roles']}" if any(r.get("empty_roles") or []) else "")
-                + (f"; roles whose model call failed (timeout/error) per run {r['failed_roles']}" if any(r.get("failed_roles") or []) else ""))
+                + (f"; roles whose model call failed (timeout/error) per run {r['failed_roles']}" if any(r.get("failed_roles") or []) else "")
+                + (f"; user simulator clean-episode rate {ev['sim']['score']} (violated invariants per run: "
+                   f"{[{k: v.get('violations') for k, v in (x.get('violations') or {}).items()} or x.get('reason', {}) for x in ev['sim'].get('per_run', [])]})"
+                   if ev.get("sim") else ""))
 
     def cases(self, rows: list[dict], role: str, k_fail: int = 6, k_ok: int = 2) -> str:
         rows = sorted(rows, key=lambda r: r["score"])
