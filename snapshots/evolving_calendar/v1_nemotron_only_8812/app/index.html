@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolving Calendar — Iris</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0; padding: 0;
+    background: #f7f5f0;
+    color: #2d2d2d;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  header {
+    background: #ffffff;
+    border-bottom: 1px solid #e4dcc8;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    color: #5c4a3a;
+    font-weight: 600;
+  }
+  main {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg {
+    max-width: 70%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+  .msg.agent {
+    background: #eef3ea;
+    color: #2d2d2d;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .msg.person {
+    background: #ffffff;
+    color: #2d2d2d;
+    align-self: flex-end;
+    border: 1px solid #d8d0c0;
+    border-bottom-right-radius: 4px;
+  }
+  .msg .meta {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 4px;
+    display: block;
+  }
+  .steps {
+    margin-top: 8px;
+    padding-left: 18px;
+    font-size: 13px;
+    color: #4a4a4a;
+  }
+  .steps li { margin: 4px 0; }
+  .controls {
+    background: #ffffff;
+    border-top: 1px solid #e4dcc8;
+    padding: 12px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  #chat-input {
+    flex: 1;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid #d8d0c0;
+    border-radius: 22px;
+    font: inherit;
+    resize: none;
+    outline: none;
+  }
+  #chat-input:focus { border-color: #8fa88a; }
+  button {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font: inherit;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  button.send {
+    background: #8fa88a;
+    color: #ffffff;
+  }
+  button.send:hover { background: #7d9578; }
+  button.secondary {
+    background: #f0ece2;
+    color: #5c4a3a;
+  }
+  button.secondary:hover { background: #e4dcc8; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .dump-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #5c4a3a;
+  }
+  .error-msg {
+    color: #b3402e;
+    font-size: 12px;
+    margin: 0 20px 8px 20px;
+    display: none;
+  }
+  .focus-card {
+    background: #ffffff;
+    border: 1px solid #e4dcc8;
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .focus-card h2 {
+    margin: 0;
+    font-size: 15px;
+    color: #5c4a3a;
+  }
+  .focus-card .why {
+    font-size: 13px;
+    color: #6b6b6b;
+    font-style: italic;
+  }
+  .focus-card .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .timer {
+    font-size: 12px;
+    color: #8fa88a;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .timeline {
+    background: #ffffff;
+    border: 1px solid #e4dcc8;
+    border-radius: 12px;
+    margin: 0 20px 20px 20px;
+  }
+  .timeline h2 {
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #5c4a3a;
+    border-bottom: 1px solid #eef0e8;
+  }
+  .timeline-list { padding: 0; margin: 0; list-style: none; }
+  .timeline-item {
+    padding: 10px 16px;
+    border-bottom: 1px solid #f2efe8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  .timeline-item:last-child { border-bottom: none; }
+  .timeline-item .title { font-weight: 500; }
+  .timeline-item .when { color: #6b6b6b; }
+  .timeline-item .kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #8fa88a; margin-right: 8px; }
+  .empty {
+    text-align: center;
+    color: #8a8a8a;
+    padding: 20px;
+    font-size: 14px;
+  }
+  .btn-small {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Evolving Calendar</h1>
+</header>
+<main>
+  <div class="error-msg" id="error"></div>
+  <div class="chat-log" id="chat-log"></div>
+  <div class="focus-card" id="focus" style="display:none;">
+    <h2 id="focus-title"></h2>
+    <div class="why" id="focus-why"></div>
+    <div class="actions">
+      <button class="send" id="focus-start">Start 5 minutes</button>
+      <span class="timer" id="focus-timer"></span>
+    </div>
+  </div>
+  <div class="timeline" id="timeline" style="display:none;">
+    <h2 id="timeline-label">Today</h2>
+    <ul class="timeline-list" id="timeline-list"></ul>
+  </div>
+  <div class="controls">
+    <label class="dump-row">
+      <input type="checkbox" id="dump-mode"> Brain dump
+    </label>
+    <textarea id="chat-input" rows="1" placeholder="What's on your mind?"></textarea>
+    <button class="send" id="send-btn">Send</button>
+  </div>
+</main>
+<script>
+const API = "";
+let pendingItemId = null;
+let focusTimer = null;
+let focusSeconds = 0;
+
+function esc(t){ return String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function fmt(iso){
+  if(!iso) return "";
+  const d = new Date(iso + ":00");
+  return d.toLocaleString(undefined, {weekday:"short", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"});
+}
+
+function showError(msg){
+  const el = document.getElementById("error");
+  el.textContent = msg || "";
+  el.style.display = msg ? "block" : "none";
+}
+
+async function fetchJson(path, body){
+  const opts = body ? {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)} : {method:"GET"};
+  const r = await fetch(path, opts);
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+async function loadState(){
+  const st = await fetchJson("/api/state");
+  renderMessages(st.messages || []);
+  renderFocus(st);
+  renderTimeline(st);
+  return st;
+}
+
+function renderMessages(msgs){
+  const log = document.getElementById("chat-log");
+  log.innerHTML = "";
+  (msgs || []).forEach(m => {
+    const div = document.createElement("div");
+    div.className = "msg " + (m.role || "agent");
+    const text = esc(m.text || "");
+    let html = text;
+    if(m.kind === "breakdown" && m.steps && m.steps.length){
+      html += "<ul class='steps'>" + m.steps.map(s => "<li>" + esc(s.title) + " (" + s.estimate_min + " min)</li>").join("") + "</ul>";
+    }
+    div.innerHTML = html + "<span class='meta'>" + (m.at ? fmt(m.at) : "") + " · " + (m.kind || "") + "</span>";
+    if(m.undo_id){
+      const b = document.createElement("button");
+      b.className = "btn-small secondary";
+      b.textContent = "Undo";
+      b.onclick = async () => {
+        try {
+          await fetchJson("/api/undo", {undo_id: m.undo_id});
+          await loadState();
+        } catch(e){ showError("Undo failed: " + e.message); }
+      };
+      div.appendChild(b);
+    }
+    log.appendChild(div);
+  });
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderFocus(st){
+  const card = document.getElementById("focus");
+  if(!st || !st.item){ card.style.display = "none"; return; }
+  card.style.display = "";
+  document.getElementById("focus-title").textContent = st.item.title || "(untitled)";
+  const whyEl = document.getElementById("focus-why");
+  if(st.why){ whyEl.textContent = "Why: " + st.why; whyEl.style.display = ""; } else { whyEl.style.display = "none"; }
+  const btn = document.getElementById("focus-start");
+  btn.onclick = () => {
+    focusSeconds = 300;
+    document.getElementById("focus-timer").textContent = "5:00";
+    btn.disabled = true;
+    if(focusTimer) clearInterval(focusTimer);
+    focusTimer = setInterval(() => {
+      focusSeconds--;
+      if(focusSeconds <= 0){
+        clearInterval(focusTimer);
+        focusTimer = null;
+        document.getElementById("focus-timer").textContent = "Done!";
+        btn.disabled = false;
+        return;
+      }
+      const m = Math.floor(focusSeconds / 60);
+      const s = focusSeconds % 60;
+      document.getElementById("focus-timer").textContent = m + ":" + (s < 10 ? "0" : "") + s;
+    }, 1000);
+  };
+}
+
+function renderTimeline(st){
+  const tl = document.getElementById("timeline");
+  const list = document.getElementById("timeline-list");
+  if(!st || !st.now){ tl.style.display = "none"; return; }
+  const nowDate = st.now.slice(0,10);
+  const d = new Date(nowDate + "T00:00:00");
+  const tomorrow = new Date(d);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tStr = tomorrow.toISOString().slice(0,10);
+  const items = (st.items || []).filter(it => it.status === "open" && it.start && (it.start.slice(0,10) === nowDate || it.start.slice(0,10) === tStr));
+  items.sort((a,b) => (a.start || "").localeCompare(b.start || ""));
+  if(items.length === 0){ tl.style.display = "none"; return; }
+  tl.style.display = "";
+  document.getElementById("timeline-label").textContent = "Today & tomorrow";
+  list.innerHTML = "";
+  items.forEach(it => {
+    const li = document.createElement("li");
+    li.className = "timeline-item";
+    li.innerHTML = "<span><span class='kind'>" + esc(it.kind) + "</span><span class='title'>" + esc(it.title) + "</span><br><span class='when'>" + fmt(it.start) + (it.end ? " – " + fmt(it.end) : "") + "</span></span>";
+    const b = document.createElement("button");
+    b.className = "btn-small send";
+    b.textContent = "Done";
+    b.onclick = async () => {
+      try {
+        await fetchJson("/api/items/" + encodeURIComponent(it.id) + "/done", {});
+        await loadState();
+      } catch(e){ showError("Done failed: " + e.message); }
+    };
+    li.appendChild(b);
+    list.appendChild(li);
+  });
+}
+
+async function sendMessage(){
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if(!text) return;
+  const dump = document.getElementById("dump-mode").checked;
+  input.value = "";
+  input.style.height = "auto";
+  try {
+    let res;
+    if(pendingItemId){
+      res = await fetchJson("/api/chat", {item_id: pendingItemId, text: text});
+    } else if(dump){
+      res = await fetchJson("/api/command", {text: text, mode: "dump"});
+    } else {
+      res = await fetchJson("/api/command", {text: text, mode: "command"});
+    }
+    const st = await loadState();
+    if(res && res.messages && res.messages.length){
+      const last = res.messages[res.messages.length - 1];
+      if((last.kind === "question" || last.kind === "breakdown" || last.kind === "checkin") && last.item_id){
+        pendingItemId = last.item_id;
+      } else {
+        pendingItemId = null;
+      }
+    } else {
+      pendingItemId = null;
+    }
+    showError("");
+  } catch(e){
+    showError(e.message || "Request failed");
+  }
+}
+
+document.getElementById("send-btn").onclick = sendMessage;
+document.getElementById("chat-input").addEventListener("keydown", function(e){
+  if(e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+document.getElementById("chat-input").addEventListener("input", function(){
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 120) + "px";
+});
+
+loadState().catch(e => showError("Startup failed: " + e.message));
+</script>
+</body>
+</html>

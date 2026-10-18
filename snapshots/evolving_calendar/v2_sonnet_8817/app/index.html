@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evolving Calendar</title>
+<style>
+body{margin:0;padding:16px;font-family:Georgia,"Segoe UI",sans-serif;background:#f4f6f1;color:#3c4a47;line-height:1.4;}
+header{margin-bottom:12px;}
+h1{font-size:22px;margin:0 0 4px;color:#4c6b64;}
+h2{font-size:16px;margin:0 0 8px;color:#5a7a72;}
+.sub{font-size:13px;color:#7b8b87;margin:4px 0;}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;}
+.card{background:#fdfcf7;border:1px solid #e1e4da;border-radius:14px;padding:14px;margin-bottom:14px;}
+#focus{background:#eef5f1;border-color:#c6dcd2;}
+#focus-body{font-size:15px;margin-bottom:8px;}
+.focus-title{font-size:17px;font-weight:bold;color:#3f6059;}
+.focus-parent{font-size:13px;color:#6b8580;}
+.why{font-style:italic;color:#5f7470;}
+#countdown{font-variant-numeric:tabular-nums;color:#4c6b64;margin-left:6px;}
+#chat-log{height:320px;overflow-y:auto;background:#fbfaf5;border:1px solid #e6e3d8;border-radius:12px;padding:8px;}
+.msg{margin:8px 0;padding:8px 10px;border-radius:12px;max-width:88%;}
+.agent{background:#e7f0ec;margin-right:auto;}
+.person{background:#f0ebe0;margin-left:auto;}
+.msg .kind{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#7b8b87;}
+.msg .steps{margin:6px 0 4px 18px;padding:0;font-size:14px;}
+#chat-input{width:100%;min-height:56px;box-sizing:border-box;border:1px solid #cdd6d0;border-radius:10px;padding:8px;font:inherit;background:#ffffff;margin-top:8px;}
+#status{min-height:18px;color:#6d7f7a;font-size:13px;}
+label{font-size:14px;color:#5d6e6a;}
+.plan{background:#f3f1ea;border:1px solid #dcd7c6;border-radius:12px;padding:8px 10px;margin:8px 0;}
+.plan .op{font-size:14px;padding:2px 0;}
+#timeline .row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #ebeee6;}
+#timeline .row.done{opacity:.55;}
+#learned .belief{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;}
+#learned .meta{font-size:13px;color:#6d7f7a;margin:8px 0 0;}
+#activity{max-height:200px;overflow-y:auto;font-size:13px;}
+#activity .event{padding:4px 0;border-bottom:1px solid #eef0e8;white-space:pre-wrap;}
+#proposal{background:#eef6f8;border-color:#bcd8e0;}
+#prop-title{font-size:17px;color:#3d6470;}
+#prop-reason{font-size:14px;color:#4f6a72;}
+#prop-view{font-size:13px;color:#6f8a92;}
+#view-switcher{margin-bottom:4px;}
+#view-switcher button.current{background:#b9d8cc;border-color:#8fbcaa;}
+#view-status{font-size:13px;color:#6d7f7a;}
+button{background:#e2ebe6;border:1px solid #b7c9c1;border-radius:999px;padding:6px 14px;color:#2f4a44;font:inherit;font-size:14px;cursor:pointer;margin:2px;}
+button:hover{background:#d2e3dc;}
+button:disabled{opacity:.5;cursor:default;}
+button.primary{background:#c8e0d5;}
+button.x{padding:2px 9px;background:#f1efe8;border-color:#d7d2c2;}
+textarea,input.text{width:100%;box-sizing:border-box;border:1px solid #cdd6d0;border-radius:10px;padding:8px;font:inherit;background:#fff;margin:6px 0;}
+#import-text{min-height:70px;}
+input[type=checkbox]{accent-color:#7fb3a0;}
+@media (max-width:820px){.layout{grid-template-columns:minmax(0,1fr);}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Evolving Calendar</h1>
+  <p class="sub">A calm place to think out loud. <span id="now-label">Loading...</span></p>
+  <button id="clock-plus" type="button">+1 hour</button>
+  <button id="learn-now" type="button">Learn now</button>
+</header>
+
+<section id="proposal" class="card" hidden>
+  <h2 id="prop-title"></h2>
+  <p id="prop-reason"></p>
+  <p id="prop-view"></p>
+  <button id="prop-try" type="button" class="primary">Try it</button>
+  <button id="prop-not" type="button">Not now</button>
+  <button id="prop-undo" type="button">Undo</button>
+</section>
+
+<div class="layout">
+  <div>
+    <section class="card">
+      <h2>Talk with me</h2>
+      <div id="chat-log"></div>
+      <p id="status"></p>
+      <label><input type="checkbox" id="dump-mode"> Brain dump</label>
+      <textarea id="chat-input" placeholder="Tell me what is on your mind..."></textarea>
+      <button id="send" type="button" class="primary">Send</button>
+    </section>
+    <section class="card">
+      <h2>Import a calendar or notes</h2>
+      <input id="import-filename" class="text" type="text" placeholder="calendar.ics">
+      <textarea id="import-text" placeholder="Paste .ics text or a plain note"></textarea>
+      <button id="import-btn" type="button">Import</button>
+    </section>
+  </div>
+
+  <div>
+    <section id="focus" class="card">
+      <h2>Next tiny step</h2>
+      <div id="focus-body">Nothing loaded yet.</div>
+      <button id="start-5" type="button" class="primary">Start 5 minutes</button>
+      <span id="countdown"></span>
+    </section>
+
+    <section class="card">
+      <h2>Coming up</h2>
+      <div id="timeline"></div>
+    </section>
+
+    <section class="card">
+      <h2>View</h2>
+      <div id="view-switcher">
+        <button type="button" data-view="month">month</button>
+        <button type="button" data-view="week">week</button>
+        <button type="button" data-view="workweek">workweek</button>
+        <button type="button" data-view="day">day</button>
+      </div>
+      <p id="view-status"></p>
+    </section>
+
+    <section class="card">
+      <h2>What I've learned</h2>
+      <div id="learned"></div>
+    </section>
+
+    <section class="card">
+      <h2>Activity</h2>
+      <div id="activity"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var state = null;
+  var lastAccepted = null;
+  var pendingPlans = [];
+  var countdownTimer = null;
+
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+
+  function button(label, handler, cls) {
+    var b = el('button', cls || '', label);
+    b.type = 'button';
+    b.onclick = handler;
+    return b;
+  }
+
+  function showError(msg) {
+    $('status').textContent = msg;
+  }
+
+  async function api(method, path, body) {
+    try {
+      var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      var r = await fetch(path, opts);
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) return { error: (data && data.error) || 'Something went wrong, try again.' };
+      return data || {};
+    } catch (e) {
+      return { error: 'Could not reach the server, try again.' };
+    }
+  }
+
+  // ---------- dates (simulated wall clock, handled in UTC to avoid zone drift) ----------
+  function parts(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso || '');
+    if (!m) return null;
+    return { y: +m[1], mo: +m[2], d: +m[3], h: +m[4], mi: +m[5] };
+  }
+
+  function toDate(p) {
+    return new Date(Date.UTC(p.y, p.mo - 1, p.d, p.h, p.mi));
+  }
+
+  function pad(n) {
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  function addMin(iso, mins) {
+    var p = parts(iso);
+    if (!p) return iso;
+    var dt = toDate(p);
+    dt.setUTCMinutes(dt.getUTCMinutes() + mins);
+    return dt.getUTCFullYear() + '-' + pad(dt.getUTCMonth() + 1) + '-' + pad(dt.getUTCDate()) +
+      'T' + pad(dt.getUTCHours()) + ':' + pad(dt.getUTCMinutes());
+  }
+
+  function dayKey(iso) {
+    return iso ? String(iso).slice(0, 10) : '';
+  }
+
+  function fmtDay(key) {
+    var p = parts(key + 'T00:00');
+    if (!p) return key;
+    var dt = toDate(p);
+    return DAYS[dt.getUTCDay()] + ' ' + MONS[dt.getUTCMonth()] + ' ' + dt.getUTCDate();
+  }
+
+  function fmtWhen(iso) {
+    if (!iso) return '';
+    return fmtDay(dayKey(iso)) + ' ' + String(iso).slice(11, 16);
+  }
+
+  // ---------- chat ----------
+  function chatTarget() {
+    var msgs = (state && state.messages) || [];
+    for (var i = msgs.length - 1; i >= 0; i--) {
+      var m = msgs[i];
+      if (m.role === 'agent' && (m.kind === 'question' || m.kind === 'breakdown' || m.kind === 'checkin')) {
+        return m.item_id || null;
+      }
+    }
+    return null;
+  }
+
+  function messageNode(m) {
+    var role = m.role === 'person' ? 'person' : 'agent';
+    var node = el('div', 'msg ' + role + ' kind-' + (m.kind || 'info'));
+    node.appendChild(el('div', 'kind', role === 'person' ? 'You' : 'Agent, ' + (m.kind || 'info')));
+    node.appendChild(el('div', 'text', m.text || ''));
+    if (m.kind === 'breakdown' && m.steps && m.steps.length) {
+      var ol = el('ol', 'steps');
+      m.steps.forEach(function (s) {
+        ol.appendChild(el('li', '', s.title + ' (' + s.estimate_min + ' min)'));
+      });
+      node.appendChild(ol);
+    }
+    if (m.undo_id) {
+      node.appendChild(button('Undo', function () { undoChange(m.undo_id); }));
+    }
+    return node;
+  }
+
+  function addPlan(plan) {
+    if (!plan || !plan.id) return;
+    pendingPlans = pendingPlans.filter(function (p) { return p.id !== plan.id; });
+    pendingPlans.push(plan);
+    if (pendingPlans.length > 4) pendingPlans = pendingPlans.slice(-4);
+  }
+
+  function planNode(plan) {
+    var box = el('div', 'plan');
+    box.appendChild(el('div', 'kind', 'Plan, ' + plan.status + ', from ' + plan.origin));
+    (plan.ops || []).forEach(function (op) {
+      var item = op.after || op.before || {};
+      box.appendChild(el('div', 'op', op.op + ': ' + (item.title || op.item_id || '')));
+    });
+    var apply = button('Apply', function () { planAction(plan.id, 'apply'); }, 'primary');
+    apply.disabled = plan.status !== 'preview';
+    var undo = button('Undo', function () { planAction(plan.id, 'undo'); });
+    undo.disabled = plan.status !== 'applied';
+    box.appendChild(apply);
+    box.appendChild(undo);
+    return box;
+  }
+
+  function renderChat() {
+    var log = $('chat-log');
+    log.textContent = '';
+    var msgs = (state && state.messages) || [];
+    msgs.forEach(function (m) { log.appendChild(messageNode(m)); });
+    pendingPlans.forEach(function (p) { log.appendChild(planNode(p)); });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function sendText() {
+    var input = $('chat-input');
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    var target = chatTarget();
+    var r;
+    if (target) {
+      r = await api('POST', '/api/chat', { item_id: target, text: text });
+    } else {
+      r = await api('POST', '/api/command', { text: text, mode: $('dump-mode').checked ? 'dump' : 'command' });
+    }
+    if (r.error) {
+      showError(r.error);
+    } else {
+      showError('');
+      if (r.plan) addPlan(r.plan);
+    }
+    await refresh();
+  }
+
+  async function planAction(id, action) {
+    var r = await api('POST', '/api/plan/' + encodeURIComponent(id) + '/' + action, {});
+    if (r.error) showError(r.error);
+    else if (r.plan) addPlan(r.plan);
+    await refresh();
+  }
+
+  async function undoChange(undoId) {
+    var r = await api('POST', '/api/undo', { undo_id: undoId });
+    if (r.error) showError(r.error);
+    await refresh();
+  }
+
+  async function doImport() {
+    var content = $('import-text').value;
+    var filename = $('import-filename').value || 'notes.txt';
+    if (!content.trim()) return;
+    var r = await api('POST', '/api/import', { filename: filename, content: content });
+    if (r.error) {
+      showError(r.error);
+    } else if (r.plan) {
+      addPlan(r.plan);
+      $('import-text').value = '';
+    }
+    await refresh();
+  }
+
+  // ---------- timeline and items ----------
+  async function markDone(id) {
+    var r = await api('POST', '/api/items/' + encodeURIComponent(id) + '/done', {});
+    if (r.error) showError(r.error);
+    await refresh();
+  }
+
+  async function clockPlus() {
+    if (!state) return;
+    var r = await api('POST', '/api/clock', { now: addMin(state.now, 60) });
+    if (r.error) showError(r.error);
+    await refresh();
+  }
+
+  function renderTimeline() {
+    var box = $('timeline');
+    box.textContent = '';
+    var today = dayKey(state.now);
+    var tomorrow = dayKey(addMin(state.now, 1440));
+    var items = (state.items || []).filter(function (i) {
+      return i.start && (dayKey(i.start) === today || dayKey(i.start) === tomorrow);
+    });
+    items.sort(function (a, b) {
+      return a.start < b.start ? -1 : (a.start > b.start ? 1 : 0);
+    });
+    if (!items.length) {
+      box.appendChild(el('p', 'sub', 'Nothing planned for today or tomorrow.'));
+      return;
+    }
+    items.forEach(function (i) {
+      var row = el('div', 'row' + (i.status === 'done' ? ' done' : ''));
+      var label = fmtWhen(i.start) + '  ' + i.title + (i.window ? ' (' + i.window + ')' : '');
+      row.appendChild(el('span', '', label));
+      if (i.status !== 'done') {
+        row.appendChild(button('Done', function () { markDone(i.id); }));
+      }
+      box.appendChild(row);
+    });
+  }
+
+  // ---------- focus ----------
+  async function loadFocus() {
+    var f = await api('GET', '/api/focus');
+    var body = $('focus-body');
+    body.textContent = '';
+    if (!f || !f.item) {
+      body.appendChild(el('p', '', 'Nothing open right now. Enjoy the quiet.'));
+      return;
+    }
+    body.appendChild(el('div', 'focus-title', f.item.title));
+    if (f.parent) body.appendChild(el('div', 'focus-parent', 'Part of: ' + f.parent.title));
+    if (f.why) body.appendChild(el('div', 'why', 'Why: ' + f.why));
+    body.appendChild(el('div', 'sub', 'Usually about ' + (f.item.estimate_min || 10) + ' min.'));
+  }
+
+  function startFive() {
+    if (countdownTimer) clearInterval(countdownTimer);
+    var left = 300;
+    var span = $('countdown');
+    var tick = function () {
+      var m = Math.floor(left / 60);
+      var s = left % 60;
+      span.textContent = m + ':' + pad(s);
+      if (left <= 0) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+        span.textContent = 'Done, nice start.';
+      }
+      left--;
+    };
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
+
+  // ---------- view ----------
+  async function setView(type) {
+    var r = await api('POST', '/api/view', { type: type });
+    if (r.error) showError(r.error);
+    await refresh();
+  }
+
+  function renderView() {
+    var v = state.view || { type: 'week', hidden_counts: {} };
+    document.querySelectorAll('#view-switcher button').forEach(function (b) {
+      b.className = b.getAttribute('data-view') === v.type ? 'current' : '';
+    });
+    var hc = v.hidden_counts || {};
+    var notes = Object.keys(hc).sort().map(function (k) {
+      var n = hc[k];
+      return n + (n === 1 ? ' item' : ' items') + ' hidden on ' + fmtDay(k);
+    });
+    $('view-status').textContent = 'Showing: ' + v.type + (notes.length ? '. ' + notes.join('; ') : '. Nothing hidden.');
+  }
+
+  // ---------- learned panel ----------
+  async function loadBeliefs() {
+    var r = await api('GET', '/api/beliefs');
+    var box = $('learned');
+    box.textContent = '';
+    var beliefs = r.beliefs || [];
+    if (!beliefs.length) box.appendChild(el('p', 'sub', 'No habits noticed yet.'));
+    beliefs.forEach(function (b) {
+      var row = el('div', 'belief');
+      var pct = Math.round((b.confidence || 0) * 100);
+      row.appendChild(el('span', '', b.statement + ' (confidence ' + pct + '%)'));
+      var x = button('x', function () { deleteBelief(b.key); }, 'x');
+      x.title = 'Forget this';
+      row.appendChild(x);
+      box.appendChild(row);
+    });
+    var meta = (state && state.meta) || {};
+    var nov = (meta.novelty || 0) >= 0.5 ? 'I like trying new kinds of views' : 'I stick with familiar views';
+    var tone = meta.tone === 'direct' ? 'I speak directly' : 'I speak gently';
+    box.appendChild(el('p', 'meta', nov + '. ' + tone + '. I check in at most every ' + (meta.cadence_hours || 12) + ' hours.'));
+  }
+
+  async function deleteBelief(key) {
+    var r = await api('DELETE', '/api/beliefs/' + encodeURIComponent(key));
+    if (r.error) showError(r.error);
+    await refresh();
+  }
+
+  async function learnNow() {
+    var r = await api('POST', '/api/learn', {});
+    if (r.error) showError(r.error);
+    await refresh();
+  }
+
+  // ---------- activity ----------
+  async function loadActivity() {
+    var r = await api('GET', '/api/activity');
+    var box = $('activity');
+    box.textContent = '';
+    var evs = r.events || [];
+    if (!evs.length) box.appendChild(el('p', 'sub', 'Nothing yet.'));
+    evs.forEach(function (e) {
+      box.appendChild(el('div', 'event', (e.agent || 'agent') + ' · ' + (e.kind || '') + ': ' + (e.text || '')));
+    });
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // ---------- proposal card ----------
+  async function loadProposal() {
+    var r = await api('GET', '/api/proposal');
+    var p = r.proposal || null;
+    if (!p && lastAccepted) p = lastAccepted;
+    var card = $('proposal');
+    if (!p) {
+      card.hidden = true;
+      return;
+    }
+    card.hidden = false;
+    card.setAttribute('data-pid', p.id);
+    $('prop-title').textContent = p.title || 'A view idea';
+    $('prop-reason').textContent = p.reason || '';
+    var v = p.view || {};
+    $('prop-view').textContent = 'View: ' + (v.type || 'custom');
+    $('prop-try').disabled = p.status === 'accepted';
+    $('prop-not').disabled = p.status === 'accepted';
+    $('prop-undo').disabled = p.status !== 'accepted';
+  }
+
+  async function proposalAction(action) {
+    var pid = $('proposal').getAttribute('data-pid');
+    if (!pid) return;
+    var r = await api('POST', '/api/proposals/' + encodeURIComponent(pid) + '/' + action, {});
+    if (r.error) {
+      showError(r.error);
+    } else if (action === 'accept') {
+      lastAccepted = r.proposal || null;
+    } else {
+      lastAccepted = null;
+    }
+    await refresh();
+  }
+
+  // ---------- refresh loop ----------
+  async function refresh() {
+    try {
+      var s = await api('GET', '/api/state');
+      if (!s.error && s.now) {
+        state = s;
+        $('now-label').textContent = 'Now: ' + fmtWhen(s.now);
+        renderChat();
+        renderTimeline();
+        renderView();
+      }
+      await Promise.all([loadFocus(), loadBeliefs(), loadActivity(), loadProposal()]);
+    } catch (e) {
+      showError('Could not refresh just now, it will try again.');
+    }
+  }
+
+  function bind() {
+    $('send').onclick = sendText;
+    $('chat-input').onkeydown = function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendText();
+      }
+    };
+    $('import-btn').onclick = doImport;
+    $('clock-plus').onclick = clockPlus;
+    $('learn-now').onclick = learnNow;
+    $('start-5').onclick = startFive;
+    $('prop-try').onclick = function () { proposalAction('accept'); };
+    $('prop-not').onclick = function () { proposalAction('dismiss'); };
+    $('prop-undo').onclick = function () { proposalAction('undo'); };
+    document.querySelectorAll('#view-switcher button').forEach(function (b) {
+      b.onclick = function () { setView(b.getAttribute('data-view')); };
+    });
+  }
+
+  bind();
+  refresh();
+  setInterval(refresh, 5000);
+})();
+</script>
+</body>
+</html>

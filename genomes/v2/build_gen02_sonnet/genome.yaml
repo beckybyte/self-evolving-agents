@@ -1,0 +1,225 @@
+schema: 2
+id: build_gen02_sonnet
+parent: gen02a1_c3
+mechanism: armed startup self-test
+notes: 'Hand-made variant of evo_iris2 gen02_a1_child_3: app and fixer on claude:sonnet, everything else unchanged (Claude
+  vs Nemotron on the same evolved structure).'
+soul: "You are part of a small team writing one Python 3.12 app (standard library only) against a frozen contract.\nAlways\
+  \ emit complete files inside <artifact name=...> tags, never fragments or diffs. Simulated clock only.\nThe app is rule-based:\
+  \ it must work with no language model at all. The spec below is binding.\n\nBUILD RULES (the previous team lost almost every\
+  \ point to crashes, not to logic: a missing method, a NameError at\nstartup, a handler that dropped the connection; it also\
+  \ failed every scenario because some responses had no agent message).\n- ONE Python file app.py holds ALL server logic:\
+  \ store, parsing, conversations, scheduler, focus. No agents.py, no\n  other imports than the standard library. Every function\
+  \ you call must be defined in this same file; re-read\n  every name before you finish. Start with `python app.py --port\
+  \ P --data D` via argparse; os.makedirs(D, exist_ok=True);\n  ThreadingHTTPServer on 0.0.0.0; one global threading.Lock\
+  \ held during each request.\n- do_GET / do_POST wrap everything in try/except and ALWAYS answer JSON (status 200 for success,\
+  \ 400/404/500 with\n  a JSON object with key \"error\" otherwise) with Content-Type and Content-Length. Never let an exception\
+  \ escape a handler.\n- GET / serves index.html from the app.py directory; if that file is missing, serve a small built-in\
+  \ page that still\n  has the ids chat-input, chat-log, focus, timeline.\n- State is plain dicts/lists (items, messages,\
+  \ conversation state per item id, undo records, sent-reminder keys,\n  now). Saving a JSON copy under --data is optional;\
+  \ if you save, never let it fail a request.\n- Times: parse and format with datetime.strptime/strftime \"%Y-%m-%dT%H:%M\"\
+  . Never use the real clock.\n\nSTATE SHAPES\n- Item: every key of the contract Item always present (missing seed fields\
+  \ get defaults: window/why/parent_id/\n  estimate_min/start/end None, status \"open\", postpone_count 0, source \"seed\"\
+  ). Seed items keep their ids.\n- Message: always all keys id, role, kind, text, item_id, at (= simulated now), undo_id;\
+  \ key \"steps\" ONLY on kind\n  \"breakdown\". One helper add_agent(kind, text, item_id=None, undo_id=None, steps=None)\
+  \ appends and returns it.\n- Every response's \"messages\" lists the new messages of that request (person messages may be\
+  \ included, agent\n  messages must be). EVERY /api/reset, /api/command, /api/chat MUST produce at least one agent message:\n\
+  \  reset adds a warm agent \"info\" greeting (\"Hi, I'm here whenever you want to plan a little.\"); command replies\n \
+  \ with an \"info\" confirmation naming what was added (plus the complexity question when relevant).\n\nNO-GUILT WORDING:\
+  \ no agent text may contain these substrings (case-insensitive): overdue, fail, miss, late,\nbehind, should have, forgot,\
+  \ lazy, urgent, alert. Note \"later\", \"dismiss\", \"relate\" contain banned substrings:\ndo not use them. Run every agent\
+  \ text through a check that replaces any banned phrase with a kind one.\n\nPARSING (rules only, no model needed)\n- Date\
+  \ words: today, tomorrow, weekday names (monday..sunday, also mon..sun) = the soonest such date after today\n  (2026-10-19\
+  \ is a Monday, so \"thursday\" -> 2026-10-22), \"Friday, October 23\" / \"October 23\" / \"Oct 23\" /\n  \"2026-10-23\"\
+  \ -> that date. No date word -> today if the time is still ahead, else tomorrow.\n- Clock times: \"3pm\", \"3 pm\", \"3:30pm\"\
+  , \"15:00\", \"at 9\" (1..7 without am/pm means pm). A clear clock time makes an\n  \"event\": start = date+time, end =\
+  \ start + 60 min, window None.\n- Soft windows keep their words in `window` and get an approximate start/end on that date:\
+  \ \"around noon\"/\"noon\"/\n  \"lunch\" 12:00-13:00, \"morning\" 09:00-12:00, \"afternoon\"/\"this afternoon\" 14:00-17:00,\
+  \ \"evening\" 18:00-21:00,\n  \"tonight\" 20:00-22:00. Such an item is an event if it is an appointment with someone (with/meet/lunch/dinner/call\n\
+  \  with), else a task. \"lunch with Ana around noon tomorrow\" -> window \"around noon\", start 2026-10-20T12:00.\n- Title:\
+  \ the text with the date/time words removed, first letter capitalised (\"Dentist\", \"Lunch with Ana\").\n- No time at all\
+  \ -> kind \"task\" with start/end None (\"maybe ...\" or ending in \"?\" -> kind \"note\"). Source \"typed\".\n- Dump mode:\
+  \ split on commas, semicolons and newlines (not on \"and\"); every non-empty fragment becomes exactly one\n  item, source\
+  \ \"dump\", title keeps the fragment's main words (strip \"maybe\", \"?\"). Reply with ONE info message listing\n  the titles,\
+  \ plus AT MOST ONE question in the whole response (the complexity question of the first big fragment,\n  if any; e.g. \"\
+  portfolio\" is big).\n\nCOMPLEXITY CHECK (rule 3): a new task is big/vague when its text contains work on, figure out, deal\
+  \ with, sort out,\nget ... together, organize, plan, prepare, project, portfolio, pitch deck, thesis, website, garage, move,\
+  \ taxes, or\nestimate_min > 120 (match whole words: \"plan\" must not match \"plants\"). Then add exactly ONE agent message\
+  \ kind \"question\", item_id = the item, text like \"This one\nsounds big. Want me to break 'Get my portfolio together'\
+  \ into small steps?\" and set convo[item_id] = \"ask_split\".\nNothing is broken down and no child is created without a\
+  \ yes.\n\nCHAT (/api/chat, convo state machine per item id; one question per message, each text holds exactly one \"?\"\
+  )\n- yes words: yes, yeah, yep, sure, ok, okay, please, looks good, sounds good, great, perfect, do it, go ahead.\n  no\
+  \ words: no, nope, not now, not right now, no thanks, later (checked BEFORE yes words; \"no thanks, not right now\" is a\
+  \ no).\n- ask_split: no -> info \"Okay, I'll keep it as one task.\" state None. yes -> question \"Why does this matter to\
+  \ you?\"\n  state ask_why. Anything else -> treat as yes.\n- ask_why: store the reply text as the item's why (exact text)\
+  \ -> question \"What does done look like for you?\"\n  -> ask_done (store reply) -> question \"Is there a deadline, a day\
+  \ you'd like it finished by?\" -> ask_deadline: parse a\n  date from the reply (rules above; none -> now + 7 days) -> breakdown\
+  \ message -> state propose.\n- Breakdown message: kind \"breakdown\", item_id = goal, text \"Here's a gentle plan for '<title>'.\
+  \ Does this look ok?\",\n  steps = 3 or 4 dicts with keys \"title\" and \"estimate_min\". Each title starts with a concrete\
+  \ verb from: List, Pick, Write,\n  Open, Collect, Choose, Draft, Email, Call, Book, Clear, Sort, Find, Gather, Send, Review,\
+  \ Update, Upload, Read.\n  First step estimate 10 (<= 15), the others 30-60. Build them from the goal title (for a portfolio:\
+  \ \"List the\n  projects you are proudest of\" 10, \"Pick the five best projects\" 30, \"Write a short note for each project\"\
+  \ 60,\n  \"Upload the projects to a simple website\" 60); generic fallback: \"Open a note and list what '<title>' needs\"\
+  \ 10,\n  \"Pick the first piece to start\" 20, \"Draft the first piece\" 45, \"Review it and send or save it\" 30.\n- propose:\
+  \ yes words -> create one task per step: parent_id goal id, source \"agent\", estimate_min, start/end\n  scheduled one per\
+  \ day starting today (or tomorrow if today's slot has passed) at the person's usual hour\n  (see SCHEDULER), end = start\
+  \ + estimate, all strictly before the deadline date (if the days run out, place the\n  rest back to back on the last day\
+  \ before the deadline). Goal why stays set. Info message \"Done, the first tiny step\n  is '<step 1>'.\" state None. Other\
+  \ text -> a revised \"breakdown\" message (e.g. smaller steps, max 5) and stay.\n- checkin (state after a check-in): text\
+  \ with big/smaller/break/too much -> immediately send a \"breakdown\" message\n  for that item (state propose); time/busy/wrong\
+  \ -> move it to the next day's free slot, info naming the new time;\n  not needed/drop/remove/don't need -> question \"\
+  Shall I remove '<title>' for you?\" state confirm_drop; in\n  confirm_drop yes -> delete the item, info; no -> keep it.\n\
+  \nDONE / UNDO: /api/items/<id>/done sets status \"done\", returns the JSON object with key \"item\". Undo records map undo_id\
+  \ -> the\nitem's previous start, end, window, postpone_count; /api/undo restores them, returns ok true.\n\nCLOCK + SCHEDULER\
+  \ (/api/clock): if new <= now just return an empty \"messages\" list. Otherwise walk minute by minute from\nnow+1 to new;\
+  \ at each minute t, for every open item (status \"open\") in a stable order:\n- Reminder at start: start is not None and\
+  \ start == t (crossed this minute), key (id,\"start\",start) not yet sent ->\n  \"reminder\" message \"It's time for '<title>'\
+  \ (20:00).\" Reminder before end: end - 10 min == t and key (id,\"end\",end)\n  not sent -> \"reminder\" \"'<title>' wraps\
+  \ up in 10 minutes.\" Done items never get reminders. No duplicates ever.\n- Auto-postpone (kind \"task\" only, not goals\
+  \ with children): end is not None and t == end + 31 min. If\n  postpone_count >= 2 -> do NOT move it; send ONE \"checkin\"\
+  \ message: \"How did '<title>' feel? If it's too big, I can\n  break it into smaller steps, or find a better time, or we\
+  \ can let it go. What would help?\" set convo state\n  \"checkin\", mark it so it is never repeated. Else move it: new day\
+  \ = end's date + 1, same length, the free slot (same day-scan the breakdown scheduler uses)\n  that starts at or after the\
+  \ person's usual hour (try every 15 minutes up to 23:30; free = no open item with\n  start/end overlaps it), else the first\
+  \ free slot from 08:00 that day. postpone_count += 1, store an undo record,\n  send \"postponed\" message with undo_id:\
+  \ \"No worries, I moved '<title>' to Tue Oct 20 at 21:30. Undo if you'd\n  rather keep it.\" (always the task title and\
+  \ the HH:MM time).\n- Usual hour: from seed items with status \"done\" and a start, take the lower median start time and\
+  \ round down to the\n  hour (Iris: 20:00). No history -> 19:00.\n- Set now = new at the end; return the new messages in\
+  \ order.\n\nFOCUS (/api/focus): goals = open items with a non-empty why; their open children (parent_id = goal id). If any:\n\
+  item = the open child with the earliest start (None last, then insertion order) across those goals, parent = its\ngoal,\
+  \ why = goal why. Else item = the open task (no children of its own) with the earliest start, parent from its\nparent_id\
+  \ or None, why = its own or parent's why. Always \"action\": \"Start 5 minutes\". No open task -> item null.\n\nCRASH PITFALLS\
+  \ (the last two builds died on exactly these; avoid them by construction)\n- ONE return convention: every endpoint_* / handle_*\
+  \ function returns ONLY a dict. The HTTP handler sends status 200,\n  or 404 when the dict has key \"error\" and \"not found\"\
+  \ in it, else 400 when it has \"error\". Never return a\n  (dict, status) tuple anywhere, never unpack a function result\
+  \ into two names unless that function's every return\n  statement returns two values.\n- Build datetimes with datetime.combine(d,\
+  \ time(h, m)) or dt.replace(hour=h, minute=m, second=0, microsecond=0).\n  Never datetime(d.year, d.month, d, ...) (passing\
+  \ a date where an int is expected). Compare datetimes with datetimes,\n  dates with dates; parse_iso(None) returns None\
+  \ and every caller checks for None.\n- Plain Python only: no walrus operator (:=), no match statements, no f-string nesting\
+  \ of the same quote character.\n- Date words are found ANYWHERE in the text, also when a soft window is present: \"lunch\
+  \ with Ana around noon tomorrow\"\n  -> title \"Lunch with Ana\", window \"around noon\", start 2026-10-20T12:00 (not today).\n\
+  - /api/clock with a body time equal to or before now returns {\"messages\": []}; the minute loop uses timedelta(minutes=1).\n\
+  \nSTARTUP SELF-TEST (lets the team's smoke check see crashes deep in chat and clock code)\n- app.py defines self_test(),\
+  \ called in main() BEFORE the server starts, but ONLY when a file selftest.txt next to\n  app.py exists and its stripped\
+  \ content is \"strict\". In every other case (missing file, \"off\") it is skipped.\n- self_test() calls the endpoint functions\
+  \ directly (no HTTP), in this order, and checks every result is a dict\n  without \"error\" and with the contract's keys:\
+  \ reset {now 2026-10-19T09:00, items: one done history task\n  2026-10-18T20:15-20:45 and task c1 'Clean out the garage'\
+  \ 2026-10-19T10:00-11:00}; command \"dentist thursday 3pm\";\n  command \"lunch with Ana around noon tomorrow\"; dump \"\
+  call mom, portfolio, maybe yoga?\"; command \"get my portfolio\n  together\" then chat on that item: \"yes\", \"to find\
+  \ a new job\", \"five projects online\", \"friday\", \"looks good\";\n  focus; done on focus item; clock to 2026-10-19T12:00,\
+  \ 2026-10-20T23:59, 2026-10-21T23:59, 2026-10-22T23:59;\n  chat c1 \"honestly it feels too big\"; undo with the first undo_id\
+  \ seen; state.\n- On any exception or failed check it prints the traceback / the failing step to stderr and calls sys.exit(1),\n\
+  \  so the smoke report shows it. Afterwards it wipes all state (as an empty reset) so the server starts clean.\n"
+roles:
+- name: app
+  kind: llm
+  model: claude:sonnet
+  reads:
+  - contract
+  max_tokens: 32000
+  prompt: 'You write app.py, the whole server, as ONE self-contained file. Contract:
+
+    {contract}
+
+
+    Follow the BUILD RULES, STATE SHAPES and every rule in the shared spec exactly (they are in your system message).
+
+    Write it top-down in this order so nothing is undefined: imports and constants, time helpers, store and add_agent,
+
+    wording check, parsing, complexity check, conversation handlers, scheduler (reminders, postpone, check-in), focus,
+
+    endpoint functions, HTTP handler, main(). Keep functions short; no classes are needed except the request handler.
+
+    Before closing the artifact, check silently: every called name is defined; main() parses --port and --data; GET
+
+    /health returns ok true; each endpoint returns exactly the contract''s JSON keys.
+
+    Include self_test() as described in STARTUP SELF-TEST. Output exactly two artifacts and nothing else: <artifact name="app_py">...whole
+    file...</artifact> and <artifact name="selftest_txt">strict</artifact>.
+
+    '
+- name: ui
+  kind: llm
+  model: crusoe:nvidia/NVIDIA-Nemotron-3.5-Super-VL#nothink
+  reads:
+  - contract
+  max_tokens: 10000
+  prompt: 'You write index.html for this contract (only the endpoints and JSON shapes matter to you):
+
+    {contract}
+
+
+    One page, inline CSS and JS, no CDN, under 250 lines: a chat box (textarea or input id "chat-input") with a Send
+
+    button and a "Brain dump" checkbox (mode "dump" when checked, else "command"), the conversation (div id "chat-log")
+
+    built from GET /api/state messages, a focus card (div id "focus") showing only GET /api/focus item title, its why
+
+    and a "Start 5 minutes" button that runs a 5:00 countdown, and a timeline (div id "timeline") of items whose start
+
+    is on today''s or tomorrow''s date of state.now, sorted by start, with a Done button (POST /api/items/<id>/done).
+
+    When the last question/breakdown/checkin message has an item_id, the next typed text goes to POST /api/chat with
+
+    that item_id instead of /api/command. Breakdown messages list their steps; messages with undo_id get an Undo button
+
+    (POST /api/undo). Refresh state and focus after every action. Calm, soft colours.
+
+    Output exactly one artifact: <artifact name="index_html">...whole file...</artifact> and nothing else.
+
+    '
+- name: smoke
+  kind: check
+  check: app_smoke
+- name: fixer
+  kind: llm
+  model: claude:sonnet
+  reads:
+  - contract
+  - blackboard.smoke
+  - artifacts
+  max_tokens: 32000
+  prompt: 'The team''s app was just started by a smoke test. Its report:
+
+    {blackboard.smoke}
+
+
+    Contract:
+
+    {contract}
+
+
+    Find the cause of every problem in the report (compile error, startup traceback, HTTP 500, wrong JSON keys) in the current
+    files (## artifacts). Fix the cause and also every other place in the file with the same mistake (same helper misuse,
+    same return convention, same datetime misuse). Keep everything that works. If the report shows a self_test failure, fix
+    the app code it points to (not the self-test), unless the self-test itself calls a function wrongly. Re-emit ONLY the
+    broken file(s), each whole, e.g. <artifact name="app_py">...whole app.py...</artifact>. Never emit index.html unless the
+    report names it.'
+- name: disarm
+  kind: llm
+  model: crusoe:nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B
+  reads: []
+  max_tokens: 1500
+  prompt: 'Output exactly this and nothing else: <artifact name="selftest_txt">off</artifact>'
+workflow:
+- parallel:
+  - app
+  - ui
+- smoke
+- loop:
+    body:
+    - fixer
+    - smoke
+    max_rounds: 3
+    stop_when: 'SMOKE: PASS'
+    check_first: true
+- disarm
+artifacts:
+- name: app_py
+  format: text
+- name: index_html
+  format: text
+- name: selftest_txt
+  format: text
+outputs:
+  answer: artifact.app_py

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Evolving Calendar</title>
+<style>
+body {font-family:Arial,Helvetica,sans-serif;background:#f5f7fa;margin:0;padding:0;color:#333;}
+header {background:#4a90e2;color:#fff;padding:1rem;text-align:center;}
+main {display:flex;flex-direction:column;gap:1rem;padding:1rem;max-width:800px;margin:auto;}
+#chat-log {border:1px solid #ccc;background:#fff;padding:0.5rem;max-height:200px;overflow-y:auto;border-radius:8px;}
+#chat-input {width:100%;height:60px;padding:0.5rem;border:1px solid #ccc;border-radius:4px;resize:vertical;}
+#focus {border:1px solid #8bc34a;background:#e8f5e9;padding:1rem;border-radius:8px;position:relative;}
+#focus button {background:#8bc34a;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;}
+#timeline {border:1px solid #ff9800;background:#fff3e0;padding:1rem;border-radius:8px;}
+#timeline li {margin:0.3rem 0;}
+#learned {border:1px solid #9c27b0;background:#f3e5f5;padding:1rem;border-radius:8px;}
+#learned li {margin:0.2rem 0;}
+#activity {border:1px solid #607d8b;background:#eceff1;padding:1rem;border-radius:8px;}
+#activity li {margin:0.2rem 0;}
+#proposal {border:1px solid #ff5722;background:#ffebee;padding:1rem;border-radius:8px;display:none;}
+#view-switcher {display:flex;gap:0.5rem;justify-content:center;margin-top:0.5rem;}
+#view-switcher button {background:#607d8b;color:#fff;border:none;padding:0.4rem 0.8rem;border-radius:4px;cursor:pointer;}
+button {background:#4a90e2;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;}
+button:hover {background:#357ab8;}
+textarea {font-family:inherit;font-size:1rem;}
+.msg {margin:0.4rem 0;padding:0.4rem;border-radius:4px;}
+.agent {background:#e1f5fe;}
+.person {background:#fff9c4;}
+.question {font-weight:bold;}
+.breakdown {background:#e8f5e9;}
+.reminder {background:#fff3e0;}
+.postponed {background:#fce4ec;}
+.checkin {background:#e0f7fa;}
+.undo {background:#ffebee;}
+.plan {background:#e0f2f1;}
+.hidden-note {color:#999;font-style:italic;}
+.steps {margin-left:1rem;}
+.done {text-decoration:line-through;color:#777;}
+.card {border:1px solid #ddd;background:#fff;border-radius:8px;margin:0.5rem 0;}
+.card-header {font-weight:bold;padding:0.5rem;background:#f0f0f0;border-bottom:1px solid #ddd;}
+.card-body {padding:0.5rem;}
+.card-footer {padding:0.5rem;text-align:right;background:#f9f9f9;border-top:1px solid #ddd;}
+.hidden-count {font-size:0.9rem;color:#555;margin-top:0.3rem;}
+</style>
+</head>
+<body>
+<header><h1>Evolving Calendar</h1></header>
+<main>
+<div id="focus" class="card">
+  <div class="card-header">Focus</div>
+  <div class="card-body" id="focus-body">Nothing to do right now</div>
+  <button id="focus-start">Start 5 minutes</button>
+</div>
+
+<div id="chat" class="card">
+  <div class="card-header">Chat</div>
+  <div class="card-body" id="chat-log"></div>
+  <textarea id="chat-input" placeholder="Type your message..."></textarea>
+  <div>
+    <label><input type="checkbox" id="dump-mode"> Brain dump</label>
+    <button id="send-btn">Send</button>
+  </div>
+</div>
+
+<div id="timeline" class="card">
+  <div class="card-header">Today / Tomorrow</div>
+  <ul id="timeline-list"></ul>
+</div>
+
+<div id="learned" class="card">
+  <div class="card-header">What I’ve learned</div>
+  <ul id="learned-list"></ul>
+</div>
+
+<div id="activity" class="card">
+  <div class="card-header">Activity</div>
+  <ul id="activity-list"></ul>
+</div>
+
+<div id="proposal" class="card">
+  <div class="card-header">Proposal</div>
+  <div id="proposal-content"></div>
+  <button id="proposal-accept">Try it</button>
+  <button id="proposal-dismiss">Not now</button>
+  <button id="proposal-undo">Undo</button>
+</div>
+
+<div id="view-switcher">
+  <button data-type="month">Month</button>
+  <button data-type="week">Week</button>
+  <button data-type="workweek">Workweek</button>
+  <button data-type="day">Day</button>
+</div>
+
+<div style="margin-top:1rem;">
+  <button id="plus-hour">+1 hour</button>
+</div>
+
+<div id="import" class="card">
+  <div class="card-header">Import</div>
+  <input type="text" id="import-filename" placeholder="filename.ics or .txt">
+  <textarea id="import-content" placeholder="Paste content here..."></textarea>
+  <button id="import-btn">Import</button>
+  <div id="import-plan"></div>
+</div>
+</main>
+
+<script>
+function api(method, path, body) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(path, opts).then(r=>r.json());
+}
+let state = {};
+function refresh() {
+  Promise.all([
+    api('GET','/api/state'),
+    api('GET','/api/focus'),
+    api('GET','/api/beliefs'),
+    api('GET','/api/proposal'),
+    api('GET','/api/activity')
+  ]).then(([s,f,b,p,a])=>{
+    state = s;
+    renderChat(s);
+    renderFocus(f);
+    renderTimeline(s);
+    renderLearned(b);
+    renderActivity(a);
+    renderProposal(p);
+  });
+}
+function renderChat(s){
+  const log = document.getElementById('chat-log');
+  log.innerHTML = '';
+  s.messages.forEach(m=>{
+    const div = document.createElement('div');
+    div.className = `msg ${m.role} ${m.kind}`;
+    div.textContent = m.text;
+    if (m.kind==='breakdown' && m.steps){
+      const ul = document.createElement('ul');
+      ul.className='steps';
+      m.steps.forEach(st=>{ const li=document.createElement('li'); li.textContent=st.title; ul.appendChild(li); });
+      div.appendChild(ul);
+    }
+    if (m.undo_id){
+      const btn=document.createElement('button');
+      btn.textContent='Undo';
+      btn.onclick=()=>{ api('POST','/api/undo',{undo_id:m.undo_id}).then(refresh); };
+      div.appendChild(btn);
+    }
+    log.appendChild(div);
+  });
+}
+function renderFocus(f){
+  const body = document.getElementById('focus-body');
+  if (f.item){
+    body.textContent = `${f.item.title} – ${f.why||''}`;
+    document.getElementById('focus-start').style.display='inline-block';
+  } else {
+    body.textContent = 'Nothing to do right now';
+    document.getElementById('focus-start').style.display='none';
+  }
+}
+function renderTimeline(s){
+  const list = document.getElementById('timeline-list');
+  list.innerHTML = '';
+  const nowDate = new Date(s.now);
+  const dates = [nowDate.toISOString().slice(0,10), new Date(nowDate.getTime()+86400000).toISOString().slice(0,10)];
+  s.items.filter(it=>it.start && dates.includes(it.start.slice(0,10))).sort((a,b)=>a.start.localeCompare(b.start)).forEach(it=>{
+    const li=document.createElement('li');
+    li.textContent = `${it.start.slice(11,16)} ${it.title}`;
+    const btn=document.createElement('button');
+    btn.textContent='Done';
+    btn.onclick=()=>{ api('POST',`/api/items/${it.id}/done`,{}).then(refresh); };
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+function renderLearned(b){
+  const list=document.getElementById('learned-list');
+  list.innerHTML='';
+  b.beliefs.forEach(bl=>{
+    const li=document.createElement('li');
+    li.textContent = bl.statement;
+    const del=document.createElement('button');
+    del.textContent='Delete';
+    del.onclick=()=>{ api('DELETE',`/api/beliefs/${bl.key}`,{}).then(refresh); };
+    li.appendChild(del);
+    list.appendChild(li);
+  });
+}
+function renderActivity(a){
+  const list=document.getElementById('activity-list');
+  list.innerHTML='';
+  a.events.forEach(ev=>{
+    const li=document.createElement('li');
+    li.textContent = `[${ev.at}] ${ev.agent}: ${ev.text}`;
+    list.appendChild(li);
+  });
+}
+function renderProposal(p){
+  const card=document.getElementById('proposal');
+  if (p.proposal){
+    document.getElementById('proposal-content').textContent = `${p.proposal.title}: ${p.proposal.reason}`;
+    card.style.display='block';
+    document.getElementById('proposal-accept').onclick=()=>{ api('POST',`/api/proposals/${p.proposal.id}/accept`,{}).then(refresh); };
+    document.getElementById('proposal-dismiss').onclick=()=>{ api('POST',`/api/proposals/${p.proposal.id}/dismiss`,{}).then(refresh); };
+    document.getElementById('proposal-undo').onclick=()=>{ api('POST',`/api/proposals/${p.proposal.id}/undo`,{}).then(refresh); };
+  } else {
+    card.style.display='none';
+  }
+}
+document.getElementById('send-btn').onclick=()=>{
+  const txt=document.getElementById('chat-input').value.trim();
+  if(!txt) return;
+  const mode=document.getElementById('dump-mode').checked?'dump':'command';
+  const path = (state && state.convo && state.convo.last_item_id) ? '/api/chat' : '/api/command';
+  const body = (path==='/api/chat') ? {item_id:state.convo.last_item_id, text:txt} : {text:txt, mode};
+  api('POST',path,body).then(refresh);
+  document.getElementById('chat-input').value='';
+};
+document.getElementById('focus-start').onclick=()=>{ alert('Timer started for 5 minutes'); };
+document.getElementById('plus-hour').onclick=()=>{
+  const now = new Date(state.now);
+  now.setMinutes(now.getMinutes()+60);
+  const iso = now.toISOString().slice(0,16);
+  api('POST','/api/clock',{now:iso}).then(refresh);
+};
+document.querySelectorAll('#view-switcher button').forEach(btn=>{
+  btn.onclick=()=>{ api('POST','/api/view',{type:btn.dataset.type}).then(refresh); };
+});
+document.getElementById('import-btn').onclick=()=>{
+  const filename=document.getElementById('import-filename').value;
+  const content=document.getElementById('import-content').value;
+  api('POST','/api/import',{filename,content}).then(res=>{
+    const div=document.getElementById('import-plan');
+    div.textContent = JSON.stringify(res.plan);
+    // apply button
+    const apply=document.createElement('button');
+    apply.textContent='Apply';
+    apply.onclick=()=>{ api('POST',`/api/plan/${res.plan.id}/apply`,{}).then(refresh); };
+    div.appendChild(apply);
+  });
+});
+setInterval(refresh,5000);
+refresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+schema: 2
+id: build_P0
+parent: null
+mechanism: single developer
+notes: "Baseline: one developer role reads the contract and the fit scenarios and writes app.py and index.html in one call."
+soul: ""
+roles:
+  - name: dev
+    kind: llm
+    model: $WORKER
+    reads: [contract, scenarios]
+    max_tokens: 32000
+    prompt: |
+      You are a senior Python developer. Implement the app described by this frozen contract, completely and exactly.
+
+      {contract}
+
+      The app will be tested on scenarios like these:
+      {scenarios}
+
+      Rules:
+      - Python 3.12 standard library only (http.server with ThreadingHTTPServer, json, re, datetime, threading, urllib).
+      - Implement every endpoint and every numbered required behaviour. Match the JSON shapes and field names exactly.
+      - Simulated clock only: never use the real time for "now". Parse dates relative to the simulated now.
+      - Use rules first (regex date/time parsing, keyword checks); LLM calls (urllib to Crusoe, timeout 40 s) are optional
+        extras and must fall back to rules on any error. Never let a request take more than 60 s.
+      - Agent wording must be kind; never use overdue, failed, missed, late, behind, "should have", forgot, lazy.
+
+      Output exactly two complete files, nothing else after them:
+      <artifact name="app_py">
+      ...the whole app.py...
+      </artifact>
+      <artifact name="index_html">
+      ...the whole index.html (inline CSS/JS; ids chat-input, chat-log, focus, timeline)...
+      </artifact>
+artifacts:
+  - {name: app_py, format: text}
+  - {name: index_html, format: text}
+outputs: {answer: artifact.app_py}

@@ -10,16 +10,49 @@ import os
 import re
 import subprocess
 import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from .checks import run_check
 from .human import HumanChannel
 from .llm import add_usage, chat, strip_think
 
 ROOT = Path(__file__).resolve().parents[2]
 ART_RE = re.compile(r"<artifact\s+name=[\"']?([A-Za-z0-9_\-]+)[\"']?\s*>(.*?)</artifact>", re.S)
+# legacy emission: a model copying an older input format writes "### artifact: <name>" then the file (fenced or
+# not) up to the next such header or the end of the text
+LEGACY_ART_RE = re.compile(r"^###\s*artifact:\s*([A-Za-z0-9_\-]+)[ \t]*\n(.*?)(?=^###\s*artifact:|\Z)", re.S | re.M)
+FENCE_BLOCK_RE = re.compile(r"^```[^\n]*\n(.*?)\n?^```", re.S | re.M)
+LEGACY_MIN_RATIO = 0.5  # a legacy block replaces an existing artifact only if it is at least half as long (not a snippet)
+
+
+def render_artifact(name: str, body: str) -> str:
+    """The same format roles must emit, so a role that copies its input format writes a valid artifact."""
+    return f'<artifact name="{name}">\n{body}\n</artifact>'
+
+
+def parse_artifacts(text: str, existing: dict | None = None) -> dict[str, str]:
+    """<artifact name="x">...</artifact> blocks, plus legacy "### artifact: x" sections for names not given as tags.
+    A legacy section's body is its first fenced block, else the whole section; it does not replace an existing
+    artifact with something under LEGACY_MIN_RATIO of its length (a reviewer quoting a snippet)."""
+    existing = existing or {}
+    out = {an: body.strip() for an, body in ART_RE.findall(text)}
+    for an, sec in LEGACY_ART_RE.findall(ART_RE.sub("", text)):
+        if an in out:
+            continue
+        m = FENCE_BLOCK_RE.search(sec)
+        body = (m.group(1) if m else sec).strip()
+        if body and len(body) >= LEGACY_MIN_RATIO * len(existing.get(an, "")):
+            out[an] = body
+    return out
+
+
 ASK_RE = re.compile(r"^\s*ASK_HUMAN:\s*(.+?)\s*\|\s*DEFAULT:\s*(.+?)\s*$", re.M)
 PH_RE = re.compile(r"\{(conversation|input|blackboard|artifacts|inbox|memory|[a-z_]+)(?:\.([A-Za-z0-9_\-]+))?\}")
 MAX_QUESTIONS_PER_RUN = 3
+REPEAT_TEMPERATURE = 0.7  # a role re-asked the identical question is sampled, not replayed
 SHARED_KEY = "human_answers"  # context key carrying the same team taste as memory/_shared.md
 
 
@@ -57,6 +90,8 @@ class _Run:
         self.assumptions: list = []
         self.trace: list = []
         self.messages = episode["input"].get("messages", [])
+        self._seen_calls: set = set()  # (role, hash of messages) already sent in this run
+        self._lock = threading.RLock()  # parallel steps: state updates after each role's call are serialized
 
     # ------------------------------------------------------------ context selectors
     def input_text(self) -> str:
@@ -72,9 +107,11 @@ class _Run:
         if head == "blackboard":
             return str(self.bb.get(key, ""))
         if sel == "artifacts":
-            return "\n\n".join(f"### artifact: {k}\n{v}" for k, v in self.artifacts.items()) or "(none yet)"
+            return "\n\n".join(render_artifact(k, v) for k, v in self.artifacts.items()) or "(none yet)"
         if head == "artifact":
-            return self.artifacts.get(key, "(not written yet)")
+            return render_artifact(key, self.artifacts[key]) if key in self.artifacts else "(not written yet)"
+        if head == "artifacts_named_by":
+            return self.artifacts_named_by(key)
         if sel == "inbox":
             return "\n\n".join(self.inbox.get(role, [])) or "(no messages)"
         if sel == "memory":
@@ -84,12 +121,25 @@ class _Run:
             return ""
         return v if isinstance(v, str) else json.dumps(v, ensure_ascii=False, indent=1)
 
+    def artifacts_named_by(self, role: str) -> str:
+        """Only the file artifacts whose path appears in blackboard[role] (e.g. a smoke report's traceback), so a
+        fixer reads the broken file, not every file. The report's own 'files: [...]' listing does not count.
+        If the report names no file, all artifacts are given."""
+        from .tasks.build import artifact_path  # lazy: tasks.build imports this module
+        text = "\n".join(l for l in str(self.bb.get(role, "")).splitlines() if not l.lstrip().startswith("files:"))
+        named = [k for k in self.artifacts if (p := artifact_path(k))
+                 and re.search(r"(?<![\w.])" + re.escape(p) + r"(?![\w])", text)]
+        if not named:
+            return "(the report names no file; all artifacts follow)\n\n" + self.select("artifacts", role)
+        return "\n\n".join(render_artifact(k, self.artifacts[k]) for k in named)
+
     def render(self, template: str, role: str, reads: list[str]) -> str:
         used = set()
 
         def sub(m):
             sel = m.group(1) + (f".{m.group(2)}" if m.group(2) else "")
-            known = (m.group(1) in ("conversation", "input", "blackboard", "artifacts", "inbox", "memory", "artifact")
+            known = (m.group(1) in ("conversation", "input", "blackboard", "artifacts", "inbox", "memory", "artifact",
+                                    "artifacts_named_by")
                      or m.group(1) in self.ep.get("context", {}))
             if not known:
                 return m.group(0)
@@ -104,11 +154,11 @@ class _Run:
     def store(self, role: dict, text: str):
         name = role["name"]
         self.bb[name] = text
-        for an, body in ART_RE.findall(text):
-            self.artifacts[an] = body.strip()
+        found = parse_artifacts(text, self.artifacts)
+        self.artifacts.update(found)
         w = role.get("writes", "blackboard")
         if w.startswith("artifact:"):
-            if w[9:] not in {an for an, _ in ART_RE.findall(text)}:
+            if w[9:] not in found:
                 self.artifacts[w[9:]] = ART_RE.sub("", text).strip() or text
         elif w.startswith("message:"):
             self.inbox[w[8:]].append(f"[from {name}]\n{text}")
@@ -154,13 +204,33 @@ class _Run:
                                             f"## What the team has learned from the human so far\n{shared}" if shared else ""] if x)
             msgs = ([{"role": "system", "content": system}] if system else []) + [
                 {"role": "user", "content": self.render(r["prompt"], name, r["reads"])}]
-        text, u = chat(model, msgs, max_tokens=r["max_tokens"], temperature=r["temperature"])
-        add_usage(self.usage, u)
-        if not g["_legacy"]:
-            text = strip_think(text)
-            self.ask_humans(name, text)
-        self.store(r, text)
-        self.trace.append({"role": name, "kind": "llm", "tokens": u["prompt"] + u["completion"], "chars": len(text)})
+        # a role called again on exactly the same messages (a fix loop whose check report did not change) would, at a
+        # low temperature, return the same answer again (evo_mixed_c gen02 child_2: the fixer re-emitted the same broken
+        # app.py twice). Such a repeat is sampled at temperature >= REPEAT_TEMPERATURE instead.
+        key = (name, hash(json.dumps(msgs, sort_keys=True)))
+        with self._lock:
+            repeat = key in self._seen_calls
+            self._seen_calls.add(key)
+        temperature = max(r["temperature"], REPEAT_TEMPERATURE) if repeat else r["temperature"]
+        try:
+            text, u = chat(model, msgs, max_tokens=r["max_tokens"], temperature=temperature)
+        except Exception as e:  # a model call that times out or errors fails this role, not the whole team run
+            # (evo_v2_a gen00 r1: a 900 s claude:haiku timeout threw away the run and the ui role's finished file)
+            with self._lock:
+                self.bb[name] = f"(role {name} failed, no output: {e!r:.300})"
+                self.trace.append({"role": name, "kind": "llm", "tokens": 0, "chars": 0, "model": model,
+                                   "error": repr(e)[:300]})
+            return
+        with self._lock:
+            add_usage(self.usage, u)
+            if not g["_legacy"]:
+                text = strip_think(text)
+                self.ask_humans(name, text)
+            self.store(r, text)
+            self.trace.append({"role": name, "kind": "llm", "tokens": u["prompt"] + u["completion"], "chars": len(text),
+                               "model": model, "completion": u["completion"],
+                               **{k: u[k] for k in ("finish", "retries", "secs", "fallback") if k in u},
+                               **({"repeat_temperature": temperature} if repeat else {})})
 
     def run_tool_role(self, r: dict):
         ctx = {"blackboard": {k: v for k, v in self.bb.items()}, "artifacts": dict(self.artifacts),
@@ -175,6 +245,18 @@ class _Run:
             text = str(out)
         self.store(r, text)
         self.trace.append({"role": r["name"], "kind": "tool", "tokens": 0, "chars": len(text)})
+
+    def run_check_role(self, r: dict):
+        """Framework check (sea.checks): runs outside the lock on a snapshot of the artifacts."""
+        with self._lock:
+            arts = dict(self.artifacts)
+        t0 = time.time()
+        ok, text = run_check(r["check"], arts, **r.get("options", {}))
+        with self._lock:
+            self.store(r, text)
+            self.trace.append({"role": r["name"], "kind": "check", "tokens": 0, "chars": len(text), "ok": ok,
+                               "report": text[:2000],  # the evolver reads team traces: show why a check failed
+                               "secs": round(time.time() - t0, 1)})
 
     def run_human(self, r: dict):
         q = self.render(r["question"], r["name"], [])
@@ -192,18 +274,47 @@ class _Run:
 
     def step(self, name: str):
         r = next(x for x in self.g["roles"] if x["name"] == name)
-        {"llm": self.run_llm, "tool": self.run_tool_role, "human": self.run_human}[r["kind"]](r)
+        if r["kind"] == "llm":
+            self.run_llm(r)  # takes the lock itself, after the model call
+            missing = [a for a in r.get("expects") or [] if a not in parse_artifacts(str(self.bb.get(name, "")))]
+            if missing:  # the role did not emit a file it must write: run it once more (counted)
+                with self._lock:
+                    self.trace.append({"role": name, "kind": "retry", "tokens": 0, "missing": missing})
+                self.run_llm(r)
+            return
+        if r["kind"] == "check":
+            return self.run_check_role(r)  # may take tens of seconds: not under the lock
+        with self._lock:
+            {"tool": self.run_tool_role, "human": self.run_human}[r["kind"]](r)
+
+    def parallel(self, names: list[str]):
+        """Run roles concurrently. Each renders its prompt from the state before the step (prompts are built before
+        any model call returns); their writes land as each finishes. A failing role fails the whole step."""
+        with ThreadPoolExecutor(len(names)) as ex:
+            for f in [ex.submit(self.step, n) for n in names]:
+                f.result()
+
+    def loop(self, lp: dict):
+        """Rounds of the body until stop_when appears in the output of stop_on (default: the last body role).
+        stop_on is tested right after that role runs, so a checker first in the body ends the loop before the fixer
+        reads anything; check_first also tests it before round 1."""
+        stop, on = lp.get("stop_when"), lp.get("stop_on", lp["body"][-1])
+        conds = [(c["on"], c["when"]) for c in lp.get("stop_all") or []] or ([(on, stop)] if stop else [])
+        done = lambda: bool(conds) and all(w in str(self.bb.get(o, "")) for o, w in conds)
+        if lp.get("check_first") and done():
+            return
+        for _ in range(int(lp.get("max_rounds", 2))):
+            for b in lp["body"]:
+                self.step(b)
+                if (b == on if not lp.get("stop_all") else b == lp["body"][-1]) and done():
+                    return
 
     def run(self) -> dict:
         for s in self.g["workflow"]:
-            if isinstance(s, dict):
-                lp = s["loop"]
-                for _ in range(int(lp.get("max_rounds", 2))):
-                    for b in lp["body"]:
-                        self.step(b)
-                    stop = lp.get("stop_when")
-                    if stop and stop in str(self.bb.get(lp["body"][-1], "")):
-                        break
+            if isinstance(s, dict) and "parallel" in s:
+                self.parallel(list(s["parallel"]))
+            elif isinstance(s, dict):
+                self.loop(s["loop"])
             else:
                 self.step(s)
         ans_ref = self.g["outputs"].get("answer")
