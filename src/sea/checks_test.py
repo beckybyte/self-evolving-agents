@@ -513,3 +513,23 @@ def test_smoke_acceptance_steps_and_reviewer_output_in_trace(tmp_path):
     assert res["trace"][0]["output_head"].startswith("ALL_CLEAR")
     with pytest.raises(AssertionError, match="check option"):
         load_genome(_genome(tmp_path, [{"name": "s", "kind": "check", "check": "app_smoke", "acceptance": "bad name"}], ["s"]))
+
+
+def test_parallel_inside_loop_body_and_soul_opt_out(tmp_path):
+    seen = []
+    smk = iter(["SMOKE: FAIL", "SMOKE: PASS"])
+    register_fake("fa", lambda m: seen.append(("fa", m[0]["content"] if m[0]["role"] == "system" else "")) or '<artifact name="a_py">a</artifact>')
+    register_fake("fb", lambda m: seen.append(("fb", m[0]["content"] if m[0]["role"] == "system" else "")) or '<artifact name="b_py">b</artifact>')
+    register_fake("sm", lambda m: seen.append(("sm", "")) or next(smk))
+    d = tmp_path / "gp"
+    d.mkdir()
+    (d / "genome.yaml").write_text(yaml.safe_dump({"schema": 2, "id": "t", "soul": "BIG SHARED SOUL", "roles": [
+        {"name": "fix_a", "kind": "llm", "model": "fake:fa", "prompt": "a"},
+        {"name": "fix_b", "kind": "llm", "model": "fake:fb", "prompt": "b", "soul": False},
+        {"name": "smoke", "kind": "llm", "model": "fake:sm", "prompt": "s"}],
+        "workflow": [{"loop": {"body": [{"parallel": ["fix_a", "fix_b"]}, "smoke"], "max_rounds": 3, "stop_when": "SMOKE: PASS"}}]}))
+    res = run_team(load_genome(d), {"id": "e", "input": {"text": "x"}}, "fake:fa")
+    names = [n for n, _ in seen]
+    assert names.count("sm") == 2 and names.count("fa") == 2 and names.count("fb") == 2
+    assert all("BIG SHARED SOUL" in s for n, s in seen if n == "fa") and all("BIG SHARED SOUL" not in s for n, s in seen if n == "fb")
+    assert res["artifacts"]["a_py"] == "a" and res["artifacts"]["b_py"] == "b"

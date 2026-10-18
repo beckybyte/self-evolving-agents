@@ -203,7 +203,7 @@ class _Run:
             # one source of truth for human knowledge: a role that places the live context key itself does not also
             # get the memory/_shared.md snapshot of the same answers in its system message
             shared = "" if self.reads_shared(r) else g["_memory"].get("_shared", "")
-            system = "\n\n".join(x for x in [g["soul"], mem_block,
+            system = "\n\n".join(x for x in [g["soul"] if r.get("soul", True) else "", mem_block,
                                             f"## What the team has learned from the human so far\n{shared}" if shared else ""] if x)
             msgs = ([{"role": "system", "content": system}] if system else []) + [
                 {"role": "user", "content": self.render(r["prompt"], name, r["reads"])}]
@@ -312,15 +312,21 @@ class _Run:
         """Rounds of the body until stop_when appears in the output of stop_on (default: the last body role).
         stop_on is tested right after that role runs, so a checker first in the body ends the loop before the fixer
         reads anything; check_first also tests it before round 1."""
-        stop, on = lp.get("stop_when"), lp.get("stop_on", lp["body"][-1])
+        last = lp["body"][-1]
+        stop, on = lp.get("stop_when"), lp.get("stop_on", last["parallel"][-1] if isinstance(last, dict) else last)
         conds = [(c["on"], c["when"]) for c in lp.get("stop_all") or []] or ([(on, stop)] if stop else [])
         done = lambda: bool(conds) and all(self.says(o, w) for o, w in conds)
         if lp.get("check_first") and done():
             return
         for _ in range(int(lp.get("max_rounds", 2))):
             for b in lp["body"]:
-                self.step(b)
-                if (b == on or bool(lp.get("stop_all"))) and done():
+                if isinstance(b, dict):
+                    self.parallel(list(b["parallel"]))
+                    ran = list(b["parallel"])
+                else:
+                    self.step(b)
+                    ran = [b]
+                if (on in ran or bool(lp.get("stop_all"))) and done():
                     return
 
     def run(self) -> dict:

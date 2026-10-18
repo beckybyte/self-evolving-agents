@@ -17,7 +17,8 @@ genome.yaml (schema: 2)
                                       spec.<name> (one entry of the genome's `specs:` dict, so a spec section
                                       reaches only the roles that read it instead of every role via soul),
                                       artifacts_named_by.<role> (only the files whose path appears in that role's
-                                      output, e.g. a smoke report: a fixer then reads the broken file only),
+                                      output, e.g. a smoke report: a fixer then reads the broken file only; the
+                                      report's own 'files: [...]' line does not count; no file named -> all files),
                                       or any context key the task provides (brief mode: restatement, assumptions,
                                       human_answers). A selector used as {placeholder} in the prompt is substituted
                                       there; the others are appended as "## <selector>" sections.
@@ -27,6 +28,7 @@ genome.yaml (schema: 2)
                                     {"ok": true}, is left as written (no str.format); soul is never templated
       writes: blackboard | artifact:<name> | message:<role>       (default blackboard; always also blackboard[name])
       max_tokens: int = 2048, temperature: float = 0.0
+      soul: false                   this role does not get the shared soul (e.g. a UI writer that needs none of it)
       expects: [artifact names]     the role must emit these artifacts in its own answer; if one is missing (empty or
                                     cut-short answer) the role is run once more (both calls counted)
       # tool
@@ -59,6 +61,7 @@ genome.yaml (schema: 2)
                                     (a stop marker counts only at the START of a line of that output (markdown
                                     bullets/bold allowed), never mid-sentence and never in an answer cut off at
                                     max_tokens)
+                                    (a body entry may itself be {parallel: [names]}, e.g. one fixer per file)
                                     (loop stops early when the output of stop_on (a body role; default the last
                                     one) contains stop_when, tested right after stop_on runs: body [checker, fixer]
                                     with stop_on: checker skips the fixer once the checker says ALL_CLEAR;
@@ -116,7 +119,8 @@ def normalize(raw: dict) -> dict:
             n.update(model=r.get("model", "$WORKER"), prompt=r.get("prompt", "") or "",
                      max_tokens=int(r.get("max_tokens", 2048)), temperature=float(r.get("temperature", 0.0)),
                      native=native, writes=r.get("writes", "blackboard"),
-                     reads=list(r.get("reads") or (["input", "blackboard"])), expects=list(r.get("expects") or []))
+                     reads=list(r.get("reads") or (["input", "blackboard"])), expects=list(r.get("expects") or []),
+                     soul=bool(r.get("soul", True)))
             if legacy:
                 n["_v1_input"] = r.get("input", "native")
         elif kind == "tool":
@@ -192,11 +196,17 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
             assert all(p in names for p in par), f"bad parallel step {step}"
         elif isinstance(step, dict):
             lp = step.get("loop") or {}
-            assert lp.get("body") and all(b in names for b in lp["body"]), f"bad loop {step}"
+            def _body_ok(b):
+                if isinstance(b, dict):  # {parallel: [names]} inside a loop body
+                    par = b.get("parallel")
+                    return isinstance(par, list) and 2 <= len(par) <= 6 and len(set(par)) == len(par) and all(p in names for p in par)
+                return b in names
+            assert lp.get("body") and all(_body_ok(b) for b in lp["body"]), f"bad loop {step}"
             assert 1 <= int(lp.get("max_rounds", 2)) <= 6, "loop max_rounds must be 1..6"
-            assert lp.get("stop_on", lp["body"][-1]) in lp["body"], f"loop stop_on must be a body role: {step}"
+            flat = [x for b in lp["body"] for x in (b["parallel"] if isinstance(b, dict) else [b])]
+            assert lp.get("stop_on", flat[-1]) in flat, f"loop stop_on must be a body role: {step}"
             for c in lp.get("stop_all") or []:
-                assert isinstance(c, dict) and c.get("on") in lp["body"] and c.get("when"), \
+                assert isinstance(c, dict) and c.get("on") in flat and c.get("when"), \
                     f"loop stop_all entries are {{on: <body role>, when: <text>}}: {step}"
             assert not (lp.get("stop_all") and (lp.get("stop_when") or lp.get("stop_on"))), \
                 f"loop: use stop_all or stop_when/stop_on, not both: {step}"
