@@ -276,3 +276,18 @@ def test_summarize_child_reports_usersim():
                                              {"run": "r1", "score": 0.0, "reason": "usersim_error TimeoutExpired"}]}}
     txt = BuildTask.summarize_child(None, ev)
     assert "clean-episode rate 0.55" in txt and "'needs_yes': 2" in txt and "usersim_error" in txt
+
+
+def test_ui_judge_term_in_fitness(tmp_path, monkeypatch):
+    from sea.tasks import build as B
+    j = tmp_path / "fake_judge.py"
+    j.write_text("import json,sys,pathlib\na=sys.argv\no=pathlib.Path(a[a.index('--out')+1]);o.mkdir(parents=True,exist_ok=True)\n"
+                 "json.dump({'score': 0.75, 'criteria': {'a': 4}, 'notes': 'ok', 'cost_usd': 0.03}, open(o/'judge.json','w'))\n")
+    monkeypatch.setattr(B, "UIJUDGE", j)
+    monkeypatch.setenv("SEA_BUILD_UI_WEIGHT", "0.2")
+    register_fake("dev", fake_dev)
+    task = make_task(f"build:{spec_dir(tmp_path)}", tmp_path / "run")
+    ev = task.evaluate_fit(ROOT / "genomes/v2/build_P0", "fake:dev", tmp_path / "ev")
+    assert ev["metrics"]["score:ui"] == 0.75
+    assert ev["fitness"] == round(0.8 * ev["metrics"]["score:fit"] + 0.2 * 0.75 - 0.001 * ev["metrics"]["tokens"] / 1000, 4)
+    assert "ui_judge.json" in task.workspace_files(tmp_path / "ev") and "ui_judge" in task.fitness_spec().formula()

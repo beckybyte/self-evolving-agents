@@ -145,6 +145,7 @@ def materialise(artifacts: dict[str, str], app_dir: Path) -> tuple[list[str], li
 
 MAX_GENOME_CODE_LINES = 25
 USERSIM = Path(__file__).resolve().parents[3] / "builds" / "usersim" / "run.py"
+UIJUDGE = Path(__file__).resolve().parents[3] / "builds" / "uijudge" / "judge.py"
 CODE_LINE = re.compile(r"^\s*(def |class |import |from \S+ import |return\b|if .*:\s*$|for .*:\s*$|while .*:\s*$|elif |else:|try:|except|"
                        r"function\b|const |let |var |document\.|<(div|script|style|button|input|section|html|body)\b|\}\s*$|"
                        r"[A-Za-z_][A-Za-z0-9_.\[\]'\"]*\s*=\s*\S)")
@@ -200,6 +201,7 @@ class BuildTask(Task):
         self.repeats = max(1, int(os.environ.get("SEA_BUILD_REPEATS", repeats)))
         self.sim_weight = float(os.environ.get("SEA_BUILD_SIM_WEIGHT", "0"))
         self.sim_episodes = int(os.environ.get("SEA_BUILD_SIM_EPISODES", "20"))
+        self.ui_weight = float(os.environ.get("SEA_BUILD_UI_WEIGHT", "0"))
         self._harness = self._scen = None
         self._load_lock = threading.Lock()
 
@@ -262,11 +264,37 @@ class BuildTask(Task):
         return 1.0
 
     def fitness_spec(self) -> FitnessSpec:
-        w = self.sim_weight
-        terms = [Term("score:fit", 1.0 - w, label="score(fit)")]
+        w, wu = self.sim_weight, self.ui_weight
+        terms = [Term("score:fit", 1.0 - w - wu, label="score(fit)")]
+        if wu:
+            terms.append(Term("score:ui", wu, label="ui_judge(screenshots, design-doc rubric)"))
         if w:
             terms.append(Term("score:sim", w, label="usersim_clean_episode_rate(fresh seeds)"))
         return FitnessSpec(terms + [Term("tokens", -self.lam_tokens, 1000, "team_tokens/1000")])
+
+    def run_uijudge(self, out: Path) -> dict:
+        """Screenshot judge (builds/uijudge): Claude with vision scores the seeded page against the design-doc rubric.
+        Score = mean over team runs; a run without app.py scores 0."""
+        f = out / "ui.json"
+        if f.exists():
+            return json.loads(f.read_text())
+        per = []
+        for r in sorted(p for p in out.glob("r*") if p.is_dir()):
+            if not (r / "app" / "app.py").exists():
+                per.append({"run": r.name, "score": 0.0, "reason": "no_app_py"})
+                continue
+            od = r / "ui"
+            try:
+                subprocess.run([sys.executable, str(UIJUDGE), str(r / "app"), "--out", str(od)],
+                               capture_output=True, text=True, timeout=600)
+                d = json.loads((od / "judge.json").read_text())
+                per.append({"run": r.name, "score": float(d["score"]), "criteria": d.get("criteria"),
+                            "notes": str(d.get("notes", ""))[:800], "cost_usd": d.get("cost_usd")})
+            except Exception as e:
+                per.append({"run": r.name, "score": 0.0, "reason": f"uijudge_error {e!r}"[:300]})
+        res = {"score": round(sum(x["score"] for x in per) / max(1, len(per)), 4), "per_run": per}
+        f.write_text(json.dumps(res, indent=1, ensure_ascii=False))
+        return res
 
     def run_usersim(self, out: Path) -> dict:
         """LLM user simulator (builds/usersim) on every team run's app, fresh random seeds each evaluation (recorded),
@@ -444,6 +472,8 @@ class BuildTask(Task):
         if self.sim_weight:
             sim = self.run_usersim(out)
             metrics["score:sim"] = sim["score"]
+        if self.ui_weight:
+            metrics["score:ui"] = self.run_uijudge(out)["score"]
         return {"reports": {"fit": fit}, "holdout": hold, "metrics": metrics, "fitness": self.fitness_spec()(metrics),
                 **({"sim": sim} if sim is not None else {})}
 
@@ -487,6 +517,7 @@ class BuildTask(Task):
             "contract.md": self.contract,
             "reports.json": json.dumps({"fit": rep, "holdout_aggregate": hold}, indent=1, ensure_ascii=False),
             **({"usersim.json": (parent_eval / "sim.json").read_text()} if (parent_eval / "sim.json").exists() else {}),
+            **({"ui_judge.json": (parent_eval / "ui.json").read_text()} if (parent_eval / "ui.json").exists() else {}),
             "fit_rows.jsonl": "\n".join(json.dumps({**{k: r.get(k) for k in ("id", "score", "hard", "reason", "detail", "checks", "secs")},
                                                     "scenario": scen.get(r["id"].split("@")[0])}, ensure_ascii=False) for r in rows),
         }
