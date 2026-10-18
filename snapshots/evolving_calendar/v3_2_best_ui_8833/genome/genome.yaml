@@ -1,0 +1,767 @@
+schema: 2
+id: gen01a1_c4
+parent: gen01a1_c4
+mechanism: strong UI writer, page-only review
+notes: 'Child 3''s rules, but index.html is written and fixed by claude:haiku (short file, x4 cost) and the reviewer reads only index.html; the v3 server checks are left to the selftest asserts. Evidence: the ui judge (0.2 weight) is the weakest term at 0.46 and gpt-oss wrote a page with a syntax error (r1) and a missing data-day (r0); the old reviewer+fixer2 read all four files every run (~81k tokens) to find only index.html bugs.'
+soul: |
+  You are part of a small team writing one Python 3.12 app (standard library only) against a frozen contract.
+  Always emit complete files inside <artifact name=...> tags, never fragments or diffs. Simulated clock only.
+  The app is rule-based: it must work with no language model at all. The spec below is binding.
+
+  BUILD RULES (the previous team lost almost every point to crashes, not to logic: a missing method, a NameError at
+  startup, a handler that dropped the connection. The parent build passed v1 (behaviours 1-9) almost fully and lost
+  nearly all its remaining points on v2 (behaviours 10-21), which nobody had specified: the V2 sections below fix that).
+  - THREE Python files: app.py holds the v1 server (store, parsing, conversations, scheduler, focus, HTTP), v2.py
+    the v2 learning loop (log, plans, imports, beliefs, proposals, views, knobs, prompts, activity) and v3.py the v3
+    view catalog, critic and designer, joined ONLY by the V2 and V3 INTERFACE below. No other files, no imports beyond
+    the standard library (app.py does `import v2` and `import v3`, v2.py does `import v3`).
+    The parent build passed v1 and v2 almost fully and lost all its remaining points on v3 (behaviours 22-26), which
+    nobody had specified: the V3 sections below fix that.
+    Every function you call must be defined in the file that calls it (or be a V2 INTERFACE function called as
+    v2.<name>); re-read every name before you finish. Start with `python app.py --port P --data D` via argparse; os.makedirs(D, exist_ok=True);
+    ThreadingHTTPServer on 0.0.0.0; one global threading.Lock held during each request.
+  - do_GET / do_POST wrap everything in try/except and ALWAYS answer JSON (status 200 for success, 400/404/500 with
+    a JSON object with key "error" otherwise) with Content-Type and Content-Length. Never let an exception escape a handler.
+  - GET / serves index.html from the app.py directory; if that file is missing, serve a small built-in page that still
+    has the ids chat-input, chat-log, focus, timeline.
+  - State is plain dicts/lists (items, messages, conversation state per item id, undo records, sent-reminder keys,
+    now). Saving a JSON copy under --data is optional; if you save, never let it fail a request.
+  - Times: parse and format with datetime.strptime/strftime "%Y-%m-%dT%H:%M". Never use the real clock.
+
+  DATETIME SAFETY (the previous build crashed in BOTH runs on one line and lost every postpone, check-in and
+  breakdown-accept check: HTTP 500 "'datetime.date' object cannot be interpreted as an integer", from
+  datetime(day.year, day.month, day, hour, 0) in the free-slot finder, passing a date object as the day number).
+    - Import "from datetime import datetime, date, time as dtime, timedelta". Build a datetime from a date d ONLY with
+      datetime.combine(d, dtime(h, m)). Never call datetime(...) with a date or datetime object as an argument.
+    - Name every date-only variable with a _d suffix (day_d, deadline_d) and every datetime with _dt; compare like
+      with like (datetime with datetime, date with date); turn a datetime into its date with .date().
+    - Items store times as ISO strings; parse with parse_iso only where you need arithmetic, store back with fmt_iso.
+
+  STATE SHAPES
+  - Item: every key of the contract Item always present (missing seed fields get defaults: window/why/parent_id/
+    estimate_min/start/end None, status "open", postpone_count 0, source "seed"). Seed items keep their ids.
+  - Message: always all keys id, role, kind, text, item_id, at (= simulated now), undo_id; key "steps" ONLY on kind
+    "breakdown". One helper add_agent(kind, text, item_id=None, undo_id=None, steps=None) appends and returns it.
+  - Every response's "messages" lists the new messages of that request (person messages may be included, agent
+    messages must be). EVERY /api/reset, /api/command, /api/chat MUST produce at least one agent message:
+    reset adds a warm agent "info" greeting ("Hi, I'm here whenever you want to plan a little."); command replies
+    with an "info" confirmation naming what was added (plus the complexity question when relevant).
+
+  NO-GUILT WORDING: no agent text may contain these substrings (case-insensitive): overdue, fail, miss, late,
+  behind, should have, forgot, lazy, urgent, alert. Note "later", "dismiss", "relate" contain banned substrings:
+  do not use them. Run every agent text through a check that replaces any banned phrase with a kind one.
+
+  PARSING (rules only, no model needed)
+  - Date words: today, tomorrow, weekday names (monday..sunday, also mon..sun) = the soonest such date after today
+    (2026-10-19 is a Monday, so "thursday" -> 2026-10-22), "Friday, October 23" / "October 23" / "Oct 23" /
+    "2026-10-23" -> that date. No date word -> today if the time is still ahead, else tomorrow.
+  - Clock times: "3pm", "3 pm", "3:30pm", "15:00", "at 9" (1..7 without am/pm means pm). A clear clock time makes an
+    "event": start = date+time, end = start + 60 min, window None.
+  - Soft windows keep their words in `window` and get an approximate start/end on that date: "around noon"/"noon"/
+    "lunch" 12:00-13:00, "morning" 09:00-12:00, "afternoon"/"this afternoon" 14:00-17:00, "evening" 18:00-21:00,
+    "tonight" 20:00-22:00. Such an item is an event if it is an appointment with someone (with/meet/lunch/dinner/call
+    with), else a task. "lunch with Ana around noon tomorrow" -> window "around noon", start 2026-10-20T12:00.
+    - Date words may come before or after the time phrase ("lunch with Ana around noon tomorrow", "tomorrow lunch
+      with Ana around noon"): find the date word anywhere in the text first, remove it, then the time/window; the date
+      applies to windows too (that example -> start 2026-10-20T12:00, window "around noon", title "Lunch with Ana").
+      The title never keeps date or time words (no "tomorrow", "thursday", "3pm", "around noon").
+  - Title: the text with the date/time words removed, first letter capitalised ("Dentist", "Lunch with Ana").
+  - No time at all -> kind "task" with start/end None ("maybe ..." or ending in "?" -> kind "note"). Source "typed".
+  - Dump mode: split on commas, semicolons and newlines (not on "and"); every non-empty fragment becomes exactly one
+    item, source "dump", title keeps the fragment's main words (strip "maybe", "?"). Reply with ONE info message listing
+    the titles, plus AT MOST ONE question in the whole response (the complexity question of the first big fragment,
+    if any; e.g. "portfolio" is big).
+
+  COMPLEXITY CHECK (rule 3): a new task is big/vague when its text contains a VAGUE VERB PHRASE: work on, figure out,
+  deal with, sort out, sort through, handle, tackle, get on top of, catch up on, clean out, clean up, get ... together,
+  get ... done, get ... sorted, organize, organise, plan, prepare, research, finish, start on, apply for, overhaul,
+  redo, revamp; or a BIG NOUN: project, portfolio, pitch deck, deck, thesis, website, garage, closet, inbox, taxes,
+  application, claim, move, renovation, novel; or estimate_min > 120 (match whole words: "plan" must not match "plants";
+  "call mom", "buy milk", "dentist thursday 3pm" stay small). Hidden scenarios use OTHER vague verbs and nouns than the
+  examples, so keep the list broad. Then add exactly ONE agent message kind "question", item_id = the item, text like "This one
+  sounds big. Want me to break 'Get my portfolio together' into small steps?" and set convo[item_id] = "ask_split".
+  Nothing is broken down and no child is created without a yes.
+
+  CHAT (/api/chat, convo state machine per item id; one question per message, each text holds exactly one "?")
+  - yes words: yes, yeah, yep, yup, sure, ok, okay, alright, please, looks good, sounds good, good, great, perfect,
+    fine, do it, go ahead, let's, works, that works, why not, of course, absolutely, love it, nice, deal, cool,
+    awesome, agreed, go for it, sounds right, all good, add them, thanks, thank you, y.
+    no words: no, nope, nah, not now, not right now, no thanks, later, rather not, don't (checked BEFORE yes words; "no thanks, not right now" is a no).
+  - ask_split: no -> info "Okay, I'll keep it as one task." state None. yes -> question "Why does this matter to you?"
+    state ask_why. Anything else (neither a no nor a yes word: "hmm", "what do you mean?", "maybe") -> ONE
+    question "No pressure. Shall I break it into small steps, yes or not now?", state stays ask_split, streaks
+    unchanged. EXPLICIT YES RULE (a user simulator checks it on every episode; the parent broke it 14 times): nothing
+    is broken down, no child is created and nothing is deleted unless the person's latest reply has a yes word.
+  - ask_why: store the reply text as the item's why (exact text) -> question "What does done look like for you?"
+    -> ask_done (store reply) -> question "Is there a deadline, a day you'd like it finished by?" -> ask_deadline: parse a
+    date from the reply (rules above; none -> now + 7 days) -> breakdown message -> state propose.
+  - Breakdown message: kind "breakdown", item_id = goal, text "Here's a gentle plan for '<title>'. Does this look ok?",
+    steps = 3 or 4 dicts with keys "title" and "estimate_min". Each title starts with a concrete verb from: List, Pick, Write,
+    Open, Collect, Choose, Draft, Email, Call, Book, Clear, Sort, Find, Gather, Send, Review, Update, Upload, Read.
+    First step estimate 10 (<= 15), the others 30-60. Build them from the goal title (for a portfolio: "List the
+    projects you are proudest of" 10, "Pick the five best projects" 30, "Write a short note for each project" 60,
+    "Upload the projects to a simple website" 60); generic fallback: "Open a note and list what '<title>' needs" 10,
+    "Pick the first piece to start" 20, "Draft the first piece" 45, "Review it and send or save it" 30.
+  - propose: ACCEPT only when the reply has a yes word and no change word. A reply with a change word (change words: change, different, smaller,
+    shorter, fewer, more, less, instead, rather, swap, replace, split, too big, too long, too much, but) -> a revised
+    "breakdown" (smaller steps, max 5), stay. A no word -> info "Okay, I'll keep it as one task.", state None, no
+    children. Anything else -> ONE question "Shall I add these steps to your calendar?", stay. So "yes",
+    "looks good", "ok", "that works for me", "fine by me", "perfect, thanks" all ACCEPT (the previous build ignored
+    "that works for me" and lost every child-task check). On accept create one task per step: parent_id goal id, source "agent", estimate_min, start/end
+    scheduled one per day starting today (or tomorrow if today's slot has passed) at the person's usual hour
+    (see SCHEDULER), end = start + estimate, all strictly before the deadline date (if the days run out, place the
+    rest back to back on the last day before the deadline). Goal why stays set. Info message "Done, the first tiny step
+    is '<step 1>'." state None.
+  - checkin (state after a check-in): text with big/smaller/break/too much -> immediately send a "breakdown" message
+    for that item (state propose); time/busy/wrong -> move it to the next day's free slot, info naming the new time;
+    not needed/drop/remove/don't need -> question "Shall I remove '<title>' for you?" state confirm_drop; in
+    confirm_drop a yes word -> delete the item, info; anything else -> keep it, info "Okay, I'll keep '<title>'.".
+  - ONE QUESTION AT A TIME (checked by the user simulator on every response): every agent text holds at most ONE
+    "?"; every response (command, dump, chat, clock) holds at most ONE agent message that asks something (kind
+    question, checkin or breakdown, or any text with "?"). Info lists never contain "?" (strip it from titles).
+
+  DONE / UNDO: /api/items/<id>/done sets status "done", returns the JSON object with key "item". Undo records map undo_id -> the
+  item's previous start, end, window, postpone_count; /api/undo restores them, returns ok true.
+
+  CLOCK + SCHEDULER (/api/clock): if new <= now just return an empty "messages" list. Otherwise walk minute by minute from
+  now+1 to new; at each minute t, for every open item (status "open") in a stable order:
+  - Reminder at start: start is not None and start == t (crossed this minute), key (id,"start",start) not yet sent ->
+    "reminder" message "It's time for '<title>' (20:00)." Reminder before end: end - 10 min == t and key (id,"end",end)
+    not sent -> "reminder" "'<title>' wraps up in 10 minutes." Done items never get reminders. No duplicates ever.
+  - Auto-postpone (kind "task" only, not goals with children; end None -> start + 60 min; no start -> skip): CATCH-UP
+    rule t >= end + 31 min (NOT t == end + 31: a task that was already past at reset or before the previous clock call
+    must still be followed up on the next clock call; the user simulator flagged 16 tasks nobody followed up). If
+    postpone_count >= 2 -> do NOT move it; send ONE "checkin" message (exactly one "?"): "'<title>' has moved a few
+    times, and that's okay. Shall I break it into smaller steps, find a better time, or let it go?" set convo state
+    "checkin", mark key (id, "checkin", end) so it is never repeated. At most ONE checkin per /api/clock response: a
+    second one due in the same call is NOT marked and fires on the next clock call. Else move it: new day = end's date +
+    1 (if that day is before t's date, t's date; the new start must be after t), same length, the free slot (same day-scan the breakdown scheduler uses)
+    that starts at or after the person's usual hour (try every 15 minutes up to 23:30; free = no open item with
+    start/end overlaps it), else the first free slot from 08:00 that day. postpone_count += 1, store an undo record,
+    send "postponed" message with undo_id: "No worries, I moved '<title>' to Tue Oct 20 at 21:30. Undo if you'd
+    rather keep it." (always the task title and the HH:MM time).
+  - Usual hour: from seed items with status "done" and a start, take the lower median start time and round down to the
+    hour (Iris: 20:00). No history -> 19:00.
+  - Set now = new at the end; return the new messages in order.
+
+  FOCUS (/api/focus): goals = open items with a non-empty why; their open children (parent_id = goal id). If any:
+  item = the open child with the earliest start (None last, then insertion order) across those goals, parent = its
+  goal, why = goal why. Else item = the open task (no children of its own) with the earliest start, parent from its
+  parent_id (or None), why = the parent's why, else the item's own why. "action" is always "Start 5 minutes".
+  No open item -> item None, parent None, why None.
+
+  V2 INTERFACE (app.py <-> v2.py). The two files are written by different writers at the same time and neither sees
+  the other's code, so BOTH follow this list exactly (names, arguments, return shapes).
+  - app.py keeps ONE global dict STATE. Keys app.py owns: "now" (ISO str), "items" (list of full Item dicts, every
+    contract key present; v2 may add keys "uid" and "recurrence" to imported items), "messages" (list of full Message
+    dicts), "convo", "undo", "sent". "undo" maps undo_id -> {"item_id", "start", "end", "window", "postpone_count"};
+    /api/undo restores exactly those fields onto that item (v2 writes such records too for its moves).
+  - v2.py NEVER imports app.py. Every v2 function takes that dict as first argument S, changes it in place and
+    returns a JSON-ready dict. Unknown ids raise KeyError (app.py answers 404 JSON). v2 makes its own messages with
+    the full Message shape, appends them to S["messages"] and returns them; v2 has its own wording check.
+  - The functions (v2.py defines all of them, app.py calls them):
+      init_v2(S)                        do_reset calls it right after loading the seed items (it sets the v2 keys)
+      add_log(S, kind, item_ids, payload, source) -> LogEntry   app.py calls it for every v1 action (see LOGGING)
+      handle_command(S, text) -> dict or None   /api/command in mode "command" calls it FIRST; a dict is the whole
+                                        response ({"messages", "created", and "plan" for a preview}); None = not a
+                                        query/move/cancel/bulk command, so app.py parses it as a new item as usual
+      import_file(S, filename, content) -> {"plan"}
+      apply_plan(S, plan_id) -> {"plan"};  undo_plan(S, plan_id) -> {"plan"}
+      get_log(S) -> {"entries"};  get_beliefs(S) -> {"beliefs"};  delete_belief(S, key) -> {"ok": True}
+      learn(S) -> {"beliefs", "proposal"};  get_proposal(S) -> {"proposal"}
+      proposal_action(S, proposal_id, action) -> {"proposal", "view"}   action = accept | dismiss | undo
+      set_view(S, view_type) -> {"view"};  get_prompts(S) -> {"prompts"};  rollback(S, agent) -> {"active"}
+      get_activity(S) -> {"events"};  view_state(S) -> View spec;  meta_state(S) -> the meta dict
+      tick(S, on_clock)                 app.py calls tick(S, True) at the end of /api/clock and tick(S, False) at the
+                                        end of every other request that added log entries
+  - app.py routes: GET /api/log, /api/beliefs, /api/proposal, /api/prompts, /api/activity; POST /api/import (body
+    filename, content), /api/plan/<id>/apply, /api/plan/<id>/undo, /api/learn, /api/proposals/<id>/<action>,
+    /api/view (body type), /api/prompts/<agent>/rollback; DELETE /api/beliefs/<key> (a do_DELETE method with the same
+    try/except JSON wrapper). /api/state also returns "view": v2.view_state(S) and "meta": v2.meta_state(S).
+  - LOGGING (app.py side, via v2.add_log, at = simulated now): "create" for each item created by /api/command
+    (source "typed" or "dump", item_ids [id]); "done" (source "person"); "chat" for /api/chat, or "checkin_answer"
+    when that item's convo state was "checkin" or "confirm_drop" (source "person"); "postponed" and "reminder" for
+    every postponed/reminder message (source "clock", item_ids [id]); "update" for /api/undo and when a check-in
+    moves an item; "delete" when a check-in drop removes an item.
+
+  V3 INTERFACE (v3.py: catalog, critic and designer of behaviours 22-23, written by its own writer at the same time as
+  app.py, v2.py and index.html; nobody sees the others' code, so all follow this list exactly).
+  - v3.py imports only the standard library (json, re, copy, datetime), never app.py or v2.py. Every function takes the
+    STATE dict S first and only READS it (S["now"], S["items"], S.get("beliefs", {})). Functions:
+      get_catalog(S) -> {"primitives": [...]}          critic(S, spec) -> {"ok", "problems", "repaired"}
+      design(S, belief_key) -> {"drafts", "critique", "repairs", "chosen", "proposal": None}
+      best_spec(S, belief_key) -> the chosen draft spec  hidden_counts(S, spec) -> {date: n} (items the spec hides)
+  - v2.py does `import v3` and calls v3.best_spec (invented proposals) and v3.hidden_counts (custom views).
+  - app.py does `import v3` and routes: GET /api/catalog -> v3.get_catalog(S); POST /api/critic {"spec"} ->
+    v3.critic(S, body.get("spec")); POST /api/design {"belief_key"} -> r = v3.design(S, body.get("belief_key")), then
+    r["proposal"] = v2.learn(S)["proposal"] (runs the gate, which may open an invented proposal), answer r.
+  - V3 STATE: v2.init_v2 adds S["meta"]["threshold"] = 0.7 (meta keys: novelty, cadence_hours, breakdown_appetite,
+    tone, threshold). app.py owns S["streak_yes"] = S["streak_no"] = 0 (set on every reset) and reads/writes
+    S["meta"]["breakdown_appetite"] (APPETITE below).
+
+  APPETITE (behaviour 26, app.py, stage 2). In the ask_split state a no-word reply -> S["streak_no"] += 1,
+  S["streak_yes"] = 0, S["meta"]["breakdown_appetite"] = round(max(0.0, appetite - 0.15), 2); a yes reply ->
+  S["streak_yes"] += 1, S["streak_no"] = 0, appetite = round(min(1.0, appetite + 0.15), 2) (3 declines: 0.5 -> 0.05,
+  3 accepts: 0.5 -> 0.95). The COMPLEXITY CHECK of every new big task (command and dump) looks at them first:
+    - S["streak_no"] >= 3 or appetite <= 0.1 -> NO question and no breakdown: only the usual info reply, kept as one task.
+    - elif S["streak_yes"] >= 3 or appetite >= 0.9 -> no question: send the "breakdown" message for it straight away
+      (breakdown builder, deadline now + 7 days, convo state "propose", so "looks good" creates the steps).
+    - else the usual single question (convo "ask_split").
+
+  STAGED BUILD: app.py is grown in two stages, v2.py, v3.py and index.html are written alongside, and the app is RUN after
+  each stage.
+    - Stage 1 (core, at the same time as v2.py, v3.py and index.html): imports (incl. `import v2`), time helpers, store,
+      add_agent, wording check, parsing, complexity check, reset/state/command/done/undo/focus endpoints, every V2
+      and V3 INTERFACE route and LOGGING call, HTTP handler, main(). /api/chat and /api/clock exist but are minimal stubs that
+      answer {"messages": [...]} with one info message (the stub chat still answers no to "no" words; the stub clock
+      still sets now and calls v2.tick(S, True)). Each part is marked with a comment line "# === SECTION: <name> ===".
+    - Stage 2 (behaviour): re-emits the WHOLE app.py, keeping stage 1 code unchanged unless the smoke report shows it
+      is broken, and adds the CHAT state machine, the breakdown builder, APPETITE, the CLOCK + SCHEDULER section (with its
+      LOGGING calls) and selftest() (SELFTEST), replacing the two stubs. It never edits v2.py.
+
+  SELFTEST: app.py defines selftest(). main() runs it ONLY when started with --selftest (argparse flag
+  store_true; --port/--data then optional, default data dir a temp dir): it runs selftest() and exits with code 0
+  printing NOTHING; an exception prints its traceback and exits 1. The normal start never runs it. selftest() calls
+  the endpoint functions directly (no HTTP) on a scripted day, under the lock, then wipes the state again:
+    reset now 2026-10-19T09:00 with done history (h0 20:15-20:45 and h1 21:00-21:40 on 2026-10-13), open task
+    t1 "Write cover letter" 2026-10-19T14:00-15:00, event yo "Yoga" 2026-10-24T10:00-11:00 and event den "Dentist"
+    2026-10-22T15:00-16:00; command "dentist thursday 3pm"; command "lunch with Ana around noon tomorrow"; dump "call
+    mom, portfolio, maybe yoga?"; command "get my portfolio together"; chat on that goal: "yes, please", "I want to
+    feel proud", "Five projects online", "By Friday, October 23.", "looks good"; focus; mark the first child done;
+    command "what's on thursday?"; command "move my dentist to next week"; command "cancel yoga" and apply its plan;
+    command "empty out my weekend for a business trip", apply it, undo it; import a 2-event .ics text (one with
+    TZID, one all-day) and apply; import the text "I'll be away this weekend, please clear it. Also lunch with Ana on
+    Wednesday around noon."; learn; view "workweek"; if a proposal is open accept it, then undo it; prompts; rollback
+    designer; activity; log; clock to 2026-10-19T16:00 (postpones t1); undo the postponed message's undo_id; clock
+    to 2026-10-23T23:00 (reminders, postpones, check-in); chat on t1 "honestly it feels too big"; state; reset empty.
+    After that list selftest() also calls: GET /api/catalog; POST /api/critic with
+    {"root": "r", "elements": {"r": {"type": "SpiralClock", "props": {}, "children": []}}}; POST /api/design with
+    belief_key None and with "evening_work"; three new "work on task <n>" commands each answered "no" via chat, then one
+    more "work on my novel" command (APPETITE path); same for three "yes" answers; and three proposal dismisses if
+    proposals open (KNOBS path). Call them through the same route function the HTTP handler uses.
+  After that list selftest() also runs the PARAPHRASE commands (fresh reset each, seed items placed on the right days):
+  "free up my saturday, I have a family reunion"; "nothing on sunday please, I'm travelling to Lisbon"; "wipe friday
+  evening, I got concert tickets"; "anything on the 23rd?"; "push the dentist back a week"; "drop yoga"; commands
+  "handle the insurance claim" and "get on top of my inbox"; a breakdown accepted with "sure, go ahead" and "that works for me".
+  selftest() has NO assertions: it only exercises every code path, and any exception propagates so the process exits
+  with a traceback (the smoke check shows it and a fixer repairs the real cause). Keep it fast (well under 5 s).
+  SELFTEST ASSERTIONS (after the walk above, which still has no assertions): selftest() then CHECKS behaviour with plain
+  `assert cond, "<file>: <what is wrong, with the value seen>"` lines (the message names the file to fix: app.py, v2.py
+  or v3.py), each check on a fresh reset (now 2026-10-19T09:00 unless given) so they are independent:
+    - command "dentist thursday 3pm" -> one event, start "2026-10-22T15:00".
+    - dump "call mom, portfolio, maybe yoga?, dentist thursday 3pm" -> 4 created ids, at most 1 question message.
+    - commands "handle the insurance claim", "get on top of my inbox", "sort out my closet" -> exactly one question
+      message each on its item; command "call mom" -> no question.
+    - command "work on the grant application", chat "sure, go ahead", a reason, "It is submitted", "by November 6",
+      "that works for me" -> at least 2 open tasks with parent_id = the goal, goal why = the reason, focus item = the
+      first child, first step estimate_min <= 15.
+    - seed Bike repair Sat 2026-10-24 10:00-11:00, Picnic Sat 13:00-15:00, Choir Sun 10:00-11:30, Demo Fri 15:00-16:00
+      (now 2026-10-20T08:00): "free up my saturday, I have a family reunion" -> plan status preview, sorted affected ==
+      the two Saturday ids, exactly one create op whose title contains "reunion" (any case), item list unchanged; apply
+      -> both gone and the reunion added; undo -> both back with equal fields.
+    - same seed: "nothing on sunday please, I'm travelling to Lisbon" -> affected == [Choir id], one create containing "Lisbon".
+    - seed Fri 2026-10-23 09:00 standup, 18:30 drinks, 21:00 laundry: "wipe friday evening, I got concert tickets" ->
+      affected == the 18:30 and 21:00 ids only, one create containing "oncert".
+    - seed Eye exam 2026-10-23T14:00-14:45, Piano 2026-10-23T17:00: "anything on the 23rd?" -> reply text contains
+      "Eye exam" and "Piano", items unchanged; "push the eye exam back a week" -> its start "2026-10-30T14:00".
+    - v3.critic with type "SpiralClock" -> ok False and a problem containing "SpiralClock"; v3.design(S, "evening_work")
+      -> >= 2 drafts and critic(S, drafts[chosen])["ok"] is True.
+    - seed task 14:00-15:00 and done history at 20:15: clock to 16:00 -> one "postponed" message with an undo_id whose
+      text contains the task title; no agent text anywhere contains a banned word.
+    - (app.py) command "work on the pitch deck", chat "hmm, what do you mean?" -> exactly one question, the goal's why
+      is still None and no breakdown message; then "yes", a reason, "a clean deck", "friday", then "what is step 2
+      about?" -> no item with parent_id = the goal; then "ok" -> children exist.
+    - (app.py) seed task "Old task" 2026-10-18T10:00-11:00 (already past at reset 2026-10-19T09:00): clock to 09:30 ->
+      one postponed message naming it, its new start after 09:30.
+    - (app.py) seed three tasks with postpone_count 2 ending 14:00: clock to 16:00 -> at most one checkin message.
+    - (app.py and v2.py) every response of every check above: no agent text with more than one "?", and at most one
+      asking agent message per response.
+  ASSERT FILE NAMES: bulk / query / move / cancel / import / beliefs / proposals checks name "v2.py:" (that code lives in
+  v2.py, even though selftest is in app.py; the parent labelled them app.py and its fixer looped 3 times on the wrong
+  file); critic / design checks name "v3.py:"; parsing, chat, clock, focus checks name "app.py:".
+  Keep it fast (well under 5 s). The normal start never runs it. A failing assert exits 1 with its message: the smoke
+  check reports it and a fixer repairs the APP code (an assert is changed only when it contradicts the contract).
+roles:
+- name: core
+  kind: llm
+  model: crusoe:deepseek-ai/DeepSeek-V4.1-Flash#nothink
+  reads:
+  - contract
+  max_tokens: 24000
+  prompt: |-
+    You are stage 1 of the STAGED BUILD. Contract:
+    {contract}
+
+    Write app.py stage 1 exactly as the STAGED BUILD, BUILD RULES, STATE SHAPES, PARSING, COMPLEXITY CHECK, DONE / UNDO, FOCUS and V2 INTERFACE (routes, the v2.<name> calls and LOGGING) and V3 INTERFACE (routes, v3.<name> calls, streak keys on reset) sections say. v2.py and v3.py are written by others at the same time: call only the V2 / V3 INTERFACE functions, with exactly those arguments. Check silently that every called name is defined.
+    Output exactly one artifact: <artifact name="app_py">...whole file...</artifact> and nothing else.
+  expects:
+  - app_py
+- name: v2
+  kind: llm
+  model: crusoe:deepseek-ai/DeepSeek-V4.1-Flash#nothink
+  reads:
+  - contract
+  max_tokens: 32000
+  prompt: |-
+    You write v2.py: the whole v2 learning loop of this contract (behaviours 10-21), behind the V2 INTERFACE of your system message. app.py (the v1 server) is written by someone else at the same time and calls your functions with exactly those names and arguments. Contract:
+    {contract}
+
+    V2 SPEC (v2.py, rule-based, no network, standard library only: json, re, uuid, hashlib, datetime; plus `import v3`, the V3 INTERFACE module written by someone else). Build datetimes
+    only with datetime.combine(day_d, dtime(h, m)) or strptime; never datetime(...) with a date object as argument.
+    Every list returned is a copy in insertion order. ids: prefix + uuid4().hex[:10] ("log_", "plan_", "prop_", "itm_").
+
+    init_v2(S): S["log"] = [], S["beliefs"] = {} (key -> Belief), S["deleted_beliefs"] = [], S["penalty"] = {},
+    S["blocked"] = {} (belief key -> confidence when its proposal was dismissed/reverted), S["proposals"] = [],
+    S["plans"] = {}, S["view"] = {"type": "week", "params": {}}, S["meta"] = {"novelty": 0.6, "cadence_hours": 24,
+    "breakdown_appetite": 0.5, "tone": "gentle"}, S["invented_reverts"] = [], S["last_proposal_at"] = None,
+    S["learn_mark"] = 0, S["activity"] = [], S["prompts"] = version 1 of agents designer, followthrough, learner:
+    {"agent", "version": 1, "core_hash": sha256 of that agent's fixed core text (one sentence per agent) hexdigest()[:12],
+    "learned": "", "diff": "", "reason": "initial version", "evidence": [], "replay": {"passed": True, "detail":
+    "initial"}, "active": True}. Seed item ids count as valid evidence.
+
+    ITEM MATCHING: words of the text, lowercased, minus stop words (move, reschedule, push, shift, postpone, bump, delay,
+    put, off, back, by, later, earlier, cancel, delete, remove, drop, scrap, skip, my, the, a, an, to, on, at, for, next,
+    week, weeks, day, days, one, please, it). An open item matches when one of its title words (3+ letters) is in that set;
+    best = most matching words, then earliest start. No match -> an info message "I couldn't find that one. Which item
+    do you mean?" and no change.
+
+    DAY WORDS (shared by QUERY, BULK, MOVE, TEXT import): today, tomorrow, weekday names and mon..sun (the soonest such
+    date after today; "this saturday" the same), "October 23" / "Oct 23" / "2026-10-23", and a bare day of month
+    "the 23rd" / "23rd" / "the 5th" / "on the 2nd" (this month; if that day is before today, next month). PART OF DAY
+    narrows a day: morning 00:00-12:00, afternoon 12:00-17:00, evening / tonight 17:00-24:00.
+    Hidden scenarios phrase these commands in OTHER words than the examples (other personas), so match the meaning
+    with these broad trigger lists, never only the example sentences.
+
+    handle_command(S, text) (lowercase, strip; try the rules IN THIS ORDER, return None unless one fires):
+    - BULK (first): text has a clearing phrase (empty, clear, clear out, free up, wipe, nothing on, no plans,
+      keep ... free, block out, cancel everything, cancel all, make room) AND a range (weekend, or a day word,
+      optionally with a part of day). Range = the weekend = coming Saturday 00:00 to Monday 00:00 (if today is Saturday
+      or Sunday, this weekend), or that one day 00:00-24:00, or only that part of that day ("friday evening" = Friday
+      17:00-24:00, so a Friday 09:00 standup is NOT affected). affected = ids of open items whose [start, end) overlaps
+      the range (no end -> start + 60 min; no start -> skip); items on other days are never affected.
+      Plan ops: one delete op per affected item (before = copy of the item, after None) plus ALWAYS exactly ONE create
+      op for the reason: purpose = the words after "for" if present, else the clause after the first comma (or after
+      because / since / as); drop leading i have / i've got / i got / i'm / i am / we have / we're / there's / a / an /
+      my / some / please; capitalise. "for a business trip" -> "Business trip", "I have a family reunion" -> "Family
+      reunion", "I'm travelling to Lisbon" -> "Travelling to Lisbon", "I got concert tickets" -> "Concert tickets";
+      no purpose -> "Time off". after = a full new Item, kind "event", that title, start/end: weekend Saturday 09:00 to
+      Sunday 18:00, one day 09:00-18:00, part of day its range clipped to 23:59 (evening 18:00-23:00), window the range
+      words ("weekend", "saturday", "friday evening"), source "typed". Plan {"id", "origin": "command", "status":
+      "preview", "ops", "affected"} stored in S["plans"]. Nothing changes until apply. Response {"messages": [one info
+      message naming how many items it would clear and the new one, ending "Shall I apply it?"], "created": [], "plan": plan}.
+    - QUERY: text ends with "?" or starts with what / what's / whats / anything / any / show / when / do i have / is
+      there / am i: find the day with DAY WORDS ("anything on the 23rd?" -> the 23rd of this month; none = today). Reply
+      message kind "reply" naming EVERY item (any status) whose start date is that day, with its HH:MM or window,
+      e.g. "On Thursday: Dentist at 15:00, Lunch with Ana around noon." (nothing there -> "Thursday looks free.").
+      Changes nothing, creates nothing; add_log "query" (item_ids = those items, source "typed"). created [].
+    - CANCEL: text starts with cancel / delete / remove / drop / scrap / skip / get rid of / forget / i don't need:
+      best matching item -> a preview plan with one delete op (affected [id]) and an info message "I can remove 'Yoga'
+      for you. Apply the change?"; response includes "plan"; the item stays until apply_plan.
+    - MOVE: text starts with move / reschedule / push / shift / postpone / bump / delay / put off / pull: best matching
+      item; the shift: "next week", "a week", "back a week", "by a week", "a week later", "one week" -> start and end
+      +7 days; "N weeks" -> +7N days; "tomorrow", "a day", "back a day" -> +1 day; "N days" -> +N days; a weekday name ->
+      that weekday, same time; a clock time -> same day at that time, same length. "push the eye exam back a week" moves
+      Eye exam from 2026-10-23T14:00 to 2026-10-30T14:00. ONE item moved is applied at once (no plan): store
+      S["undo"][undo_id] = its old start/end/window/postpone_count, update it, add_log "update" (item_ids [id], payload
+      old and new start), info message "Moved 'Dentist' to Thu Oct 29 at 15:00." with that undo_id. Response
+      {"messages", "created": []}.
+
+    PLANS: apply_plan: only from status "preview" (else return it unchanged): delete op -> remove the item; create op
+    -> append a copy of after; update op -> replace the item with after. status "applied"; add_log "plan_applied"
+    (item_ids = affected + created ids, payload plan id), plus one add_log "delete" / "create" / "update" per op with its
+    item id. undo_plan: only from "applied": put every before item back with all its original fields (deleted ones
+    re-inserted), remove created ones; status "undone"; add_log "plan_undone".
+
+    import_file(S, filename, content): ICS when content contains BEGIN:VCALENDAR or filename ends .ics, else TEXT.
+    - ICS: normalise \r\n, unfold lines starting with a space, read each BEGIN:VEVENT..END:VEVENT. Property name =
+      text before the first ";" or ":", value = text after the first ":". DTSTART/DTEND value "YYYYMMDD" (VALUE=DATE)
+      -> all-day: start "YYYY-MM-DDT00:00", end = DTEND date at 00:00 (or next day), window "all day"; value
+      "YYYYMMDDTHHMMSS" with or without TZID or a trailing Z -> keep the wall-clock digits exactly (20261022T091500 ->
+      "2026-10-22T09:15"; never convert zones, never round). Item kind "event", title SUMMARY, source "ics", "uid" = UID,
+      "recurrence" = the RRULE value or None, every other Item key default. One create op per VEVENT, EXCEPT skip a
+      VEVENT whose UID equals the uid of an existing item or whose title (case-insensitive) and start equal an
+      existing item's: re-importing the same file gives a plan with 0 creates.
+    - TEXT: split into sentences on . ! ? and newlines. A sentence with away / clear / free / cancel / off plus weekend
+      or a day word -> delete ops for open items overlapping that range (same range rule as BULK). Any other sentence
+      with a day word, clock time or soft window ("around noon" 12:00-13:00, morning 09:00-12:00, afternoon 14:00-17:00,
+      evening 18:00-21:00) -> one create op: title = the sentence minus also/on/at, day and time words, capitalised
+      ("Lunch with Ana"), start on that day, window kept, kind "event" if it has with/lunch/dinner/meet/call else
+      "task", source "text". So "I'll be away this weekend, please clear it. Also lunch with Ana on Wednesday around
+      noon." gives deletes for the weekend items plus a create "Lunch with Ana" on Wednesday 12:00, window "around noon".
+    - Both: plan origin "import", status "preview", stored; add_log "import" (item_ids = affected ids, payload
+      filename and op count, source "ics" or "text"). Return {"plan"}.
+
+    VIEWS: view_state(S) returns {"type", "params", "hidden_counts"} with hidden_counts computed fresh from S["items"]
+    (items with a start): workweek hides Saturday and Sunday dates; day hides every date but today; week hides dates
+    outside today's Monday-Sunday; month hides dates outside this month; custom hides weekend dates only when
+    params "hide_weekends" is true. hidden_counts = {date: number of hidden items on it}. set_view(S, t): t must be
+    month/week/workweek/day, sets S["view"], add_log "view_switch" (payload type, source "person"), returns {"view"}.
+
+    HABIT LEARNER (learn_beliefs(S), inside learn and tick): build history = seed items with status "done" (time = their
+    end, else start; evidence = item id) plus log entries of kind "done" (time = entry at; evidence = entry id). Each
+    belief: {"key", "level": "habit", "statement", "value", "confidence" (0..1, 2 decimals), "evidence" (ids, at most
+    20), "updated_at": now}. Skip every key in S["deleted_beliefs"]. confidence = max(0, share * min(1, n / 6) -
+    S["penalty"].get(key, 0)).
+    - evening_work: n = history size >= 5, k = how many have hour >= 20; if k/n >= 0.5: statement "Finishes tasks after
+      8 PM (k of n)" (e.g. "(8 of 9)"), value 20, share k/n. With 3 more morning dones the share falls to 8/12, so the
+      confidence drops. Else morning_work when hour < 12 for >= half: "Gets things done in the morning (k of n)".
+    - no_weekend: all items with a start (any status) spanning w distinct ISO weeks, w >= 4, none of them on a Saturday
+      or Sunday: statement "No weekend plans in w weeks (0 of N items)", value true, share = 1, confidence min(1, w/8)
+      minus penalty; evidence = their ids.
+    - block_length: n >= 6 done history items with start and end; m = median length in minutes; k = within 15 min of m:
+      statement "Tasks usually take about m minutes (k of n)", share k/n.
+    - EVERY stored belief has a non-empty "evidence" list of existing log ids / seed item ids and a number 0..1 as
+      "confidence"; no belief is stored without evidence. Never make beliefs out of S["meta"] values (no
+      "meta.novelty" belief): the only meta-level belief is prefers_classic from the META-LEARNER.
+    - A belief whose confidence changed by >= 0.05 or that is new -> activity "belief_update" (text = statement and
+      confidence); crossing 0.7 upward -> activity "threshold_crossed". delete_belief(S, key): remove it, append key to
+      S["deleted_beliefs"] (never re-learned until reset), add_log "belief_deleted", activity "belief_deleted".
+
+    PROPOSAL GATE (run_gate(S), after learning in learn and tick): open = a proposal with status "shown". If none is
+    open and (last_proposal_at is None or now - last_proposal_at > cadence_hours hours): candidates = habit beliefs
+    with confidence >= 0.7, not in S["blocked"] unless confidence > blocked value + 0.15; order no_weekend,
+    evening_work, morning_work, block_length, then higher confidence first. Take the first. novelty = "invented" while
+    len(S["invented_reverts"]) < 2, else "classic" (do NOT derive it from the meta novelty number). View: classic no_weekend {"type": "workweek"}; classic evening/morning {"type":
+    "day", "params": {"focus": "evening" or "morning"}}; classic block_length {"type": "week", "params": {"block_min": m}};
+    invented (any belief) the custom view of V3 ADDITIONS below. Proposal {"id",
+    "title" (e.g. "Hide weekends", "Evening lane"), "reason" = the belief statement + a gentle question ("No weekend
+    plans in 10 weeks (0 of 50 items). Hide weekends?"), "view": the spec with hidden_counts, "belief_keys": [key],
+    "novelty", "prompt_versions": {agent: active version number}, "status": "shown"}. Append, set last_proposal_at =
+    now, add_log "proposal_shown", activity "proposal_shown". No candidate -> no proposal. learn(S) returns
+    {"beliefs": all beliefs incl. meta, "proposal": the open proposal or None}. tick(S, on_clock): when on_clock or
+    len(S["log"]) - S["learn_mark"] >= 5: set learn_mark, learn beliefs, run the gate.
+
+    PROPOSAL ACTIONS: accept (status shown): proposal["prev_view"] = copy of S["view"], S["view"] = the proposal view,
+    status "accepted", add_log "proposal_accepted". undo (status accepted): S["view"] = prev_view, status "reverted",
+    S["penalty"][key] += 0.2 and recompute so the belief's confidence drops at once, S["blocked"][key] = new
+    confidence, add_log "proposal_reverted"; if novelty was invented: append that log id to S["invented_reverts"],
+    meta novelty = round(max(0, novelty - 0.1), 2) (exactly once per invented revert, nowhere else), and when len(S["invented_reverts"]) reaches 2 (then 4, 6 ...) run
+    the META-LEARNER. dismiss (status shown): status "dismissed", S["blocked"][key] = confidence, add_log
+    "proposal_dismissed". Each action adds activity "proposal_<action>". Returns {"proposal", "view": view_state(S)}.
+
+    META-LEARNER: new designer version = previous active version + 1, same core_hash, learned = previous learned plus
+    the line "- Prefer classic views (workweek, week, day): 2 invented views were reverted." (keep at most 12 lines;
+    never the words ignore, override or core rules), diff = "+ " + that line, reason "2 invented proposals were
+    reverted", evidence = the reverted log ids, replay = {"passed": True, "detail": "learned text checked: <= 12 lines,
+    no rule override"} (actually check it), active True; the old version active False. Add a meta belief {"key":
+    "prefers_classic", "level": "meta", "statement": "Prefers classic views (2 of 2 invented views reverted)",
+    "value": "classic", "confidence": 0.8, "evidence": those log ids}. Activity "prompt_rewrite" with agent
+    "designer", text "designer v2: " + diff, and an extra key "diff". rollback(S, agent): the active version goes
+    inactive and the version before it becomes active (none before -> keep v1 active); activity "prompt_rollback";
+    return {"active": that version}. get_prompts returns every version of every agent.
+
+    ACTIVITY: S["activity"] entries {"at": now, "agent": "learner" | "designer" | "followthrough", "kind", "text"},
+    appended in time order; get_activity returns {"events": them}.
+
+    V3 ADDITIONS to v2.py (behaviours 23, 25; the previous builds lost these points):
+    - init_v2: S["meta"] also has "threshold": 0.7; S["dismiss_streak"] = 0. meta_state(S) returns a copy of all six meta
+      keys (novelty, cadence_hours, breakdown_appetite, tone, threshold).
+    - run_gate uses threshold = S["meta"]["threshold"] (never a literal 0.7) for candidates. The INVENTED view is
+      spec = v3.best_spec(S, key); view = {"type": "custom", "params": {"belief": key}, "spec": spec, "hidden_counts":
+      v3.hidden_counts(S, spec)} (an invented view without "spec" fails the harness).
+    - view_state(S): for type "custom" with a "spec": return type, params, spec and hidden_counts = v3.hidden_counts(S, spec).
+    - accept: also proposal["accepted_at"] = now, proposal["kept_credit"] = False, S["dismiss_streak"] = 0.
+    - dismiss: S["dismiss_streak"] += 1; when it reaches 3: old values kept for the text, threshold = round(min(0.95,
+      threshold + 0.1), 2), cadence_hours = cadence_hours * 2, S["dismiss_streak"] = 0, activity agent "designer" kind
+      "knob_change" text like "Raised the proposal threshold from 0.70 to 0.80 and cadence from 24 to 48 hours: 3
+      proposals in a row were turned down." (real numbers; activity texts never contain "dismiss" or "miss").
+    - tick(S, True) FIRST checks every proposal with status "accepted", kept_credit False and now - accepted_at >= 72
+      hours: kept_credit = True, threshold = round(max(0.5, threshold - 0.05), 2), activity kind "knob_change" text
+      "Lowered the proposal threshold from 0.70 to 0.65: you kept the view '<title>' for 3 days.". Then learn + gate.
+    - A deleted belief stays deleted: learn_beliefs skips every key in S["deleted_beliefs"] BEFORE computing or storing
+      it (a previous build re-learned a deleted evening_work belief).
+
+    Define every V2 INTERFACE function at module level, plus your own helpers. Check silently that every called name is defined and that every function returns the documented JSON-ready dict.
+    Output exactly one artifact: <artifact name="v2_py">...whole file...</artifact> and nothing else.
+  expects:
+  - v2_py
+- name: v3
+  kind: llm
+  model: crusoe:deepseek-ai/DeepSeek-V4.1-Flash#nothink
+  reads:
+  - contract
+  max_tokens: 16000
+  prompt: |-
+    You write v3.py: the view catalog, mechanical critic and designer of this contract (behaviours 22-23), behind the V3 INTERFACE of your system message. app.py and v2.py are written by others at the same time and call your functions with exactly those names and arguments. Contract:
+    {contract}
+
+    V3 SPEC (v3.py; rule-based, deterministic, no network; datetimes only via strptime or datetime.combine).
+
+    CATALOG, exactly this list in this order (get_catalog returns {"primitives": a copy}):
+      {"type": "MonthGrid", "props": {"month": "date"}, "children": false}
+      {"type": "WeekColumns", "props": {"start": "date", "days": "int"}, "children": false}
+      {"type": "DayTimeline", "props": {"date": "date", "from_hour": "int", "to_hour": "int"}, "children": false}
+      {"type": "AgendaList", "props": {"from": "date", "to": "date"}, "children": false}
+      {"type": "Lane", "props": {"label": "str", "filter": "filter"}, "children": true}
+      {"type": "Bucket", "props": {"label": "str", "filter": "filter"}, "children": false}
+    A spec is {"root": id, "elements": {id: {"type", "props": {}, "children": [ids]}}}. Dates are "YYYY-MM-DD"
+    (MonthGrid month is the 1st of the month, "2026-10-01"; "2026-10" is also accepted).
+
+    SHOWN ITEMS shown_ids(S, spec): walk from root (visited set against cycles). For an item with start s: d = s[:10],
+    h = int(s[11:13]). MonthGrid: d[:7] == month[:7]. WeekColumns: start <= d < start + days days. DayTimeline: d == date
+    and from_hour <= h < to_hour. AgendaList: from <= d <= to. Items without start are shown only by Bucket / Lane.
+    matches(filter, item): every key must hold: kind == item kind; window == item window; category == item.get("category");
+    hour_from <= h (and h < hour_to) using the item's start hour (no start fails an hour key). {} matches every item.
+    Bucket: items matching its filter. Lane with children: the union of its children's shown items that match the lane
+    filter; Lane without children: items matching its filter. hidden_counts(S, spec) = {d or "unscheduled": count} of
+    items in S["items"] not shown (empty dict when all are shown).
+
+    critic(S, spec) collects problem strings, each naming its cause (the harness greps for the cause):
+      1. spec not an object, "elements" not an object, root not in elements -> "root 'x' missing from elements".
+      2. type not in the catalog -> "element 'a' has unknown type 'SpiralClock' (not in the catalog)".
+      3. each child id not in elements -> "element 'a' child 'ghost' missing from elements"; children on a type whose
+         catalog children is false -> "element 'b' (Bucket) cannot have children".
+      4. props: unknown prop name -> problem; date kind: must be a str that strptime parses as %Y-%m-%d (month also
+         %Y-%m) -> "element 'a' prop 'from' is not a valid date: 'someday'"; int kind: int and not bool (hours 0..24, days
+         1..31) -> "... prop 'days' must be an int"; str kind: str; filter kind: dict whose keys are among kind, category,
+         window, hour_from, hour_to.
+      5. only when 1-3 found nothing: every item of S["items"] (any status) not in shown_ids and whose date is not in
+         spec.get("hidden_counts", {}) with a count >= 1 -> "item 'Yoga' (2026-10-24) is hidden: neither shown nor counted".
+      ok = no problems. When not ok: repaired = repair(S, spec) if critic of it is ok, else None; when ok: repaired None.
+    repair(S, spec) on a deep copy: drop elements of unknown type and remove their ids from every children list; drop
+    missing child ids and children of childless types; bad date -> today (S["now"][:10]; month -> its 1st); bad int ->
+    default (from_hour 0, to_hour 24, days 7); bad filter -> {}; drop unknown props; missing root -> a new Lane "All"
+    with the elements nobody lists as a child. If any item is still not shown: new root "repair_root" Lane label "All"
+    filter {} with children [old root, "repair_rest"], and "repair_rest" = Bucket label "Everything else" filter {}.
+
+    design(S, belief_key): key = belief_key or the key of the habit belief with the highest confidence in
+    S.get("beliefs", {}) or "none". today_d = S["now"] date, monday_d = today_d - weekday days, saturday_d = monday_d + 5.
+    Exactly 3 drafts; D0 and D1 end with the catch-all child "rest" = Bucket label "Everything else" filter {} as the
+    LAST child of a root Lane (label as given, filter {}), so they never hide an item; D2 = D0 without "rest".
+      - evening_work: D0 Lane "Your evenings" [DayTimeline date today from_hour 18 to_hour 24, Bucket "Evening tasks"
+        filter {"hour_from": 18, "hour_to": 24}, rest]; D1 Lane "This week" [Lane "Evening lane" filter {"hour_from": 18,
+        "hour_to": 24} children [WeekColumns start monday days 7], rest].
+      - morning_work: the same with hours 6 to 12 and labels "Your mornings" / "Morning lane".
+      - no_weekend: D0 Lane "Workweek" [WeekColumns start monday days 5, AgendaList from saturday to sunday, rest];
+        D1 Lane "Weekdays first" [AgendaList monday..friday, AgendaList saturday..sunday, rest].
+      - anything else: D0 Lane "Agenda" [AgendaList today..today+6, rest]; D1 Lane "Month" [MonthGrid month (1st of this
+        month), rest].
+    critique[i] = {"ok", "problems"} of critic(S, draft i); repairs = how many drafts failed and got a non-null
+    repaired; chosen = index of the first ok draft (D0). Return {"drafts", "critique", "repairs", "chosen",
+    "proposal": None}. best_spec(S, key) = design(S, key)["drafts"][chosen]. Different beliefs give different specs.
+
+    Define get_catalog, critic, design, best_spec, hidden_counts at module level plus your helpers; never raise on a malformed spec (return ok false with a problem instead). Check silently that every called name is defined.
+    Output exactly one artifact: <artifact name="v3_py">...whole file...</artifact> and nothing else.
+  expects:
+  - v3_py
+- name: ui
+  kind: llm
+  model: claude:haiku
+  reads:
+  - contract
+  max_tokens: 24000
+  prompt: |-
+    You write index.html for this contract (the endpoints, JSON shapes, element ids and the v3.2 look and feel matter to you):
+    {contract}
+
+    One page, inline CSS and JS, no CDN, 500-700 lines. Two judges read it: a harness checks the STATIC file text, and a
+    screenshot judge (vision, design-doc rubric) scores the rendered page after a seeded session. The parent page scored
+    0.46 with the judge for: a plain-list timeline with no soft blocks, tiny default-styled proposal buttons, panels that
+    rendered EMPTY (its refresh() called endpoints that do not exist, /api/view GET and /api/timeline, threw, and blanked
+    every panel), a duplicated id chat-input, raw ISO timestamps, a cut-off chat. Obey each rule literally.
+
+    ROBUST SCRIPT
+    - Exactly ONE element per id. #chat-input is the <textarea> itself.
+    - api(method, path, body) helper with fetch + JSON; it returns null on an HTTP error instead of throwing.
+    - refresh() GETs ONLY /api/state, /api/focus, /api/beliefs, /api/proposal and /api/activity (no other GET path exists),
+      each in its own try/catch, and renders each panel in its own try/catch so one failure never blanks another panel.
+      Call refresh() after every action and setInterval(refresh, 5000).
+    - These literal strings appear in the script: '/api/command', '/api/chat', '/api/clock', '/api/undo', '/api/reset',
+      '/api/view', '/api/import', '/api/focus', '/api/items/', '/api/proposals/', '/api/plan/', '/api/beliefs/'.
+
+    LAYOUT (desktop ~1400 px, use the width; CSS grid, never one long column)
+    - <header>: "Evolving Calendar" on the left; on the right the simulated clock from state.now formatted like
+      "Mon, Oct 19, 7:50 PM", small buttons "+30 min", "+1 h", "Next morning" (next day 08:00) that POST /api/clock
+      {"now": "YYYY-MM-DDTHH:MM"} (compute in JS from state.now), and "Start as Iris" which POSTs /api/reset with a const
+      IRIS seed written in the script: now "2026-10-19T19:50"; 8 done tasks on 2026-10-11..18 each 20:15-20:45 (titles like
+      "Reply to emails", "Pay bills"); open event "Call with Priya" 2026-10-20T18:00-19:00; open task "Write cover letter"
+      2026-10-19T21:00-21:45 window "this evening"; open task "Get my portfolio together" (id "goal1", why "I want to feel
+      proud of my work") with child task "List the projects you are proudest of" (parent_id "goal1", estimate_min 10,
+      2026-10-19T20:15-20:25); event "Lunch with Ana" 2026-10-20T12:00-13:00 window "around noon"; event "Dentist"
+      2026-10-22T15:00-16:00.
+    - <main> grid: left column 45% "Talk to me", right column the rest; gap 24px; max-width 1400px; centered.
+    - LEFT card "Talk to me": #chat-log as chat bubbles (agent left, light sage; person right, soft blue; 12px radius, max
+      width 80%), its own scroll area (height about calc(100vh - 260px), overflow auto) scrolled to the bottom after each
+      render so the newest message is fully visible. Under the newest agent message of kind question / breakdown / checkin
+      with an item_id: quick-reply chips that POST /api/chat {"item_id", "text"}: question -> "Yes please" / "Not now";
+      breakdown -> "Looks good" / "Smaller steps"; checkin -> "Too big" / "Wrong time" / "Not needed". Breakdown bubbles list
+      their steps with "about N min". EVERY message with an undo_id gets an "Undo" chip -> POST /api/undo {"undo_id": m.undo_id}.
+      Postponed and reminder bubbles look gentle (same calm style, a small clock glyph at most, never red). At the bottom:
+      textarea#chat-input (placeholder "Tell me what's on your mind..."), a two-option toggle "Brain dump" / "One thing"
+      (mode "dump" or "command"), and a Send button; Enter sends. When the newest agent message of kind question /
+      breakdown / checkin has an item_id, typed text goes to POST /api/chat instead of /api/command. A response with "plan"
+      shows its summary with "Apply" / "Undo" chips (POST /api/plan/<id>/apply | undo). A small "Import" area (textarea +
+      filename input + button -> POST /api/import, then shows the plan with Apply) sits under the input, visually quiet.
+    - RIGHT column, in this order:
+      1. #focus card titled "Right now, just this": the step title large (22px, weight 600), "For: <parent title>" and
+         "because: <why>" on their own line, "about N min" from estimate_min, buttons "Start 5 minutes" (written literally
+         inside #focus in the HTML source; runs a 5:00 countdown shown in the card) and "I did it" (POST
+         /api/items/<id>/done). const f = await api('GET', '/api/focus'); show f.item.title whenever f.item is not null;
+         "Nothing to do right now" only when f.item is null.
+      2. #proposal card titled "An idea": proposal title, reason (it cites a number), buttons "Try it" / "Not now" / "Undo"
+         (Undo shown after accepting) -> POST /api/proposals/<id>/accept | dismiss | undo; normal-size buttons (padding
+         8px 16px, radius 10px, accent fill for Try it, outline for the others). A calm tinted card, not a modal; shown
+         (style.display = "block") only when a proposal is open.
+      3. Calendar card titled "Your calendar": #view-switcher with four buttons month / week / workweek / day (the active
+         one = state.view.type highlighted) -> POST /api/view {"type"}; then <section id="view"> drawn by renderView(state.view);
+         then "N hidden on <date>" notes from state.view.hidden_counts (class hidden-note); then #timeline "Today and
+         tomorrow": items whose start is on state.now's date or the next, sorted, each "8:15 PM  Title" with a small Done
+         button (POST /api/items/<id>/done).
+         Item blocks everywhere: an item with a window = SOFT block (rounded 10px, light accent fill, 1px dashed border,
+         window text shown); an exact event = SOLID block (accent fill, white text); done items faded. Times as "3:00 PM".
+         Week / workweek draw one column per day (header "Mon 19"), month a 7-column grid, day an hour timeline.
+      4. Bottom row of two smaller, muted cards side by side: #learned "What I've learned" (each belief statement with a
+         small "Forget" button -> DELETE /api/beliefs/<key>, then state.meta in plain words: "New ideas: 60%, check-ins every
+         24 h, tone gentle") and #activity "Activity" (the last 8 events, newest last, time shown as "7:50 PM", never raw ISO).
+    - STYLE: background #f7f6f2, cards #ffffff, 1px solid #e6e3da border, radius 14px, padding 18px, soft shadow; one muted
+      accent, sage #6f9a7a (hover a little darker); text #2f3a33, muted #7a807b; font system-ui, -apple-system, "Segoe UI",
+      sans-serif at 15px, line-height 1.5. No red anywhere, no alarm icons, no counters, no "overdue" wording. No <details>,
+      nothing collapsed.
+
+    STATIC CHECKS (the harness greps the file text)
+    - Ids written in the HTML itself: chat-input, chat-log, focus, timeline, learned, activity, proposal, view-switcher.
+    - VISIBILITY: the ONLY element that may start hidden is #proposal. No display:none, visibility:hidden or hidden
+      attribute anywhere else (to hide the Undo button of the proposal use opacity 0.4 and disabled, not display none).
+    - One <style> block with at least 40 rules, one rule per line, including body, header, main, #chat-log, #chat-input,
+      #focus, #focus button, #timeline, #timeline li, #learned, #learned li, #activity, #activity li, #proposal,
+      #view-switcher, #view-switcher button, button, button:hover, textarea, .msg, .agent, .person, .question, .breakdown,
+      .reminder, .postponed, .checkin, .undo, .plan, .hidden-note, .steps, .done, .chip, .soft, .solid.
+    - V3 view rendering (behaviour 24): renderView(view) handles month / week / workweek / day and, for type "custom",
+      reads view.spec.elements and view.spec.root and renders recursively with renderEl(id): a switch on el.type whose cases
+      name every catalog type literally: 'MonthGrid', 'WeekColumns', 'DayTimeline', 'AgendaList', 'Lane', 'Bucket' (unknown
+      type -> a small note). Day-based types draw one cell per date, Lane / Bucket a labelled box with the matching items.
+    - Every day cell: el.setAttribute('data-day', 'YYYY-MM-DD'); every rendered item (in #view and #timeline):
+      el.setAttribute('data-item', item.id).
+    - Morph (FLIP): before redrawing store getBoundingClientRect() of every [data-day] and [data-item] element by its
+      attribute; after redrawing, for each element whose key existed, el.animate([{transform: 'translate(dx px, dy px)'},
+      {transform: 'none'}], {duration: 300, easing: 'ease-out'}); new elements fade in with opacity. CSS: [data-day],
+      [data-item] { transition: opacity 300ms ease, transform 300ms ease; } Every duration in the file is 300ms or less.
+    - Reduced motion: @media (prefers-reduced-motion: reduce) { *, [data-day], [data-item] { transition: none !important;
+      animation: none !important; } } and in JS const reduceMotion = window.matchMedia('(prefers-reduced-motion:
+      reduce)').matches; when true skip el.animate.
+    Before answering, check silently: every template literal and bracket is closed, every function you call is defined.
+    Output exactly one artifact: <artifact name="index_html">...whole file...</artifact> and nothing else.
+  expects:
+  - index_html
+- name: smoke1
+  kind: check
+  check: app_smoke
+  calls: basic
+- name: behaviour
+  kind: llm
+  model: crusoe:deepseek-ai/DeepSeek-V4.1-Flash#nothink
+  reads:
+  - contract
+  - blackboard.smoke1
+  - artifact.app_py
+  max_tokens: 32000
+  prompt: |-
+    You are stage 2 of the STAGED BUILD. Contract:
+    {contract}
+
+    Smoke report of stage 1 (app.py + v2.py run together; if it names a v2.py problem, leave it: a fixer handles v2.py):
+    {blackboard.smoke1}
+
+    Stage 1 app.py:
+    {artifact.app_py}
+
+    Re-emit the whole app.py: fix what the smoke report names in app.py, then add CHAT (with APPETITE and the complexity check reading it), the breakdown builder, CLOCK + SCHEDULER (with the LOGGING calls and v2.tick(S, True) at the end) and selftest() run by the --selftest flag, exactly as your system message says. Keep every V2 and V3 INTERFACE route and call. Follow DATETIME SAFETY in every new line.
+    Output exactly one artifact: <artifact name="app_py">...whole file...</artifact> and nothing else.
+  expects:
+  - app_py
+- name: smoke
+  kind: check
+  check: app_smoke
+  calls: v2
+  selftest: true
+  selftest_secs: 20
+- name: fixer
+  kind: llm
+  model: crusoe:deepseek-ai/DeepSeek-V4.1-Flash#nothink
+  reads:
+  - contract
+  - blackboard.smoke
+  - artifacts_named_by.smoke
+  max_tokens: 32000
+  prompt: |-
+    The team's app (app.py + v2.py + v3.py + index.html) was just started by the smoke check, which also ran `python app.py --selftest`. Its report:
+    {blackboard.smoke}
+
+    If the report starts with "SMOKE: PASS", output only the word NO_CHANGE. Otherwise find the ROOT cause of every compile error, traceback, selftest failure, HTTP 500 or wrong JSON shape (read the last frames of the traceback and the named file and line), fix it in the source, and check the same mistake is not repeated elsewhere (every datetime(...) call, every v2.<name> / v3.<name> call against the V2 / V3 INTERFACE lists, every name used but never defined). A missing or empty file must be written in full from the spec in your system message and the contract. A traceback from selftest() means the bug is in the app code it called: fix that code, never delete or weaken selftest(). Keep all behaviour that already works; do not rename functions, endpoints or V2 INTERFACE names.
+    Code map: bulk / query / move / cancel commands, plans, imports, beliefs, proposals, knobs and prompts live in v2.py; catalog, critic and design in v3.py; parsing, chat, clock, focus and selftest in app.py. Never re-emit a file unchanged.
+        Re-emit ONLY the files that need a change (usually one), each whole, as <artifact name="...">...</artifact> with the existing names (app_py, v2_py, v3_py, index_html). Do not re-emit a file the report does not implicate.
+- name: reviewer
+  kind: llm
+  model: crusoe:openai/gpt-oss-120b
+  reads:
+  - artifact.index_html
+  max_tokens: 5000
+  prompt: |-
+    You review index.html against a checklist; you do not write code.
+
+    {artifact.index_html}
+
+    Check each item literally and report only real violations (what is wrong, what it must be):
+    1. The script names all six catalog types ('MonthGrid', 'WeekColumns', 'DayTimeline', 'AgendaList', 'Lane', 'Bucket'), reads view.spec.elements, sets data-day and data-item, animates with a transition or el.animate of <= 600 ms, has @media (prefers-reduced-motion: reduce), and shows f.item.title in #focus.
+    2. index.html: refresh() GETs only /api/state, /api/focus, /api/beliefs, /api/proposal, /api/activity, each in its
+       own try/catch; no id appears twice; the script contains '/api/chat' and '/api/clock' literally; "Start as Iris" posts
+       /api/reset with a non-empty items list; the grid has two columns; no unclosed template literal or bracket.
+    3. Only #proposal may start hidden; ids chat-input, chat-log, focus, timeline, learned, activity, proposal, view-switcher each appear exactly once; 'Start 5 minutes' is literal inside #focus; every message with an undo_id gets an Undo button.
+    If nothing is wrong, answer with the single line ALL_CLEAR. Otherwise list the violations, one per line.
+- name: fixer2
+  kind: llm
+  model: claude:haiku
+  reads:
+  - blackboard.reviewer
+  - artifact.index_html
+  max_tokens: 24000
+  prompt: |-
+    The reviewer found these problems in index.html:
+    {blackboard.reviewer}
+
+    index.html:
+    {artifact.index_html}
+
+    If the reviewer's answer starts with ALL_CLEAR, output only NO_CHANGE. Otherwise fix exactly those problems, keep everything else (layout, style, ids) unchanged, and re-emit the whole file as <artifact name="index_html">...</artifact>.
+workflow:
+- parallel:
+  - core
+  - v2
+  - v3
+  - ui
+- smoke1
+- behaviour
+- smoke
+- loop:
+    body:
+    - fixer
+    - smoke
+    max_rounds: 2
+    stop_when: 'SMOKE: PASS'
+    check_first: true
+- loop:
+    body:
+    - reviewer
+    - fixer2
+    - smoke
+    max_rounds: 1
+    stop_on: reviewer
+    stop_when: ALL_CLEAR
+- loop:
+    body:
+    - fixer
+    - smoke
+    max_rounds: 1
+    stop_when: 'SMOKE: PASS'
+    check_first: true
+artifacts:
+- name: app_py
+  format: text
+- name: v2_py
+  format: text
+- name: v3_py
+  format: text
+- name: index_html
+  format: text
+outputs:
+  answer: artifact.app_py
