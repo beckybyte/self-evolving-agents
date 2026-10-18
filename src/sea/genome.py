@@ -51,6 +51,8 @@ genome.yaml (schema: 2)
                                     -> undo (when a message has an undo_id); still crash/shape problems only, and a
                                     slow deep call (timeout, budget used up) is a note, not a failure.
       selftest_secs: 12 | 20        time limit of that self-test (default 12)
+      render: true                  app_smoke option: headless Chrome renders the app's own page after the basic calls;
+                                    the report lists missing contract element ids and the visible text (<= 25 s)
       acceptance: <artifact name>   app_smoke option: that artifact is a team-written JSON list of HTTP steps
                                     [{method, path, body?, status? (200), expect?: [substrings of the body],
                                     save?: {name: "created.0" | "plan.id" | "messages.-1.id"}}] (<= 30); later steps

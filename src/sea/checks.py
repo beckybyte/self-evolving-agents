@@ -300,6 +300,38 @@ def run_selftest(app: Path, tmp: Path, wait: float) -> tuple[int, str]:
 
 
 ACCEPT_MAX_STEPS = 30
+CHROME = os.environ.get("SEA_CHROME", "/usr/bin/google-chrome")
+UI_IDS = ("chat-input", "chat-log", "focus", "timeline")  # element ids every contract version requires
+
+
+def render_page(base: str, wait: float) -> tuple[int, list[str]]:
+    """render: true -- headless Chrome renders the team's own page (after the basic calls seeded an item) and the
+    report shows what a person would see: contract element ids present or missing, and the visible text. Returns
+    (problems, lines). Only the team's own app is looked at; Chrome missing or slow is a note, not a problem."""
+    import html as _html
+    if not (os.path.isfile(CHROME) and os.access(CHROME, os.X_OK)):
+        return 0, [f"render: Chrome not available at {CHROME}; skipped"]
+    if wait < 5:
+        return 0, ["render: not run (smoke budget used up)"]
+    with tempfile.TemporaryDirectory(prefix="sea_render_") as prof:
+        p = subprocess.Popen([CHROME, "--headless=new", "--no-sandbox", "--disable-gpu", "--no-first-run",
+                              f"--user-data-dir={prof}", "--virtual-time-budget=5000", "--dump-dom", base + "/"],
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
+                             start_new_session=True, text=True)
+        try:
+            dom, _ = p.communicate(timeout=min(wait, 25))
+        except subprocess.TimeoutExpired:
+            _kill_tree(p)
+            return 0, [f"render: Chrome did not finish within {min(wait, 25):.0f} s"]
+    missing = [i for i in UI_IDS if not re.search(r"""id\s*=\s*["']%s["']""" % re.escape(i), dom)]
+    body = re.sub(r"(?is)<(script|style|head)\b.*?</\1>", " ", dom)
+    text = re.sub(r"\s+", " ", _html.unescape(re.sub(r"(?s)<[^>]+>", " ", body))).strip()
+    lines = [f"render: page rendered ({len(dom)} bytes of DOM); required ids "
+             + ("all present" if not missing else f"MISSING {missing}"),
+             f"render: visible text ({len(text)} chars): {text[:700]}"]
+    if len(text) < 20:
+        lines.append("render: the rendered page shows almost no text (empty panels? a script error before render?)")
+    return int(bool(missing)) + int(len(text) < 20), lines
 
 
 def acceptance_steps(do_raw, spec_text: str, lines: list) -> int:
@@ -369,7 +401,8 @@ def acceptance_steps(do_raw, spec_text: str, lines: list) -> int:
 
 
 def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: str = "basic",
-              selftest: bool = False, selftest_secs: int = 12, acceptance: str | None = None) -> tuple[bool, str]:
+              selftest: bool = False, selftest_secs: int = 12, acceptance: str | None = None,
+              render: bool = False) -> tuple[bool, str]:
     """Compile the team's files, start app.py, make SMOKE_CALLS (+ deep_calls when calls == "deep").
     Returns (passed, report)."""
     from .tasks.build import materialise  # lazy: tasks.build imports the executor, which imports this module
@@ -472,6 +505,10 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
                 v2_calls(do, lines)
             if calls == "v3" and proc.poll() is None:
                 v3_calls(do, lines)
+            if render and proc.poll() is None:
+                rp, rl = render_page(base, budget + 15 - (time.time() - t0))  # rendering gets 15 s on top of the budget
+                problems += rp
+                lines.extend(rl)
             if acceptance and proc.poll() is None:
                 if acceptance not in artifacts:
                     lines.append(f"acceptance: no artifact named {acceptance!r} was emitted")
@@ -498,7 +535,7 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
 
 CHECKS = {"app_smoke": app_smoke}
 CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep", "v2", "v3"), "selftest": (False, True), "selftest_secs": (12, 20),
-                               "acceptance": "artifact"}}  # "artifact" = any artifact name  # option -> allowed values (first = default)
+                               "acceptance": "artifact", "render": (False, True)}}  # "artifact" = any artifact name  # option -> allowed values (first = default)
 
 
 def stable_report(text: str) -> str:

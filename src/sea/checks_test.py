@@ -563,3 +563,25 @@ def test_acceptance_save_and_reuse_ids():
     ok, rep = app_smoke({"app_py": good(), "t_json": steps}, acceptance="t_json")
     assert ok, rep
     assert "acceptance step 2 POST /api/items/i1/done: ok" in rep and "acceptance step 3 POST /api/undo: ok" in rep
+
+
+PAGE = ('<html><body><input id="chat-input"><div id="chat-log">Hi</div><div id="focus">Start 5 minutes: call mom</div>'
+        '<ul id="timeline"></ul><script>document.getElementById("timeline").innerHTML = "<li>Call mom today</li>";</script>'
+        '</body></html>')
+
+
+def page_app(page: str) -> str:
+    return good().replace('        if self.path == "/health":',
+                          '        if self.path == "/":\n'
+                          f'            b = {page!r}.encode(); self.send_response(200); self.send_header("Content-Type", "text/html")\n'
+                          '            self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return\n'
+                          '        if self.path == "/health":')
+
+
+@pytest.mark.skipif(not os.access("/usr/bin/google-chrome", os.X_OK), reason="no Chrome")
+def test_smoke_render_shows_the_page():
+    ok, rep = app_smoke({"app_py": page_app(PAGE)}, render=True)
+    assert ok, rep
+    assert "required ids all present" in rep and "Call mom today" in rep  # script-rendered text is visible
+    ok, rep = app_smoke({"app_py": page_app('<html><body><div id="chat-log"></div></body></html>')}, render=True)
+    assert not ok and "MISSING ['chat-input', 'focus', 'timeline']" in rep and "almost no text" in rep

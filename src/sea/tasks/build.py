@@ -86,7 +86,8 @@ traceback, HTTP status and JSON-shape problems per call. It is NOT the scoring h
 checks): it catches code that does not compile, does not start or answers with the wrong shape. Add `calls: deep` to
 the check role to also chain chat "yes" on the created item, items/<id>/done, clock +2 h and undo (crash/shape only).
 Use `calls: v2` for a contract with the v2 endpoints (log, import/plan, learn, beliefs, proposal, view, prompts,
-activity), `calls: v3` to add catalog, critic and design: same crash/shape-only rule. Add `acceptance: <artifact>` to run a team-written JSON list of HTTP steps with expected status/substrings on
+activity), `calls: v3` to add catalog, critic and design: same crash/shape-only rule. Add `render: true` to see the page as a person would (headless Chrome: missing contract element ids, the visible
+text). Add `acceptance: <artifact>` to run a team-written JSON list of HTTP steps with expected status/substrings on
 the started app (a tester role writes it; the framework only runs it). Add `selftest: true` (and `selftest_secs: 20` for a longer one) to also run `python app.py --selftest --data <tmp>` in a separate process first (<= 12 s, must exit;
 nonzero exit or output = the team's own assertions failing, reported to the fixer): behaviour checks the team writes
 itself, without making the real start-up crash. Typical use, after the
