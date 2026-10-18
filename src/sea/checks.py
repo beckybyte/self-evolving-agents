@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import py_compile
+import re
 import signal
 import socket
 import subprocess
@@ -468,9 +469,23 @@ CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep", "v2", "v3"), "selftest
                                "acceptance": "artifact"}}  # "artifact" = any artifact name  # option -> allowed values (first = default)
 
 
+def stable_report(text: str) -> str:
+    """Drop run-to-run noise from a check report (temp dir paths, sub-2 s timings; longer ones rounded) so that an
+    unchanged app gives a byte-identical report: then a fixer re-asked the same question is detected as a repeat
+    (executor REPEAT_TEMPERATURE). Before this, 51 of 251 consecutive differing smoke reports in runs/evo_v2*/v3*
+    differed only by such noise, and evo_v32 gen00 r0's fixer re-emitted v2.py byte-identical four times."""
+    text = re.sub(r"/tmp/sea_(?:smoke|live)_[A-Za-z0-9_]+/(?:app/)?", "", text)
+
+    def t(m):
+        v = float(m.group(2))
+        return "" if v < 2 else f"{m.group(1)}{round(v)} s"
+    return re.sub(r"( in | after )(\d+(?:\.\d+)?) s\b", t, text)
+
+
 def run_check(name: str, artifacts: dict[str, str], **opts) -> tuple[bool, str]:
     try:
-        return CHECKS[name](dict(artifacts), **opts)
+        ok, text = CHECKS[name](dict(artifacts), **opts)
+        return ok, stable_report(text)
     except Exception as e:  # a check never fails the team run
         return False, f"{name.upper()}: FAIL (check crashed: {e!r:.300})"
 

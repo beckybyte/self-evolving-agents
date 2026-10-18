@@ -545,3 +545,11 @@ def test_contract_section_selector(tmp_path):
     run_team(g, {"id": "e", "input": {"text": "x"}, "context": {"contract": contract, "scenarios": ""}}, "fake:cs")
     assert "Item: {id}" in seen[0] and "api/log" not in seen[0]
     assert "GET /api/catalog" in seen[1] and "GET /api/log" not in seen[1]
+
+
+def test_stable_report_makes_unchanged_apps_identical():
+    from sea.checks import run_check, stable_report
+    a = run_check("app_smoke", {"app_py": CRASH_APP})[1]
+    b = run_check("app_smoke", {"app_py": CRASH_APP})[1]
+    assert a == b and "/tmp/sea_smoke_" not in a and "NameError" in a
+    assert stable_report("POST /x: HTTP 200 in 0.3 s; slow GET /y: HTTP 200 in 12.6 s") == "POST /x: HTTP 200; slow GET /y: HTTP 200 in 13 s"
