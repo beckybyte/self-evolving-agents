@@ -365,3 +365,29 @@ def test_artifacts_named_by_and_role_token_sums(tmp_path):
     run_team(load_genome(_genome(tmp_path, roles, ["w", "smoke", "fixer"])), {"id": "e", "input": {"text": "x"}}, "fake:w4")
     u = seen["u"]
     assert '<artifact name="v2_py">' in u and '<artifact name="app_py">' not in u and "index_html" not in u
+
+
+def test_stop_all_tested_after_every_role_and_spec_selector(tmp_path):
+    seq = {"smk": iter(["SMOKE: FAIL", "SMOKE: PASS", "SMOKE: PASS"]), "rep": iter(["FIXED", "NO_CHANGE", "NO_CHANGE"])}
+    calls = []
+    register_fake("smk2", lambda m: calls.append("s") or next(seq["smk"]))
+    register_fake("rep", lambda m: calls.append("r") or next(seq["rep"]))
+    roles = [{"name": "smoke", "kind": "llm", "model": "fake:smk2", "prompt": "s"},
+             {"name": "repair", "kind": "llm", "model": "fake:rep", "prompt": "r"}]
+    loop = {"loop": {"body": ["smoke", "repair"], "max_rounds": 3,
+                     "stop_all": [{"on": "smoke", "when": "SMOKE: PASS"}, {"on": "repair", "when": "NO_CHANGE"}]}}
+    run_team(load_genome(_genome(tmp_path, roles, [loop])), {"id": "e", "input": {"text": "x"}}, "fake:smk2")
+    assert calls == ["s", "r", "s", "r"]  # stops right after repair says NO_CHANGE with smoke passing: no extra smoke
+
+    seen = {}
+    register_fake("sp", lambda m: seen.setdefault(len(seen), m[-1]["content"]) and "ok")
+    d = tmp_path / "gs"
+    d.mkdir()
+    (d / "genome.yaml").write_text(yaml.safe_dump({"schema": 2, "id": "t", "specs": {"v2": "V2 SPEC TEXT", "ui": "UI SPEC TEXT"},
+        "roles": [{"name": "a", "kind": "llm", "model": "fake:sp", "prompt": "write", "reads": ["spec.v2"]},
+                  {"name": "b", "kind": "llm", "model": "fake:sp", "prompt": "ui: {spec.ui}", "reads": []}]}))
+    run_team(load_genome(d), {"id": "e", "input": {"text": "x"}}, "fake:sp")
+    assert "V2 SPEC TEXT" in seen[0] and "UI SPEC" not in seen[0] and "UI SPEC TEXT" in seen[1] and "V2 SPEC" not in seen[1]
+    (d / "genome.yaml").write_text(yaml.safe_dump({"schema": 2, "id": "t", "roles": [{"name": "a", "kind": "llm", "prompt": "p", "reads": ["spec.nope"]}]}))
+    with pytest.raises(AssertionError, match="no spec"):
+        load_genome(d)

@@ -4,6 +4,7 @@ genome.yaml (schema: 2)
   id, parent, notes                 notes = what changed vs the parent and which evidence motivated it
   mechanism: str                    optional short tag for the diversity archive (e.g. "draft-critique-loop")
   soul: str                         shared system prompt for every llm role
+  specs: {name: text}               optional named spec sections, read per role with the selector spec.<name>
   channels: blackboard | messages   blackboard: every role reads/writes one shared dict (default)
                                     messages: additionally each role has an inbox; writes: message:<role> delivers
   roles:
@@ -13,6 +14,8 @@ genome.yaml (schema: 2)
       model: $WORKER | qwen3-8b | qwen3-30b-a3b | qwen2.5-72b | claude:<alias>
       reads: [selector, ...]        what the role sees; default [input, blackboard]. selectors:
                                       input, blackboard, blackboard.<key>, artifacts, artifact.<name>, inbox, memory,
+                                      spec.<name> (one entry of the genome's `specs:` dict, so a spec section
+                                      reaches only the roles that read it instead of every role via soul),
                                       artifacts_named_by.<role> (only the files whose path appears in that role's
                                       output, e.g. a smoke report: a fixer then reads the broken file only),
                                       or any context key the task provides (brief mode: restatement, assumptions,
@@ -54,7 +57,7 @@ genome.yaml (schema: 2)
                                     check_first: true also tests it BEFORE round 1, so the loop runs 0 rounds when
                                     e.g. a smoke check that ran just before the loop already passed;
                                     stop_all: [{on: smoke, when: "SMOKE: PASS"}, {on: auditor, when: ALL_CLEAR}]
-                                    instead stops only when ALL hold, tested after each full round)
+                                    instead stops only when ALL hold, tested after every body role)
                                     or {parallel: [names]}: 2..6 roles run concurrently, each starting from the state
                                     before the step (use it for independent pieces, e.g. backend / ui). Default: roles in order.
   artifacts: [{name, format: markdown|json|text, required: bool=true}]
@@ -127,14 +130,15 @@ def normalize(raw: dict) -> dict:
             "workflow": raw.get("workflow") or [r["name"] for r in roles],
             "artifacts": [{"name": a["name"], "format": a.get("format", "markdown"), "required": a.get("required", True)}
                           for a in (raw.get("artifacts") or [])],
-            "outputs": outputs, "_legacy": legacy}
+            "outputs": outputs, "specs": {str(k): str(v) for k, v in (raw.get("specs") or {}).items()},
+            "_legacy": legacy}
 
 
 def _selector_ok(s: str, names: set, context_keys) -> bool:
     if s in BASE_SELECTORS or s in context_keys:
         return True
     head, _, tail = s.partition(".")
-    return head in ("blackboard", "artifact", "artifacts_named_by") and bool(tail)
+    return head in ("blackboard", "artifact", "artifacts_named_by", "spec") and bool(tail)
 
 
 def validate(g: dict, context_keys: tuple[str, ...] = ()):
@@ -159,6 +163,7 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
                 assert r["_v1_input"] in ("native", "transcript"), "v1 input must be native|transcript"
             for s in r["reads"]:
                 assert _selector_ok(s, names, context_keys), f"role {r['name']}: unknown reads selector {s!r}"
+                assert not s.startswith("spec.") or s[5:] in g.get("specs", {}), f"role {r['name']}: no spec {s[5:]!r} in specs"
             assert all(re.fullmatch(r"[A-Za-z0-9_\-]+", a) for a in r.get("expects", [])), \
                 f"role {r['name']}: expects must list artifact names"
         if r["kind"] == "tool":

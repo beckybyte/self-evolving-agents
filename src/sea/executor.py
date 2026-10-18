@@ -112,6 +112,8 @@ class _Run:
             return render_artifact(key, self.artifacts[key]) if key in self.artifacts else "(not written yet)"
         if head == "artifacts_named_by":
             return self.artifacts_named_by(key)
+        if head == "spec":
+            return str((self.g.get("specs") or {}).get(key, ""))
         if sel == "inbox":
             return "\n\n".join(self.inbox.get(role, [])) or "(no messages)"
         if sel == "memory":
@@ -139,7 +141,7 @@ class _Run:
         def sub(m):
             sel = m.group(1) + (f".{m.group(2)}" if m.group(2) else "")
             known = (m.group(1) in ("conversation", "input", "blackboard", "artifacts", "inbox", "memory", "artifact",
-                                    "artifacts_named_by")
+                                    "artifacts_named_by", "spec")
                      or m.group(1) in self.ep.get("context", {}))
             if not known:
                 return m.group(0)
@@ -306,7 +308,7 @@ class _Run:
         for _ in range(int(lp.get("max_rounds", 2))):
             for b in lp["body"]:
                 self.step(b)
-                if (b == on if not lp.get("stop_all") else b == lp["body"][-1]) and done():
+                if (b == on or bool(lp.get("stop_all"))) and done():
                     return
 
     def run(self) -> dict:

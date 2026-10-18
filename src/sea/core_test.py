@@ -23,8 +23,10 @@ def _write(d: Path, genome: dict, tools: dict | None = None):
 
 def test_v1_genomes_load_and_adapt():
     from sea.tasks.brief.task import BriefTask
+    from sea.tasks.build import BuildTask
+    keys = tuple(BriefTask.context_keys) + tuple(BuildTask.context_keys)  # snapshots hold brief and build genomes
     for gd in ["genomes/P0", "genomes/S0"] + [str(p.parent) for p in (ROOT / "snapshots").rglob("genome.yaml")]:
-        g = load_genome(ROOT / gd, BriefTask.context_keys)
+        g = load_genome(ROOT / gd, keys)
         if g["_legacy"]:
             assert g["outputs"]["answer"].startswith("blackboard.")
 

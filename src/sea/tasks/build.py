@@ -220,7 +220,8 @@ class BuildTask(Task):
             assert m == "$WORKER" or (m.startswith("crusoe:") and models.allowed(m[7:])) or (
                 m.startswith("claude:") and models.allowed(m)), (
                 f"build mode: role {r['name']} model {m!r} is not in the catalog pool ({models.pool()}); see MODELS")
-        text = "\n".join([g.get("soul", "")] + [r.get("prompt", "") for r in g["roles"]] + list(g["_memory"].values()))
+        text = "\n".join([g.get("soul", "")] + [r.get("prompt", "") for r in g["roles"]] + list(g["_memory"].values())
+                         + list((g.get("specs") or {}).values()))
         n = code_lines(text)
         assert n <= MAX_GENOME_CODE_LINES, (f"build mode: the genome holds {n} lines of code (max {MAX_GENOME_CODE_LINES}); "
                                             "describe what to build, the team writes the code")
