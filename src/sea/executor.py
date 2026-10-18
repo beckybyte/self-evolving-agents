@@ -90,6 +90,7 @@ class _Run:
         self.assumptions: list = []
         self.trace: list = []
         self.messages = episode["input"].get("messages", [])
+        self._finish: dict = {}  # role -> finish of its latest model call
         self._seen_calls: set = set()  # (role, hash of messages) already sent in this run
         self._lock = threading.RLock()  # parallel steps: state updates after each role's call are serialized
 
@@ -229,6 +230,7 @@ class _Run:
                 text = strip_think(text)
                 self.ask_humans(name, text)
             self.store(r, text)
+            self._finish[name] = u.get("finish", "")
             self.trace.append({"role": name, "kind": "llm", "tokens": u["prompt"] + u["completion"], "chars": len(text),
                                "model": model, "completion": u["completion"],
                                **{k: u[k] for k in ("finish", "retries", "secs", "fallback") if k in u},
@@ -296,13 +298,21 @@ class _Run:
             for f in [ex.submit(self.step, n) for n in names]:
                 f.result()
 
+    def says(self, role: str, marker: str) -> bool:
+        """A stop marker counts only at the start of a line (after markdown bullets/emphasis), and never in an answer
+        cut off at max_tokens. evo_v3_b gen00 r1: a truncated reviewer quoted its instruction '... do NOT write
+        ALL_CLEAR' mid-sentence, the substring matched, the fix loop stopped with smoke failing (run 0.09)."""
+        if self._finish.get(role) == "length":
+            return False
+        return any(l.strip().lstrip("*#->`_ ").startswith(marker) for l in str(self.bb.get(role, "")).splitlines())
+
     def loop(self, lp: dict):
         """Rounds of the body until stop_when appears in the output of stop_on (default: the last body role).
         stop_on is tested right after that role runs, so a checker first in the body ends the loop before the fixer
         reads anything; check_first also tests it before round 1."""
         stop, on = lp.get("stop_when"), lp.get("stop_on", lp["body"][-1])
         conds = [(c["on"], c["when"]) for c in lp.get("stop_all") or []] or ([(on, stop)] if stop else [])
-        done = lambda: bool(conds) and all(w in str(self.bb.get(o, "")) for o, w in conds)
+        done = lambda: bool(conds) and all(self.says(o, w) for o, w in conds)
         if lp.get("check_first") and done():
             return
         for _ in range(int(lp.get("max_rounds", 2))):

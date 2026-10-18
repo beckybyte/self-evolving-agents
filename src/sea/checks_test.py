@@ -391,3 +391,25 @@ def test_stop_all_tested_after_every_role_and_spec_selector(tmp_path):
     (d / "genome.yaml").write_text(yaml.safe_dump({"schema": 2, "id": "t", "roles": [{"name": "a", "kind": "llm", "prompt": "p", "reads": ["spec.nope"]}]}))
     with pytest.raises(AssertionError, match="no spec"):
         load_genome(d)
+
+
+def test_stop_marker_counts_only_at_line_start_and_not_when_truncated(tmp_path, monkeypatch):
+    import sea.executor as ex
+    outs = iter([("I must not write ALL_CLEAR while smoke fails. Defects: x", "stop"),
+                 ("**ALL_CLEAR** nothing left", "length"),  # truncated: never counts
+                 ("- ALL_CLEAR", "stop")])
+    calls = []
+
+    def chat(model, msgs, max_tokens=2048, temperature=0.0):
+        if model == "fake:rev":
+            t, f = next(outs)
+            calls.append("rev")
+            return t, {"prompt": 1, "completion": 1, "calls": 1, "finish": f}
+        calls.append("fix")
+        return "fixed", {"prompt": 1, "completion": 1, "calls": 1}
+    monkeypatch.setattr(ex, "chat", chat)
+    roles = [{"name": "rev", "kind": "llm", "model": "fake:rev", "prompt": "r"},
+             {"name": "fix", "kind": "llm", "model": "fake:fix", "prompt": "f"}]
+    loop = {"loop": {"body": ["rev", "fix"], "max_rounds": 4, "stop_on": "rev", "stop_when": "ALL_CLEAR"}}
+    ex.run_team(load_genome(_genome(tmp_path, roles, [loop])), {"id": "e", "input": {"text": "x"}}, "fake:fix")
+    assert calls == ["rev", "fix", "rev", "fix", "rev"]

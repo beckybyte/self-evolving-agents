@@ -51,6 +51,9 @@ genome.yaml (schema: 2)
       # human (never blocks)
       question: str (template), default: str (template)  -> output = the human's answer if one exists, else the default
   workflow: [step, ...]             step = role name, or {loop: {body: [names], max_rounds: int, stop_when: str}}
+                                    (a stop marker counts only at the START of a line of that output (markdown
+                                    bullets/bold allowed), never mid-sentence and never in an answer cut off at
+                                    max_tokens)
                                     (loop stops early when the output of stop_on (a body role; default the last
                                     one) contains stop_when, tested right after stop_on runs: body [checker, fixer]
                                     with stop_on: checker skips the fixer once the checker says ALL_CLEAR;
