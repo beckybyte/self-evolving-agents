@@ -421,3 +421,47 @@ def run_check(name: str, artifacts: dict[str, str], **opts) -> tuple[bool, str]:
         return CHECKS[name](dict(artifacts), **opts)
     except Exception as e:  # a check never fails the team run
         return False, f"{name.upper()}: FAIL (check crashed: {e!r:.300})"
+
+
+def liveness(app_dir: Path, limit: float = 20.0) -> tuple[str, str]:
+    """BuildTask fast-fail probe on the materialised app: start it, then make the basic SMOKE_CALLS within `limit`
+    seconds (startup may take the contract's 15 s on top). Returns ("alive" | "no_start" | "hung", detail).
+    "hung" = it started but at least one basic call got no answer at all (an HTTP error IS an answer)."""
+    app_dir = Path(app_dir).resolve()
+    with tempfile.TemporaryDirectory(prefix="sea_live_") as tmp:
+        port, data = _free_port(), Path(tmp) / "data"
+        data.mkdir()
+        with open(Path(tmp) / "out.txt", "w") as outf:
+            proc = subprocess.Popen([sys.executable, "app.py", "--port", str(port), "--data", str(data)], cwd=app_dir,
+                                    stdout=outf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                    env=_app_env(), start_new_session=True)
+        base = f"http://127.0.0.1:{port}"
+        try:
+            t0 = time.time()
+            while time.time() - t0 < HEALTH_WAIT:
+                if proc.poll() is not None:
+                    return "no_start", f"exited with code {proc.returncode}"
+                try:
+                    if _call(base, "GET", "/health", None, 2)[0] == 200:
+                        break
+                except Exception:
+                    pass
+                time.sleep(0.2)
+            else:
+                return "no_start", f"no /health within {HEALTH_WAIT:.0f} s"
+            t1 = time.time()
+            for method, path, body, _ in SMOKE_CALLS:
+                left = limit - (time.time() - t1)
+                try:
+                    _call(base, method, path, body, max(left, 0.5))
+                except urllib.error.URLError as e:
+                    if isinstance(getattr(e, "reason", None), (TimeoutError, socket.timeout)):
+                        return "hung", f"{method} {path}: no answer within {limit:.0f} s total for the basic calls"
+                    return "hung", f"{method} {path}: connection failed ({e!r:.150})"
+                except (TimeoutError, socket.timeout):
+                    return "hung", f"{method} {path}: no answer within {limit:.0f} s total for the basic calls"
+                except Exception as e:
+                    return "hung", f"{method} {path}: {e!r:.150}"
+            return "alive", f"basic calls answered in {time.time() - t1:.1f} s"
+        finally:
+            _kill_tree(proc)

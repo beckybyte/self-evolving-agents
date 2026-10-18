@@ -425,3 +425,71 @@ def test_smoke_v3_calls():
     bad = app.replace('"repairs": 0, ', "")
     ok, rep = app_smoke({"app_py": bad}, calls="v3")
     assert not ok and "missing key 'repairs'" in rep
+
+
+SLOW_HARNESS = '''
+import json, time, types
+from pathlib import Path
+SCENARIOS = types.SimpleNamespace(SPLITS={"fit": [{"id": "F1"}, {"id": "F2"}, {"id": "SLOW"}], "holdout": [{"id": "H1"}]})
+def run_scenario(app_dir, sc, timeout=60, mode=None):
+    if sc["id"] == "SLOW":
+        time.sleep(60)
+    return {"id": sc["id"], "score": 1.0, "hard": True, "reason": "ok", "detail": "", "checks": [], "secs": 0.1}
+def run_split(app_dir, split, timeout=60, workers=3, mode=None):
+    return [run_scenario(app_dir, sc, timeout) for sc in SCENARIOS.SPLITS[split]]
+'''
+
+
+def _build_spec(tmp_path, harness):
+    spec = tmp_path / "spec"
+    spec.mkdir()
+    (spec / "contract.md").write_text("# c\n")
+    (spec / "harness.py").write_text(harness)
+    (spec / "scenarios.py").write_text("SPLITS = {'fit': [{'id': 'F1', 'description': 'a'}, {'id': 'F2', 'description': 'b'}, "
+                                       "{'id': 'SLOW', 'description': 'c'}], 'holdout': [{'id': 'H1', 'description': 'd'}]}\n")
+    return make_task(f"build:{spec}", tmp_path / "run")
+
+
+def test_harness_wall_cap_scores_unfinished_scenarios_timeout(tmp_path):
+    task = _build_spec(tmp_path, SLOW_HARNESS)
+    task.harness_wall = 4
+    app = tmp_path / "app"
+    app.mkdir()
+    (app / "app.py").write_text(good())
+    t0 = time.time()
+    rows = task.run_harness(app, "fit", {"files": ["app.py"]})
+    assert time.time() - t0 < 30
+    by = {r["id"]: r for r in rows}
+    assert by["F1"]["score"] == 1.0 and by["F2"]["score"] == 1.0
+    assert by["SLOW"]["score"] == 0.0 and by["SLOW"]["reason"] == "timeout"
+    def cwd(d):
+        try:
+            return os.readlink(f"/proc/{d}/cwd")
+        except OSError:
+            return None
+    assert not any(cwd(d) == str(app.resolve()) for d in os.listdir("/proc") if d.isdigit())  # nothing left running
+
+
+def test_liveness_flags_a_hung_app_and_skips_the_harness(tmp_path):
+    from sea.checks import liveness
+    hung = good().replace('        if self.path == "/api/reset":', '        if self.path == "/api/reset": __import__("time").sleep(120)\n        if self.path == "/api/reset":')
+    app = tmp_path / "app"
+    app.mkdir()
+    (app / "app.py").write_text(hung)
+    t0 = time.time()
+    state, detail = liveness(app, limit=3)
+    assert state == "hung" and "/api/reset" in detail and time.time() - t0 < 25
+    (app / "app.py").write_text(good())
+    assert liveness(app, limit=3)[0] == "alive"
+    (app / "app.py").write_text(CRASH_APP)
+    assert liveness(app, limit=3)[0] == "no_start"
+    task = _build_spec(tmp_path, SLOW_HARNESS)
+    (app / "app.py").write_text(hung)
+    import sea.tasks.build as b
+    old = b.LIVENESS_LIMIT
+    b.LIVENESS_LIMIT = 3
+    try:
+        rows = task.run_harness(app, "fit", {"files": ["app.py"]})
+    finally:
+        b.LIVENESS_LIMIT = old
+    assert {r["reason"] for r in rows} == {"hung"} and all(r["score"] == 0 for r in rows)

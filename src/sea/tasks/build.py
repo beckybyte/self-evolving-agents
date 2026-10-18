@@ -33,6 +33,24 @@ from .base import Task, summarize
 FILE_EXTS = ("py", "html", "js", "css", "json", "md", "txt")
 FENCE_RE = re.compile(r"\A\s*```[^\n]*\n(.*?)\n?```\s*\Z", re.S)
 HARNESS_TIMEOUT, HARNESS_WORKERS = 60, 3
+HARNESS_WALL = float(os.environ.get("SEA_HARNESS_WALL", 600))  # seconds per split; unfinished scenarios score 0
+LIVENESS_LIMIT = 20.0  # basic calls must all be answered within this (after startup) or the app is "hung"
+
+# runs one split of a frozen harness in a child process, one JSON row per finished scenario (so a wall-time cap
+# keeps the rows that did finish); falls back to run_split for a harness without run_scenario
+_CAPPED_CHILD = r"""
+import concurrent.futures as cf, importlib.util, json, sys
+path, name, app, split, timeout, workers = sys.argv[1:7]
+spec = importlib.util.spec_from_file_location(name, path); m = importlib.util.module_from_spec(spec)
+sys.modules[name] = m; spec.loader.exec_module(m)
+if hasattr(m, "run_scenario") and hasattr(m, "SCENARIOS"):
+    with cf.ThreadPoolExecutor(int(workers)) as ex:
+        for fu in cf.as_completed([ex.submit(m.run_scenario, app, sc, float(timeout)) for sc in m.SCENARIOS.SPLITS[split]]):
+            print(json.dumps(fu.result(), default=str), flush=True)
+else:
+    for r in m.run_split(app, split, timeout=float(timeout), workers=int(workers)):
+        print(json.dumps(r, default=str), flush=True)
+"""
 APP_FILE_CAP = 40000  # chars of each produced file shown to the evolver
 
 DESC = """TASK the team solves: WRITE A RUNNABLE APP that implements the frozen contract below. There is no dataset;
@@ -173,6 +191,8 @@ class BuildTask(Task):
         self.spec_dir = Path(spec_dir).resolve()
         self.contract = (self.spec_dir / "contract.md").read_text()
         self.harness_timeout, self.harness_workers = harness_timeout, harness_workers
+        self.harness_wall = HARNESS_WALL
+        self.fast_fail = os.environ.get("SEA_BUILD_FAST_FAIL", "1") != "0"  # liveness probe + capped harness
         self.repeats = max(1, int(os.environ.get("SEA_BUILD_REPEATS", repeats)))
         self._harness = self._scen = None
         self._load_lock = threading.Lock()
@@ -263,10 +283,61 @@ class BuildTask(Task):
                     for i in ids]
         if "app.py" not in res["files"]:
             return zero("no_app_py", res.get("error") or f"team produced files {res['files']}")
+        if self.fast_fail:
+            from ..checks import liveness
+            state, detail = liveness(app_dir, LIVENESS_LIMIT)
+            if state == "hung":  # it starts but does not answer basic calls: the harness would wait 60 s per request
+                return zero("hung", f"liveness probe: {detail}")
+            if hasattr(self.harness(), "run_scenario"):  # every real harness; test stubs keep the in-process path
+                return self.run_capped(app_dir, split, ids, zero)
         try:
             return list(self.harness().run_split(app_dir, split, timeout=self.harness_timeout, workers=self.harness_workers))
         except Exception as e:
             return zero("harness_error", repr(e)[:500])
+
+    def run_capped(self, app_dir: Path, split: str, ids: list[str], zero) -> list[dict]:
+        """The frozen harness in a child process with a wall-time cap (HARNESS_WALL per split). At the cap the child
+        and every app process still running from app_dir are killed; scenarios without a row score 0 'timeout'.
+        evo_v3_b gen01: one app answering only at the 60 s request timeout held a generation for ~70 min."""
+        import signal
+        import subprocess
+        app_dir = Path(app_dir).resolve()
+        env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(Path(__file__).resolve().parents[2]),
+                                                                        os.environ.get("PYTHONPATH", "")]))}
+        p = subprocess.Popen([sys.executable, "-c", _CAPPED_CHILD, str(self.spec_dir / "harness.py"),
+                              f"sea_build_harness_child_{abs(hash(self.spec_dir))}", str(app_dir), split,
+                              str(self.harness_timeout), str(self.harness_workers)],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, start_new_session=True)
+        rows, deadline = [], time.time() + self.harness_wall
+        reader = threading.Thread(target=lambda: rows.extend(json.loads(l) for l in p.stdout if l.strip()), daemon=True)
+        reader.start()
+        reader.join(max(0.0, deadline - time.time()))
+        timed_out = reader.is_alive()
+        if timed_out:
+            try:  # stop the harness first, so it cannot start more apps
+                os.killpg(p.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+            p.wait()
+            for _ in range(2):  # the harness starts each app in its own session: find them by working directory
+                for pid in [int(d) for d in os.listdir("/proc") if d.isdigit()]:
+                    try:
+                        if Path(f"/proc/{pid}/cwd").resolve() == app_dir:
+                            os.kill(pid, signal.SIGKILL)
+                    except (OSError, ValueError):
+                        pass
+                time.sleep(0.5)
+            reader.join(5)
+        p.wait()
+        if not timed_out and p.returncode != 0 and not rows:
+            return zero("harness_error", (p.stderr.read() or "")[-500:])
+        done = {r.get("id") for r in rows}
+        missing = [i for i in ids if i not in done]
+        if timed_out and missing:
+            rows += [r for r in zero("timeout", f"harness wall-time cap {self.harness_wall:.0f} s per split reached "
+                                                "before this scenario finished") if r["id"] in missing]
+        order = {i: k for k, i in enumerate(ids)}
+        return sorted(rows, key=lambda r: order.get(r.get("id"), len(order)))
 
     def evaluate(self, gdir, split: str, worker: str, out, workers: int = 3, limit: int | None = None) -> dict:
         out = Path(out)
