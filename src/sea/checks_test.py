@@ -413,3 +413,15 @@ def test_stop_marker_counts_only_at_line_start_and_not_when_truncated(tmp_path, 
     loop = {"loop": {"body": ["rev", "fix"], "max_rounds": 4, "stop_on": "rev", "stop_when": "ALL_CLEAR"}}
     ex.run_team(load_genome(_genome(tmp_path, roles, [loop])), {"id": "e", "input": {"text": "x"}}, "fake:fix")
     assert calls == ["rev", "fix", "rev", "fix", "rev"]
+
+
+def test_smoke_v3_calls():
+    extra = ('\nV2GET["/api/catalog"] = {"primitives": [{"type": "Lane", "props": {"date": "date"}, "children": True}]}\n'
+             'V2POST["/api/critic"] = {"ok": True, "problems": [], "repaired": None}\n'
+             'V2POST["/api/design"] = {"drafts": [], "critique": [], "repairs": 0, "chosen": 0, "proposal": None}\n')
+    app = v2_app().replace("class H(BaseHTTPRequestHandler):", extra + "class H(BaseHTTPRequestHandler):", 1)
+    ok, rep = app_smoke({"app_py": app}, calls="v3")
+    assert ok and "/api/catalog" in rep and "/api/critic" in rep and "/api/design" in rep, rep
+    bad = app.replace('"repairs": 0, ', "")
+    ok, rep = app_smoke({"app_py": bad}, calls="v3")
+    assert not ok and "missing key 'repairs'" in rep

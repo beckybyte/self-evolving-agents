@@ -37,7 +37,9 @@ genome.yaml (schema: 2)
                                     app.py and make a few generic contract calls; output (blackboard[name]) is a
                                     report starting "SMOKE: PASS" or "SMOKE: FAIL (...)" with compile errors, the
                                     traceback tail, HTTP status and JSON-shape problems per call. 0 tokens, <= 40 s.
-      calls: basic | deep | v2      app_smoke option (default basic: reset, state, command "call mom" dump, focus).
+      calls: basic|deep|v2|v3       app_smoke option (default basic: reset, state, command "call mom" dump, focus).
+                                    v3 = v2 plus catalog, critic on a one-element spec of the app's first catalog
+                                    type, design with belief_key null (crash/shape only).
                                     v2 = deep plus the contract-v2 endpoints (log, import of a one-event .ics -> plan
                                     apply/undo, learn, beliefs (+ delete one the app returned), proposal, view week,
                                     prompts, activity), crash/shape only.

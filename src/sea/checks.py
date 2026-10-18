@@ -220,6 +220,35 @@ def v2_calls(do, lines: list):
     do("GET", "/api/activity", None, "v2:activity", strict=False)
 
 
+def v3_shape_problems(kind: str, data) -> list[str]:
+    if not isinstance(data, dict):
+        return [f"expected a JSON object, got {type(data).__name__}"]
+    keys = {"catalog": ("primitives",), "critic": ("ok", "problems", "repaired"),
+            "design": ("drafts", "critique", "repairs", "chosen", "proposal")}[kind]
+    out = [f"missing key {k!r}" for k in keys if k not in data]
+    if kind == "catalog" and isinstance(data.get("primitives"), list):
+        m = next((_missing(p, ("type", "props", "children")) for p in data["primitives"][:20]
+                  if _missing(p, ("type", "props", "children"))), None)
+        out += [f"primitives entry missing {m}"] if m else []
+    for k in ("problems", "drafts", "critique"):
+        if k in data and not isinstance(data[k], list):
+            out.append(f"{k!r} must be a list")
+    return out
+
+
+def v3_calls(do, lines: list):
+    """calls: v3 -- v2 plus the designer/critic endpoints: catalog, critic on a one-element spec built from the
+    app's own first catalog type, design with no belief. Crash and JSON-shape problems only."""
+    cat = (do("GET", "/api/catalog", None, "v3:catalog", strict=False) or {}).get("primitives") or []
+    first = cat[0].get("type") if cat and isinstance(cat[0], dict) else None
+    if first:
+        spec = {"root": "r", "elements": {"r": {"type": first, "props": {}, "children": []}}}
+        do("POST", "/api/critic", {"spec": spec}, "v3:critic", strict=False)
+    else:
+        lines.append("v3: catalog returned no primitive type; /api/critic not run")
+    do("POST", "/api/design", {"belief_key": None}, "v3:design", strict=False)
+
+
 def deep_calls(do, seen: list, lines: list):
     """calls: deep -- after SMOKE_CALLS, chain the remaining contract endpoints with neutral inputs on an item the app
     created itself: chat "yes" -> done -> clock +2 h -> undo (if any message carried an undo_id). Crash and JSON-shape
@@ -356,7 +385,8 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
                     lines.append(f"{head}; not JSON: {text[:300]}")
                     problems += 1
                     return None
-                shp = v2_shape_problems(kind[3:], obj) if kind.startswith("v2:") else shape_problems(kind, obj)
+                shp = (v2_shape_problems(kind[3:], obj) if kind.startswith("v2:") else
+                       v3_shape_problems(kind[3:], obj) if kind.startswith("v3:") else shape_problems(kind, obj))
                 problems += bool(shp)
                 lines.append(f"{head}; shape {'ok' if not shp else 'WRONG: ' + '; '.join(shp)}; body: {text[:300]}")
                 seen.append(obj)
@@ -366,10 +396,12 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
                 do(method, path, body, kind)
                 if proc.poll() is not None:
                     break
-            if calls in ("deep", "v2") and proc.poll() is None:
+            if calls in ("deep", "v2", "v3") and proc.poll() is None:
                 deep_calls(do, seen, lines)
-            if calls == "v2" and proc.poll() is None:
+            if calls in ("v2", "v3") and proc.poll() is None:
                 v2_calls(do, lines)
+            if calls == "v3" and proc.poll() is None:
+                v3_calls(do, lines)
         finally:
             _kill_tree(proc)
         out = log.read_text(errors="replace")
@@ -381,7 +413,7 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
 
 
 CHECKS = {"app_smoke": app_smoke}
-CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep", "v2"), "selftest": (False, True), "selftest_secs": (12, 20)}}  # option -> allowed values (first = default)
+CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep", "v2", "v3"), "selftest": (False, True), "selftest_secs": (12, 20)}}  # option -> allowed values (first = default)
 
 
 def run_check(name: str, artifacts: dict[str, str], **opts) -> tuple[bool, str]:
