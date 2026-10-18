@@ -18,7 +18,9 @@ import concurrent.futures as cf
 import importlib.util
 import json
 import re
+import random
 import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -142,6 +144,7 @@ def materialise(artifacts: dict[str, str], app_dir: Path) -> tuple[list[str], li
 
 
 MAX_GENOME_CODE_LINES = 25
+USERSIM = Path(__file__).resolve().parents[3] / "builds" / "usersim" / "run.py"
 CODE_LINE = re.compile(r"^\s*(def |class |import |from \S+ import |return\b|if .*:\s*$|for .*:\s*$|while .*:\s*$|elif |else:|try:|except|"
                        r"function\b|const |let |var |document\.|<(div|script|style|button|input|section|html|body)\b|\}\s*$|"
                        r"[A-Za-z_][A-Za-z0-9_.\[\]'\"]*\s*=\s*\S)")
@@ -195,6 +198,8 @@ class BuildTask(Task):
         self.harness_wall = HARNESS_WALL
         self.fast_fail = os.environ.get("SEA_BUILD_FAST_FAIL", "1") != "0"  # liveness probe + capped harness
         self.repeats = max(1, int(os.environ.get("SEA_BUILD_REPEATS", repeats)))
+        self.sim_weight = float(os.environ.get("SEA_BUILD_SIM_WEIGHT", "0"))
+        self.sim_episodes = int(os.environ.get("SEA_BUILD_SIM_EPISODES", "20"))
         self._harness = self._scen = None
         self._load_lock = threading.Lock()
 
@@ -216,7 +221,11 @@ class BuildTask(Task):
 
     # ---------------------------------------------------------------- Task protocol
     def describe(self) -> str:
-        return DESC.format(contract=self.contract, scenarios=self.scenario_text()) + "\n\n" + models.catalog_text()
+        from ..executor import md_sections
+        secs = ", ".join(f"contract.{k}" for k in md_sections(self.contract))
+        return (DESC.format(contract=self.contract, scenarios=self.scenario_text()) + "\n\n" + models.catalog_text()
+                + f"\n\nCONTRACT SECTIONS a role can read alone (selector or {{placeholder}}), instead of the whole "
+                  f"contract: {secs}")
 
     def moves(self) -> str:
         return ("pick a model per role from MODELS (strong coder for big files, a cheap fast one for plans/checks; thinking on or #nothink per role), split the work by file (architect -> {parallel: [backend, agents, ui]} -> integrator), merge roles that "
@@ -253,8 +262,40 @@ class BuildTask(Task):
         return 1.0
 
     def fitness_spec(self) -> FitnessSpec:
-        return FitnessSpec([Term("score:fit", 1.0, label="score(fit)"),
-                            Term("tokens", -self.lam_tokens, 1000, "team_tokens/1000")])
+        w = self.sim_weight
+        terms = [Term("score:fit", 1.0 - w, label="score(fit)")]
+        if w:
+            terms.append(Term("score:sim", w, label="usersim_pass_rate(fresh seeds)"))
+        return FitnessSpec(terms + [Term("tokens", -self.lam_tokens, 1000, "team_tokens/1000")])
+
+    def run_usersim(self, out: Path) -> dict:
+        """LLM user simulator (builds/usersim) on every team run's app, fresh random seeds each evaluation (recorded),
+        so a team cannot memorize it. Score = mean pass rate over runs; a run without app.py scores 0."""
+        f = out / "sim.json"
+        if f.exists():
+            return json.loads(f.read_text())
+        runs, per = sorted(p for p in out.glob("r*") if p.is_dir()), []
+        n = max(1, self.sim_episodes // max(1, len(runs)))
+        for r in runs:
+            app = r / "app"
+            if not (app / "app.py").exists():
+                per.append({"run": r.name, "score": 0.0, "reason": "no_app_py"})
+                continue
+            base = random.SystemRandom().randrange(10**6, 10**7)
+            rf = r / "sim.json"
+            try:
+                subprocess.run([sys.executable, str(USERSIM), str(app), "--split", "holdout", "--episodes", str(n),
+                                "--seed-base", str(base), "--parallel", "5", "--out", str(rf)],
+                               capture_output=True, text=True, timeout=900)
+                d = json.loads(rf.read_text())
+                per.append({"run": r.name, "score": d["mean_pass_rate"], "seed_base": base, "cost_usd": d.get("sim_cost_usd"),
+                            "violations": {k: v for k, v in (d.get("per_invariant") or {}).items()
+                                           if isinstance(v, dict) and v.get("violations")}})
+            except Exception as e:
+                per.append({"run": r.name, "score": 0.0, "reason": f"usersim_error {e!r}"[:300], "seed_base": base})
+        res = {"score": round(sum(x["score"] for x in per) / max(1, len(per)), 4), "per_run": per, "episodes_per_run": n}
+        f.write_text(json.dumps(res, indent=1, ensure_ascii=False))
+        return res
 
     def episodes(self, split: str) -> list[dict]:
         scen = self.scenario_text()
@@ -393,6 +434,8 @@ class BuildTask(Task):
         fit, hold = (json.loads(merged[s].read_text()) for s in ("fit", "holdout"))
         metrics = {"score:fit": fit["score"], "tokens": fit["tokens_per_sample"], "score:holdout": hold["score"],
                    "fit_min": min(fit["per_run"]), "fit_max": max(fit["per_run"])}
+        if self.sim_weight:
+            metrics["score:sim"] = self.run_usersim(out)["score"]
         return {"reports": {"fit": fit}, "holdout": hold, "metrics": metrics, "fitness": self.fitness_spec()(metrics)}
 
     def _merge(self, out: Path, split: str, reps: list[dict]):
@@ -434,6 +477,7 @@ class BuildTask(Task):
         files = {
             "contract.md": self.contract,
             "reports.json": json.dumps({"fit": rep, "holdout_aggregate": hold}, indent=1, ensure_ascii=False),
+            **({"usersim.json": (parent_eval / "sim.json").read_text()} if (parent_eval / "sim.json").exists() else {}),
             "fit_rows.jsonl": "\n".join(json.dumps({**{k: r.get(k) for k in ("id", "score", "hard", "reason", "detail", "checks", "secs")},
                                                     "scenario": scen.get(r["id"].split("@")[0])}, ensure_ascii=False) for r in rows),
         }

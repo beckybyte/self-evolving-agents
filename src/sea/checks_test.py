@@ -533,3 +533,15 @@ def test_parallel_inside_loop_body_and_soul_opt_out(tmp_path):
     assert names.count("sm") == 2 and names.count("fa") == 2 and names.count("fb") == 2
     assert all("BIG SHARED SOUL" in s for n, s in seen if n == "fa") and all("BIG SHARED SOUL" not in s for n, s in seen if n == "fb")
     assert res["artifacts"]["a_py"] == "a" and res["artifacts"]["b_py"] == "b"
+
+
+def test_contract_section_selector(tmp_path):
+    seen = []
+    register_fake("cs", lambda m: seen.append(m[-1]["content"]) or "ok")
+    contract = "# C\nintro\n## Data shapes\nItem: {id}\n## v2 additions\nmore\n### Extra endpoints\nGET /api/log\n## v3 additions\n### Extra endpoints\nGET /api/catalog\n"
+    roles = [{"name": "a", "kind": "llm", "model": "fake:cs", "prompt": "shapes: {contract.data-shapes}", "reads": []},
+             {"name": "b", "kind": "llm", "model": "fake:cs", "prompt": "x", "reads": ["contract.v3-additions--extra-endpoints"]}]
+    g = load_genome(_genome(tmp_path, roles, ["a", "b"]), ("contract", "scenarios"))
+    run_team(g, {"id": "e", "input": {"text": "x"}, "context": {"contract": contract, "scenarios": ""}}, "fake:cs")
+    assert "Item: {id}" in seen[0] and "api/log" not in seen[0]
+    assert "GET /api/catalog" in seen[1] and "GET /api/log" not in seen[1]

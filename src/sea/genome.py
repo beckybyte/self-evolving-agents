@@ -14,6 +14,8 @@ genome.yaml (schema: 2)
       model: $WORKER | qwen3-8b | qwen3-30b-a3b | qwen2.5-72b | claude:<alias>
       reads: [selector, ...]        what the role sees; default [input, blackboard]. selectors:
                                       input, blackboard, blackboard.<key>, artifacts, artifact.<name>, inbox, memory,
+                                      <context key>.<section> (one markdown section of a task text, e.g.
+                                      contract.data-shapes; the task description lists the section names),
                                       spec.<name> (one entry of the genome's `specs:` dict, so a spec section
                                       reaches only the roles that read it instead of every role via soul),
                                       artifacts_named_by.<role> (only the files whose path appears in that role's
@@ -150,7 +152,7 @@ def _selector_ok(s: str, names: set, context_keys) -> bool:
     if s in BASE_SELECTORS or s in context_keys:
         return True
     head, _, tail = s.partition(".")
-    return head in ("blackboard", "artifact", "artifacts_named_by", "spec") and bool(tail)
+    return (head in ("blackboard", "artifact", "artifacts_named_by", "spec") or head in context_keys) and bool(tail)
 
 
 def validate(g: dict, context_keys: tuple[str, ...] = ()):

@@ -28,6 +28,28 @@ FENCE_BLOCK_RE = re.compile(r"^```[^\n]*\n(.*?)\n?^```", re.S | re.M)
 LEGACY_MIN_RATIO = 0.5  # a legacy block replaces an existing artifact only if it is at least half as long (not a snippet)
 
 
+def _slug(h: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", h.split("(")[0].lower()).strip("-")
+
+
+def md_sections(text: str) -> dict[str, str]:
+    """Markdown sections of a text (## and deeper; a section includes its subsections). Keys: the heading slug,
+    and for a ### under a ## '<parent>--<child>' (e.g. v2-additions--extra-endpoints)."""
+    lines, heads = text.splitlines(), []
+    for i, l in enumerate(lines):
+        m = re.match(r"^(#{2,6})\s+(.*)", l)
+        if m:
+            heads.append((i, len(m.group(1)), _slug(m.group(2))))
+    out, parent = {}, ""
+    for k, (i, lvl, slug) in enumerate(heads):
+        end = next((j for j, l2, _ in heads[k + 1:] if l2 <= lvl), len(lines))
+        if lvl == 2:
+            parent = slug
+        key = slug if lvl == 2 or not parent else f"{parent}--{slug}"
+        out.setdefault(key, "\n".join(lines[i:end]).strip())
+    return out
+
+
 def render_artifact(name: str, body: str) -> str:
     """The same format roles must emit, so a role that copies its input format writes a valid artifact."""
     return f'<artifact name="{name}">\n{body}\n</artifact>'
@@ -120,6 +142,10 @@ class _Run:
         if sel == "memory":
             return self.g["_memory"].get(role, "")
         v = self.ep.get("context", {}).get(sel)
+        if v is None and key and isinstance(self.ep.get("context", {}).get(head), str):
+            # <context key>.<section slug>: one markdown section of a context text, e.g. contract.data-shapes
+            secs = md_sections(self.ep["context"][head])
+            return secs.get(key) or f"(no section {key!r}; sections: {', '.join(secs)})"
         if v is None:
             return ""
         return v if isinstance(v, str) else json.dumps(v, ensure_ascii=False, indent=1)
