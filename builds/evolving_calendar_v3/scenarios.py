@@ -729,4 +729,37 @@ HOLDOUT += [
     },
 ]
 
+def _render_seed(now_day, next_day):
+    return [
+        {"id": "u1", "kind": "task", "title": "Pick up dry cleaning", "start": f"{now_day}T17:00",
+         "end": f"{now_day}T17:30", "status": "open", "source": "seed"},
+        {"id": "u2", "kind": "event", "title": "Book club", "start": f"{now_day}T19:00", "end": f"{now_day}T20:00",
+         "status": "open", "source": "seed"},
+        {"id": "u3", "kind": "task", "title": "Call the plumber", "start": f"{next_day}T10:00",
+         "end": f"{next_day}T10:30", "status": "open", "source": "seed"},
+        {"id": "u4", "kind": "event", "title": "Lunch with Ana", "start": f"{next_day}T12:00",
+         "end": f"{next_day}T13:00", "status": "open", "source": "seed"},
+    ]
+
+
+RENDER_DESC = ("Rendered DOM (headless Chrome, after reset + brain dump + breakdown chat + /api/learn): seeded item "
+               "titles, the latest agent message, the focus step inside #focus, a belief inside #learned and an "
+               "activity text inside #activity actually appear on the page. [mock mode]")
+FIT.append({"id": "fit_ui_render", "persona": "Iris", "description": RENDER_DESC, "mock": True, "final": False,
+            "steps": [
+                {"op": "reset", "label": "reset", "now": "2026-10-19T09:00",
+                 "items": IRIS_HISTORY + _render_seed("2026-10-19", "2026-10-20")},
+                dict({"op": "ui_render", "label": "render", "dump": "water the plants, email Kim, maybe repaint the hallway?",
+                      "goal": "get my portfolio together",
+                      "seed_titles": ["Pick up dry cleaning", "Book club", "Call the plumber", "Lunch with Ana"]},
+                     **APPETITE_ANSWERS)]})
+HOLDOUT.append({"id": "holdout_ui_render", "persona": "Sam", "description": RENDER_DESC, "mock": True, "final": False,
+                "steps": [
+                    {"op": "reset", "label": "reset", "now": "2026-10-21T08:30",
+                     "items": SAM_HISTORY + _evening_history(EIGHT_DAYS, "rh") + _render_seed("2026-10-21", "2026-10-22")},
+                    dict({"op": "ui_render", "label": "render", "dump": "pack the kitchen, call the landlord, maybe sell the couch?",
+                          "goal": "figure out moving",
+                          "seed_titles": ["Pick up dry cleaning", "Book club", "Call the plumber", "Lunch with Ana"]},
+                         **APPETITE_ANSWERS)]})
+
 SPLITS = {"fit": FIT, "holdout": HOLDOUT}

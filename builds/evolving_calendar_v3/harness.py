@@ -18,6 +18,7 @@ Leniency rules (agent text comes from language models, so meaning is checked, no
 from __future__ import annotations
 
 import argparse
+import html as html_lib
 import importlib.util
 import json
 import os
@@ -33,6 +34,7 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+from html.parser import HTMLParser
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -1463,6 +1465,132 @@ def op_appetite(ctx: Ctx, st: dict):
                   f"messages for next task: {short([(m.get('kind'), text_of(m)) for m in msgs], 200)}")
 
 
+# ---------------------------------------------------------------- rendered DOM (headless Chrome)
+
+CHROME = "/usr/bin/google-chrome"
+CHROME_TIMEOUT = 40
+_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
+
+
+class _DomText(HTMLParser):
+    """Collects all visible-ish text, and the text inside elements with given ids."""
+
+    def __init__(self, ids):
+        super().__init__(convert_charrefs=True)
+        self.ids, self.stack, self.parts, self.by_id = set(ids), [], [], {i: [] for i in ids}
+        self.skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag in ("script", "style", "template"):
+            self.skip += 1
+        if tag in _VOID:
+            v = a.get("value") or a.get("placeholder")
+            if v and self.skip == 0:
+                self._text(v)
+            return
+        self.stack.append((tag, a.get("id") if a.get("id") in self.ids else None))
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style", "template") and self.skip:
+            self.skip -= 1
+        if tag in _VOID:
+            return
+        for k in range(len(self.stack) - 1, -1, -1):  # tolerate unclosed tags
+            if self.stack[k][0] == tag:
+                del self.stack[k:]
+                break
+
+    def _text(self, data):
+        self.parts.append(data)
+        for _, i in self.stack:
+            if i:
+                self.by_id[i].append(data)
+
+    def handle_data(self, data):
+        if self.skip == 0:
+            self._text(data)
+
+
+def _norm(t: str) -> str:
+    return re.sub(r"\s+", " ", html_lib.unescape(t or "")).strip().lower()
+
+
+def dom_text(dom: str, ids=("focus", "learned", "activity", "timeline", "chat-log")) -> tuple[str, dict]:
+    p = _DomText(ids)
+    p.feed(dom)
+    p.close()
+    return _norm(" ".join(p.parts)), {i: _norm(" ".join(v)) for i, v in p.by_id.items()}
+
+
+def render_dom(url: str, chrome: str | None = None) -> str:
+    chrome = chrome or CHROME
+    if not (os.path.isfile(chrome) and os.access(chrome, os.X_OK)):
+        raise AppError(f"harness_error: Chrome not found at {chrome}")
+    prof = tempfile.mkdtemp(prefix="evcal_chrome_")
+    proc = subprocess.Popen([chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--no-first-run",
+                             f"--user-data-dir={prof}", "--virtual-time-budget=8000", "--dump-dom", url],
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
+                            start_new_session=True)
+    try:
+        out, _ = proc.communicate(timeout=CHROME_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise AppError(f"harness_error: Chrome timed out after {CHROME_TIMEOUT} s") from None
+    finally:
+        _kill(proc)
+        shutil.rmtree(prof, ignore_errors=True)
+    dom = out.decode("utf-8", "replace")
+    if "<html" not in dom.lower():
+        raise AppError(f"harness_error: Chrome returned no DOM ({len(dom)} bytes)")
+    return dom
+
+
+def _contains(hay: str, text: str, n: int = 40) -> bool:
+    t = _norm(text)
+    return bool(t) and t[:n] in hay
+
+
+def op_ui_render(ctx: Ctx, st: dict):
+    """Seed the app like a person would, then load GET / in headless Chrome and check the rendered content."""
+    ctx.plan(["titles_rendered", "latest_message_rendered", "focus_step_in_focus", "belief_in_learned",
+              "activity_in_activity"])
+    ctx.post("/api/command", {"text": st["dump"], "mode": "dump"})
+    r = ctx.post("/api/command", {"text": st["goal"], "mode": "command"})
+    gid = (r.get("created") or [None])[0]
+    if gid:
+        reply = "yes, please"
+        for _ in range(MAX_DRIVER_TURNS):
+            am = agent(ctx.post("/api/chat", {"item_id": gid, "text": reply}).get("messages"))
+            if _breakdown_in(am):
+                ctx.post("/api/chat", {"item_id": gid, "text": "looks good"})
+                break
+            reply = _answer(text_of(am[-1]) if am else "", st)
+    ctx.post("/api/learn", {})
+    s = ctx.state()
+    focus = ctx.get("/api/focus") or {}
+    beliefs = _beliefs(ctx)
+    events = [e for e in ((ctx.get("/api/activity") or {}).get("events") or []) if isinstance(e, dict)]
+    dom = render_dom(ctx.client.base + "/")
+    body, by_id = dom_text(dom)
+
+    titles = [i["title"] for i in st["seed_titles"]] if isinstance(st["seed_titles"][0], dict) else st["seed_titles"]
+    shown = [t for t in titles if _norm(t) in body]
+    ctx.check("titles_rendered", len(shown) >= 3, f"rendered {shown} of {titles}")
+    am = [m for m in agent(s["messages"]) if text_of(m).strip()]
+    last = text_of(am[-1]) if am else ""
+    ctx.check("latest_message_rendered", bool(last) and _contains(body, last),
+              f"latest agent message {short(last, 80)!r} not in page")
+    ft = str((focus.get("item") or {}).get("title") or "")
+    ctx.check("focus_step_in_focus", bool(ft) and _norm(ft) in by_id["focus"],
+              f"focus step {ft!r}; #focus shows {short(by_id['focus'], 120)!r}")
+    stm = [str(b.get("statement") or "") for b in beliefs if b.get("statement")]
+    ctx.check("belief_in_learned", any(_contains(by_id["learned"], x) for x in stm),
+              f"{len(stm)} beliefs; #learned shows {short(by_id['learned'], 120)!r}")
+    acts = [str(e.get("text") or "") for e in events if e.get("text")]
+    ctx.check("activity_in_activity", any(_contains(by_id["activity"], x) for x in acts),
+              f"{len(acts)} activity events; #activity shows {short(by_id['activity'], 120)!r}")
+
+
 OPS = {"reset": op_reset, "ui": op_ui, "command": op_command, "decline": op_decline, "breakdown": op_breakdown,
        "focus": op_focus, "done": op_done, "reminders": op_reminders, "postpone": op_postpone,
        "checkin": op_checkin, "final": op_final, "log": op_log, "move": op_move, "cancel": op_cancel,
@@ -1470,7 +1598,8 @@ OPS = {"reset": op_reset, "ui": op_ui, "command": op_command, "decline": op_decl
        "counter": op_counter, "delete_belief": op_delete_belief, "proposal": op_proposal, "view": op_view,
        "meta": op_meta, "activity": op_activity, "ui_usability": op_ui_usability,
        "critic": op_critic, "design": op_design, "view_motion": op_view_motion, "knobs_dismiss": op_knobs_dismiss,
-       "knobs_accept": op_knobs_accept, "appetite": op_appetite}
+       "knobs_accept": op_knobs_accept, "appetite": op_appetite,
+       "ui_render": op_ui_render}
 
 # ---------------------------------------------------------------- process management
 

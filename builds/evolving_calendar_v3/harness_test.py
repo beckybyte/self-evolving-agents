@@ -241,3 +241,36 @@ def test_validate_spec():
 def test_v3_ops_present():
     used = {st["op"] for v in harness.SCENARIOS.SPLITS.values() for sc in v for st in sc["steps"]}
     assert {"critic", "design", "view_motion", "knobs_dismiss", "knobs_accept", "appetite"} <= used
+
+
+def test_dom_text_by_id():
+    dom = ('<html><body><div id="focus"><h3>Next</h3><p>Open a blank doc &amp; list</p><input value="x"><br>'
+           '<button>Start 5 minutes</button></div><section id="learned"><ul><li>Finishes tasks after 8 PM (8 of 9)'
+           '</ul></section><div id="activity"></div><script>var t="Book club";</script><p>Book club</p></body></html>')
+    body, by_id = harness.dom_text(dom)
+    assert "open a blank doc & list" in by_id["focus"] and "start 5 minutes" in by_id["focus"]
+    assert "after 8 pm (8 of 9)" in by_id["learned"]
+    assert by_id["activity"] == ""
+    assert "book club" in body and 'var t' not in body
+
+
+def test_ui_render_without_chrome_is_harness_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(harness, "CHROME", str(tmp_path / "no-chrome"))
+    r = harness.run_scenario(_stub(tmp_path), _sc("fit_ui_render"), timeout=5)
+    render = [c for c in r["checks"] if c["name"].startswith("render:")]
+    assert len(render) == 5 and not any(c["ok"] for c in render)
+    with __import__("pytest").raises(harness.AppError, match="harness_error"):
+        harness.render_dom("http://127.0.0.1:9/")
+
+
+def test_ui_render_calibration():
+    """Reference renders its state; the v2 champion (empty panels in a real browser) does not."""
+    import os
+    import pytest
+    ref = HERE / "reference"
+    bad = HERE.parents[1] / "runs" / "demo" / "app_v2b3"
+    if not (os.access(harness.CHROME, os.X_OK) and (ref / "app.py").is_file() and (bad / "app.py").is_file()):
+        pytest.skip("needs Chrome, the v3 reference and runs/demo/app_v2b3")
+    assert harness.run_scenario(ref, _sc("fit_ui_render"), timeout=60)["score"] == 1.0
+    r = harness.run_scenario(bad, _sc("fit_ui_render"), timeout=60)
+    assert not any(c["ok"] for c in r["checks"] if c["name"].startswith("render:")), r["detail"]
