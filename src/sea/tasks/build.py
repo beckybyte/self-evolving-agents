@@ -472,10 +472,12 @@ class BuildTask(Task):
         if self.sim_weight:
             sim = self.run_usersim(out)
             metrics["score:sim"] = sim["score"]
+        ui = None
         if self.ui_weight:
-            metrics["score:ui"] = self.run_uijudge(out)["score"]
+            ui = self.run_uijudge(out)
+            metrics["score:ui"] = ui["score"]
         return {"reports": {"fit": fit}, "holdout": hold, "metrics": metrics, "fitness": self.fitness_spec()(metrics),
-                **({"sim": sim} if sim is not None else {})}
+                **({"sim": sim} if sim is not None else {}), **({"ui": ui} if ui is not None else {})}
 
     def _merge(self, out: Path, split: str, reps: list[dict]):
         rows = []
@@ -550,7 +552,10 @@ class BuildTask(Task):
                 + (f"; roles whose model call failed (timeout/error) per run {r['failed_roles']}" if any(r.get("failed_roles") or []) else "")
                 + (f"; user simulator clean-episode rate {ev['sim']['score']} (violated invariants per run: "
                    f"{[{k: v.get('violations') for k, v in (x.get('violations') or {}).items()} or x.get('reason', {}) for x in ev['sim'].get('per_run', [])]})"
-                   if ev.get("sim") else ""))
+                   if ev.get("sim") else "")
+                + (f"; UI judge {ev['ui']['score']} (per run: "
+                   f"{[(x.get('score'), x.get('reason') or str(x.get('notes', ''))[:160]) for x in ev['ui'].get('per_run', [])]})"
+                   if ev.get("ui") else ""))
 
     def cases(self, rows: list[dict], role: str, k_fail: int = 6, k_ok: int = 2) -> str:
         rows = sorted(rows, key=lambda r: r["score"])

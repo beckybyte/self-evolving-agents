@@ -274,8 +274,10 @@ def test_summarize_child_reports_usersim():
                               "failed_checks": {}}}, "holdout": {"score": 0.8},
           "sim": {"score": 0.55, "per_run": [{"run": "r0", "score": 0.5, "violations": {"needs_yes": {"violations": 2, "checks": 3}}},
                                              {"run": "r1", "score": 0.0, "reason": "usersim_error TimeoutExpired"}]}}
+    ev["ui"] = {"score": 0.6, "per_run": [{"run": "r0", "score": 0.6, "notes": "focus card buried below the fold"}]}
     txt = BuildTask.summarize_child(None, ev)
     assert "clean-episode rate 0.55" in txt and "'needs_yes': 2" in txt and "usersim_error" in txt
+    assert "UI judge 0.6" in txt and "focus card buried" in txt
 
 
 def test_ui_judge_term_in_fitness(tmp_path, monkeypatch):
