@@ -110,6 +110,8 @@ class _Run:
             return "\n\n".join(render_artifact(k, v) for k, v in self.artifacts.items()) or "(none yet)"
         if head == "artifact":
             return render_artifact(key, self.artifacts[key]) if key in self.artifacts else "(not written yet)"
+        if head == "artifacts_named_by":
+            return self.artifacts_named_by(key)
         if sel == "inbox":
             return "\n\n".join(self.inbox.get(role, [])) or "(no messages)"
         if sel == "memory":
@@ -119,12 +121,25 @@ class _Run:
             return ""
         return v if isinstance(v, str) else json.dumps(v, ensure_ascii=False, indent=1)
 
+    def artifacts_named_by(self, role: str) -> str:
+        """Only the file artifacts whose path appears in blackboard[role] (e.g. a smoke report's traceback), so a
+        fixer reads the broken file, not every file. The report's own 'files: [...]' listing does not count.
+        If the report names no file, all artifacts are given."""
+        from .tasks.build import artifact_path  # lazy: tasks.build imports this module
+        text = "\n".join(l for l in str(self.bb.get(role, "")).splitlines() if not l.lstrip().startswith("files:"))
+        named = [k for k in self.artifacts if (p := artifact_path(k))
+                 and re.search(r"(?<![\w.])" + re.escape(p) + r"(?![\w])", text)]
+        if not named:
+            return "(the report names no file; all artifacts follow)\n\n" + self.select("artifacts", role)
+        return "\n\n".join(render_artifact(k, self.artifacts[k]) for k in named)
+
     def render(self, template: str, role: str, reads: list[str]) -> str:
         used = set()
 
         def sub(m):
             sel = m.group(1) + (f".{m.group(2)}" if m.group(2) else "")
-            known = (m.group(1) in ("conversation", "input", "blackboard", "artifacts", "inbox", "memory", "artifact")
+            known = (m.group(1) in ("conversation", "input", "blackboard", "artifacts", "inbox", "memory", "artifact",
+                                    "artifacts_named_by")
                      or m.group(1) in self.ep.get("context", {}))
             if not known:
                 return m.group(0)

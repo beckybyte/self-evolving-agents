@@ -350,3 +350,18 @@ def test_expects_reruns_a_role_that_emitted_no_file_and_check_report_in_trace(tm
     assert chk["report"].startswith("SMOKE: FAIL (no app.py)")
     with pytest.raises(AssertionError, match="expects"):
         load_genome(_genome(tmp_path, [{"name": "a", "kind": "llm", "prompt": "p", "expects": ["bad name"]}], ["a"]))
+
+
+def test_artifacts_named_by_and_role_token_sums(tmp_path):
+    from sea.tasks.build import role_token_sums
+    assert role_token_sums([{"role": "fixer", "tokens": 5}, {"role": "smoke", "tokens": 0}, {"role": "fixer", "tokens": 7}]) == {"fixer": 12, "smoke": 0}
+    seen = {}
+    register_fake("w4", lambda m: '<artifact name="app_py">import v2</artifact><artifact name="v2_py">def f(:</artifact>'
+                                  '<artifact name="index_html"><html></html></artifact>')
+    register_fake("fx", lambda m: seen.setdefault("u", m[-1]["content"]) and "")
+    roles = [{"name": "w", "kind": "llm", "model": "fake:w4", "prompt": "write"},
+             {"name": "smoke", "kind": "check", "check": "app_smoke"},
+             {"name": "fixer", "kind": "llm", "model": "fake:fx", "prompt": "fix", "reads": ["artifacts_named_by.smoke"]}]
+    run_team(load_genome(_genome(tmp_path, roles, ["w", "smoke", "fixer"])), {"id": "e", "input": {"text": "x"}}, "fake:w4")
+    u = seen["u"]
+    assert '<artifact name="v2_py">' in u and '<artifact name="app_py">' not in u and "index_html" not in u

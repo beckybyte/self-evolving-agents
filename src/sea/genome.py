@@ -13,6 +13,8 @@ genome.yaml (schema: 2)
       model: $WORKER | qwen3-8b | qwen3-30b-a3b | qwen2.5-72b | claude:<alias>
       reads: [selector, ...]        what the role sees; default [input, blackboard]. selectors:
                                       input, blackboard, blackboard.<key>, artifacts, artifact.<name>, inbox, memory,
+                                      artifacts_named_by.<role> (only the files whose path appears in that role's
+                                      output, e.g. a smoke report: a fixer then reads the broken file only),
                                       or any context key the task provides (brief mode: restatement, assumptions,
                                       human_answers). A selector used as {placeholder} in the prompt is substituted
                                       there; the others are appended as "## <selector>" sections.
@@ -132,7 +134,7 @@ def _selector_ok(s: str, names: set, context_keys) -> bool:
     if s in BASE_SELECTORS or s in context_keys:
         return True
     head, _, tail = s.partition(".")
-    return head in ("blackboard", "artifact") and bool(tail)
+    return head in ("blackboard", "artifact", "artifacts_named_by") and bool(tail)
 
 
 def validate(g: dict, context_keys: tuple[str, ...] = ()):

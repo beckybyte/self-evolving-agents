@@ -133,6 +133,14 @@ def code_lines(text: str) -> int:
     return sum(bool(CODE_LINE.match(l)) for l in text.splitlines())
 
 
+def role_token_sums(trace: list[dict]) -> dict:
+    """Tokens per role summed over all its calls (a fixer in a loop runs several times)."""
+    out: dict[str, int] = {}
+    for t in trace:
+        out[t["role"]] = out.get(t["role"], 0) + t.get("tokens", 0)
+    return out
+
+
 def trace_health(trace: list[dict]) -> dict:
     """Framework-level failure signals of one team run: roles cut off at max_tokens (finish=length; a cut-off file
     artifact is never closed, so it is lost), llm roles that emitted nothing, and 429/5xx/timeout retries per model."""
@@ -197,7 +205,8 @@ class BuildTask(Task):
                 "with a fixer loop so the team runs its own app and repairs crashes before it is scored (a reviewer-gated fix needs no "
                 "conditional step: {loop: {body: [reviewer, fixer, smoke], stop_on: reviewer, stop_when: ALL_CLEAR}} ends "
                 "as soon as the reviewer is clean, before the fixer reads anything); give each writer `expects: [<its file artifact>]` "
-                "so an empty or file-less answer is re-run once; smoke reports appear in team_trace*.json (check entries). Tool roles are not "
+                "so an empty or file-less answer is re-run once; a fixer can read artifacts_named_by.smoke (only the files the smoke "
+                "report names) instead of all artifacts; smoke reports appear in team_trace*.json (check entries). Tool roles are not "
                 "allowed and the genome may hold at most 25 lines of code: describe what to build, the models write it. Look at fit_rows.jsonl (failed checks) "
                 "and app/ (the parent's code) before changing anything.")
 
@@ -286,7 +295,7 @@ class BuildTask(Task):
                     "secs": round(time.time() - t0, 1), "team_secs": res.get("team_secs"), "eval_version": "",
                     "files": res["files"], "rejected_files": res["rejected"], "team_error": res.get("error"),
                     "failed_checks": dict(sorted(check_fail.items(), key=lambda x: -x[1])),
-                    "role_tokens": {t["role"]: t.get("tokens", 0) for t in res.get("trace", [])},
+                    "role_tokens": role_token_sums(res.get("trace", [])),
                     **trace_health(res.get("trace", []))})
         (out / "report.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False))
         return rep
