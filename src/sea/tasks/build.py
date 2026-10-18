@@ -519,6 +519,9 @@ class BuildTask(Task):
             "contract.md": self.contract,
             "reports.json": json.dumps({"fit": rep, "holdout_aggregate": hold}, indent=1, ensure_ascii=False),
             **({"usersim.json": (parent_eval / "sim.json").read_text()} if (parent_eval / "sim.json").exists() else {}),
+            # what each simulator invariant means (the simulator is a fitness term; its README is derived from the contract)
+            **({"usersim_README.md": (USERSIM.parent / "README.md").read_text()}
+               if self.sim_weight and (USERSIM.parent / "README.md").exists() else {}),
             **({"ui_judge.json": (parent_eval / "ui.json").read_text()} if (parent_eval / "ui.json").exists() else {}),
             "fit_rows.jsonl": "\n".join(json.dumps({**{k: r.get(k) for k in ("id", "score", "hard", "reason", "detail", "checks", "secs")},
                                                     "scenario": scen.get(r["id"].split("@")[0])}, ensure_ascii=False) for r in rows),

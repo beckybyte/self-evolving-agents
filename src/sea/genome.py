@@ -52,7 +52,9 @@ genome.yaml (schema: 2)
                                     slow deep call (timeout, budget used up) is a note, not a failure.
       selftest_secs: 12 | 20        time limit of that self-test (default 12)
       acceptance: <artifact name>   app_smoke option: that artifact is a team-written JSON list of HTTP steps
-                                    [{method, path, body?, status? (200), expect?: [substrings of the body]}] (<= 30),
+                                    [{method, path, body?, status? (200), expect?: [substrings of the body],
+                                    save?: {name: "created.0" | "plan.id" | "messages.-1.id"}}] (<= 30); later steps
+                                    use ${name} in path, body or expect,
                                     run in order on the started app after the basic calls; failed steps are reported
       selftest: true                app_smoke option: first runs `python app.py --selftest --data <tmp>` (<= 12 s, must
                                     exit) and reports its exit code and output; nonzero exit = a problem. The team

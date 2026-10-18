@@ -553,3 +553,13 @@ def test_stable_report_makes_unchanged_apps_identical():
     b = run_check("app_smoke", {"app_py": CRASH_APP})[1]
     assert a == b and "/tmp/sea_smoke_" not in a and "NameError" in a
     assert stable_report("POST /x: HTTP 200 in 0.3 s; slow GET /y: HTTP 200 in 12.6 s") == "POST /x: HTTP 200; slow GET /y: HTTP 200 in 13 s"
+
+
+def test_acceptance_save_and_reuse_ids():
+    steps = json.dumps([{"method": "POST", "path": "/api/command", "body": {"text": "call mom", "mode": "dump"},
+                         "save": {"item": "created.0", "undo": "messages.0.undo_id"}},
+                        {"method": "POST", "path": "/api/items/${item}/done", "body": {}, "expect": ['"status": "done"']},
+                        {"method": "POST", "path": "/api/undo", "body": {"undo_id": "${undo}"}, "expect": ["ok"]}])
+    ok, rep = app_smoke({"app_py": good(), "t_json": steps}, acceptance="t_json")
+    assert ok, rep
+    assert "acceptance step 2 POST /api/items/i1/done: ok" in rep and "acceptance step 3 POST /api/undo: ok" in rep

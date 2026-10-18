@@ -312,18 +312,50 @@ def acceptance_steps(do_raw, spec_text: str, lines: list) -> int:
     except Exception as e:
         lines.append(f"acceptance: the artifact is not a JSON list of steps ({e!r:.120})")
         return 1
-    problems = 0
+    problems, saved = 0, {}
+
+    def subst(x):  # ${name} -> a value saved by an earlier step
+        if isinstance(x, str):
+            return re.sub(r"\$\{(\w+)\}", lambda m: str(saved.get(m.group(1), m.group(0))), x)
+        if isinstance(x, list):
+            return [subst(v) for v in x]
+        if isinstance(x, dict):
+            return {k: subst(v) for k, v in x.items()}
+        return x
+
+    def pick(obj, path):  # "created.0" / "messages.-1.id" / "plan.id"
+        for part in str(path).split("."):
+            if isinstance(obj, list) and re.fullmatch(r"-?\d+", part):
+                obj = obj[int(part)] if -len(obj) <= int(part) < len(obj) else None
+            elif isinstance(obj, dict):
+                obj = obj.get(part)
+            else:
+                return None
+        return obj
+
     for i, st in enumerate(steps[:ACCEPT_MAX_STEPS], 1):
-        if not isinstance(st, dict) or not st.get("path", "").startswith("/"):
+        if not isinstance(st, dict) or not str(st.get("path", "")).startswith("/"):
             lines.append(f"acceptance step {i}: malformed (needs method and a path starting with /)")
             problems += 1
             continue
+        st = {**st, "path": subst(st["path"]), "body": subst(st.get("body")), "expect": subst(st.get("expect"))}
         res = do_raw(st.get("method", "GET").upper(), st["path"], st.get("body"))
         if res is None:
             lines.append(f"acceptance step {i} {st.get('method', 'GET')} {st['path']}: no answer")
             problems += 1
             continue
         status, text = res
+        if st.get("save"):
+            try:
+                obj = json.loads(text)
+            except ValueError:
+                obj = None
+            for name, path in (st["save"] or {}).items():
+                v = pick(obj, path)
+                if v is None:
+                    lines.append(f"acceptance step {i}: could not save {name} from {path!r}")
+                else:
+                    saved[name] = v
         miss = [x for x in st.get("expect") or [] if str(x) not in text]
         if status != int(st.get("status", 200)) or miss:
             problems += 1
