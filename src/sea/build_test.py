@@ -293,3 +293,17 @@ def test_ui_judge_term_in_fitness(tmp_path, monkeypatch):
     assert ev["metrics"]["score:ui"] == 0.75
     assert ev["fitness"] == round(0.8 * ev["metrics"]["score:fit"] + 0.2 * 0.75 - 0.001 * ev["metrics"]["tokens"] / 1000, 4)
     assert "ui_judge.json" in task.workspace_files(tmp_path / "ev") and "ui_judge" in task.fitness_spec().formula()
+
+
+def test_usersim_examples_distinct_first(tmp_path):
+    from sea.tasks.build import usersim_examples
+    ep = {"persona": "Mika", "steps": [{"action": {"action": "command"}, "result": "HTTP 200"},
+                                       {"action": {"action": "undo"}, "result": "HTTP 200"}],
+          "violation_list": [{"step": 2, "invariant": "undo_exact", "detail": "not restored"},
+                             {"step": 2, "invariant": "undo_exact", "detail": "again"},
+                             {"step": 1, "invariant": "needs_yes", "detail": "no yes"}]}
+    (tmp_path / "r0").mkdir()
+    (tmp_path / "r0" / "sim.json").write_text(json.dumps({"episodes": [ep]}))
+    ex = json.loads(usersim_examples(tmp_path))
+    assert [e["invariant"] for e in ex] == ["undo_exact", "needs_yes", "undo_exact"]
+    assert ex[0]["action"] == {"action": "undo"} and ex[1]["action"] == {"action": "command"}

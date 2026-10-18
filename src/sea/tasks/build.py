@@ -156,6 +156,30 @@ def code_lines(text: str) -> int:
     return sum(bool(CODE_LINE.match(l)) for l in text.splitlines())
 
 
+def usersim_examples(parent_eval: Path, limit: int = 12) -> str:
+    """Concrete user-simulator violations of the parent (fresh random seeds, so no fixed test data): the step the
+    simulated person took, what the app answered and what was wrong, distinct invariants first."""
+    ex = []
+    for rf in sorted(Path(parent_eval).glob("r*/sim.json")):
+        try:
+            d = json.loads(rf.read_text())
+        except (OSError, ValueError):
+            continue
+        for ep in d.get("episodes") or []:
+            steps = ep.get("steps") or []
+            for v in ep.get("violation_list") or []:
+                k = v.get("step")
+                st = steps[k - 1] if isinstance(k, int) and 0 < k <= len(steps) else (steps[k] if isinstance(k, int) and k < len(steps) else {})
+                ex.append({"run": rf.parent.name, "persona": ep.get("persona"), "invariant": v.get("invariant"),
+                           "detail": str(v.get("detail", ""))[:300], "action": st.get("action"),
+                           "app_answered": str(st.get("result", ""))[:300]})
+    seen, first, rest = set(), [], []
+    for e in ex:
+        (rest if e["invariant"] in seen else first).append(e)
+        seen.add(e["invariant"])
+    return json.dumps((first + rest)[:limit], indent=1, ensure_ascii=False)
+
+
 def role_token_sums(trace: list[dict]) -> dict:
     """Tokens per role summed over all its calls (a fixer in a loop runs several times)."""
     out: dict[str, int] = {}
@@ -519,6 +543,7 @@ class BuildTask(Task):
             "contract.md": self.contract,
             "reports.json": json.dumps({"fit": rep, "holdout_aggregate": hold}, indent=1, ensure_ascii=False),
             **({"usersim.json": (parent_eval / "sim.json").read_text()} if (parent_eval / "sim.json").exists() else {}),
+            **({"usersim_examples.json": usersim_examples(parent_eval)} if (parent_eval / "sim.json").exists() else {}),
             # what each simulator invariant means (the simulator is a fitness term; its README is derived from the contract)
             **({"usersim_README.md": (USERSIM.parent / "README.md").read_text()}
                if self.sim_weight and (USERSIM.parent / "README.md").exists() else {}),
