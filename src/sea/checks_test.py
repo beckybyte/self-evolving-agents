@@ -648,3 +648,21 @@ def test_unchanged_reemits_recorded(tmp_path):
              {"name": "fix", "kind": "llm", "model": "fake:f5", "prompt": "f", "reads": []}]
     res = run_team(load_genome(_genome(tmp_path, roles, ["w", "fix"])), {"id": "e", "input": {"text": "x"}}, "fake:w5")
     assert "unchanged_reemits" not in res["trace"][0] and res["trace"][1]["unchanged_reemits"] == ["a_py"]
+
+
+def test_copy_role_picks_a_draft_and_deletes_team_only_files(tmp_path):
+    register_fake("drafts", lambda m: '<artifact name="index_html">A</artifact><artifact name="index_b_html">B</artifact>'
+                                      '<artifact name="notes_md">scratch</artifact>')
+    register_fake("pick", lambda m: "PICK B: calmer layout")
+    roles = [{"name": "write", "kind": "llm", "model": "fake:drafts", "prompt": "w", "reads": []},
+             {"name": "picker", "kind": "llm", "model": "fake:pick", "prompt": "p", "reads": []},
+             {"name": "take_b", "kind": "copy", "from": "index_b_html", "to": "index_html",
+              "when": {"on": "picker", "contains": "PICK B"}},
+             {"name": "clean", "kind": "copy", "delete": ["index_b_html", "notes_md"]}]
+    res = run_team(load_genome(_genome(tmp_path, roles, ["write", "picker", "take_b", "clean"])), {"id": "e", "input": {"text": "x"}}, "fake:drafts")
+    assert res["artifacts"] == {"index_html": "B"} and [t["tokens"] for t in res["trace"] if t["kind"] == "copy"] == [0, 0]
+    register_fake("pick", lambda m: "PICK A")
+    res = run_team(load_genome(_genome(tmp_path, roles, ["write", "picker", "take_b", "clean"])), {"id": "e", "input": {"text": "x"}}, "fake:drafts")
+    assert res["artifacts"] == {"index_html": "A"}  # take_b skipped by when:, clean still ran
+    with pytest.raises(AssertionError, match="copy needs"):
+        load_genome(_genome(tmp_path, [{"name": "c", "kind": "copy", "from": "a_py"}], ["c"]))

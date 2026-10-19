@@ -316,6 +316,22 @@ class _Run:
                                "report": text[:2000],  # the evolver reads team traces: show why a check failed
                                "secs": round(time.time() - t0, 1)})
 
+    def run_copy(self, r: dict):
+        """kind: copy -- artifact from -> to, then delete: names; 0 tokens. A missing source is reported, not fatal."""
+        notes = []
+        if r.get("src"):
+            if r["src"] in self.artifacts:
+                self.artifacts[r["dst"]] = self.artifacts[r["src"]]
+                notes.append(f"copied {r['src']} -> {r['dst']}")
+            else:
+                notes.append(f"no artifact {r['src']} to copy")
+        for n in r.get("delete") or []:
+            if self.artifacts.pop(n, None) is not None:
+                notes.append(f"deleted {n}")
+        text = "; ".join(notes) or "nothing to do"
+        self.bb[r["name"]] = text
+        self.trace.append({"role": r["name"], "kind": "copy", "tokens": 0, "chars": len(text), "note": text})
+
     def run_human(self, r: dict):
         q = self.render(r["question"], r["name"], [])
         d = self.render(r["default"], r["name"], [])
@@ -357,7 +373,7 @@ class _Run:
         if r["kind"] == "check":
             return self.run_check_role(r)  # may take tens of seconds: not under the lock
         with self._lock:
-            {"tool": self.run_tool_role, "human": self.run_human}[r["kind"]](r)
+            {"tool": self.run_tool_role, "human": self.run_human, "copy": self.run_copy}[r["kind"]](r)
 
     def parallel(self, names: list[str]):
         """Run roles concurrently. Each renders its prompt from the state before the step (prompts are built before

@@ -1,4 +1,4 @@
-"""Genome v2: a team = roles (llm | tool | human | check) + workflow + communication channel + declared artifacts.
+"""Genome v2: a team = roles (llm | tool | human | check | copy) + workflow + communication channel + declared artifacts.
 
 genome.yaml (schema: 2)
   id, parent, notes                 notes = what changed vs the parent and which evidence motivated it
@@ -9,7 +9,7 @@ genome.yaml (schema: 2)
                                     messages: additionally each role has an inbox; writes: message:<role> delivers
   roles:
     - name: str                     unique
-      kind: llm | tool | human | check   (v1 spelling `type:` accepted)
+      kind: llm | tool | human | check | copy   (v1 spelling `type:` accepted)
       # llm
       model: $WORKER | qwen3-8b | qwen3-30b-a3b | qwen2.5-72b | claude:<alias>
       reads: [selector, ...]        what the role sees; default [input, blackboard]. selectors:
@@ -67,6 +67,10 @@ genome.yaml (schema: 2)
       selftest: true                app_smoke option: first runs `python app.py --selftest --data <tmp>` (<= 12 s, must
                                     exit) and reports its exit code and output; nonzero exit = a problem. The team
                                     writes the self-test; the normal start-up path is still what gets started and scored.
+      # copy (0 tokens, no model): from: <artifact> to: <artifact> copies one artifact over another; delete: [names]
+      #   removes artifacts (team-only files, e.g. a second draft, so they do not ship). With when: it picks between
+      #   drafts on a reviewer's verdict, e.g. {name: take_b, kind: copy, from: index_b_html, to: index_html,
+      #   when: {on: picker, contains: "PICK B"}, delete: [index_b_html]}
       # human (never blocks)
       question: str (template), default: str (template)  -> output = the human's answer if one exists, else the default
   workflow: [step, ...]             step = role name, or {loop: {body: [names], max_rounds: int, stop_when: str}}
@@ -105,7 +109,7 @@ import yaml
 
 from .llm import known_model
 
-KINDS = ("llm", "tool", "human", "check")
+KINDS = ("llm", "tool", "human", "check", "copy")
 MAX_PARALLEL = 8  # roles in one {parallel: [...]} step
 BASE_SELECTORS = ("input", "blackboard", "artifacts", "inbox", "memory")
 
@@ -138,6 +142,8 @@ def normalize(raw: dict) -> dict:
                 n["_v1_input"] = r.get("input", "native")
         elif kind == "tool":
             n.update(tool=r.get("tool"), writes=r.get("writes", "blackboard"))
+        elif kind == "copy":
+            n.update(src=r.get("from"), dst=r.get("to"), delete=list(r.get("delete") or []), writes="blackboard")
         elif kind == "check":
             n.update(check=r.get("check"), writes=r.get("writes", "blackboard"),
                      options={k: v for k, v in r.items() if k not in ("name", "kind", "type", "check", "writes")})
@@ -175,7 +181,12 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
         assert r.get("name") and r["name"] not in names, f"bad/duplicate role name {r.get('name')}"
         assert re.fullmatch(r"[A-Za-z_][A-Za-z0-9_\-]*", r["name"]), f"role name must be an identifier: {r['name']}"
         names.add(r["name"])
-        assert r["kind"] in KINDS, f"unknown kind {r['kind']} (llm | tool | human | check)"
+        assert r["kind"] in KINDS, f"unknown kind {r['kind']} (llm | tool | human | check | copy)"
+        if r["kind"] == "copy":
+            ok_name = lambda x: bool(x) and re.fullmatch(r"[A-Za-z0-9_\-]+", str(x))  # noqa: E731
+            assert (ok_name(r.get("src")) and ok_name(r.get("dst"))) or (not r.get("src") and r.get("delete")), \
+                f"role {r['name']}: copy needs from: and to: artifact names, and/or delete: [names]"
+            assert all(ok_name(x) for x in r.get("delete", [])), f"role {r['name']}: delete takes artifact names"
         if r["kind"] == "check":
             from .checks import CHECKS
             assert r.get("check") in CHECKS, f"role {r['name']}: unknown check {r.get('check')!r} ({sorted(CHECKS)})"
