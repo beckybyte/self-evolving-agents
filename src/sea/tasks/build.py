@@ -181,6 +181,31 @@ def usersim_examples(parent_eval: Path, limit: int = 12) -> str:
     return json.dumps((first + rest)[:limit], indent=1, ensure_ascii=False)
 
 
+def run_tool_twice(cmd: list[str], result: Path, timeout: int) -> tuple[dict | None, str]:
+    """Run a scoring subprocess (user simulator, UI judge); retry once when it leaves no result file.
+    Returns (result JSON or None, error with the stderr tail). evo_v33 gen01 child_1 r0: the simulator died
+    without writing sim.json (re-running it on the same app worked), and the run was scored 0."""
+    err = ""
+    for attempt in range(2):
+        result.unlink(missing_ok=True)
+        try:
+            p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            if result.exists():
+                return json.loads(result.read_text()), ""
+            err = f"exit {p.returncode}, no {result.name}; stderr: {(p.stderr or '')[-400:]}"
+        except subprocess.TimeoutExpired:
+            err = f"timed out after {timeout} s"
+        except (OSError, ValueError) as e:
+            err = repr(e)[:300]
+    return None, err
+
+
+def mean_scored(per: list[dict]) -> float:
+    """Mean over runs that were scored; a run whose scorer failed twice (infra) does not count, unless all did."""
+    ok = [x["score"] for x in per if not x.get("infra_error")]
+    return round(sum(ok) / len(ok), 4) if ok else 0.0
+
+
 def role_token_sums(trace: list[dict]) -> dict:
     """Tokens per role summed over all its calls (a fixer in a loop runs several times)."""
     out: dict[str, int] = {}
@@ -299,7 +324,7 @@ class BuildTask(Task):
 
     def run_uijudge(self, out: Path) -> dict:
         """Screenshot judge (builds/uijudge): Claude with vision scores the seeded page against the design-doc rubric.
-        Score = mean over team runs; a run without app.py scores 0."""
+        Score = mean over team runs; a run without app.py scores 0; a run whose judge failed twice (infra) is left out."""
         f = out / "ui.json"
         if f.exists():
             return json.loads(f.read_text())
@@ -309,21 +334,20 @@ class BuildTask(Task):
                 per.append({"run": r.name, "score": 0.0, "reason": "no_app_py"})
                 continue
             od = r / "ui"
-            try:
-                subprocess.run([sys.executable, str(UIJUDGE), str(r / "app"), "--out", str(od)],
-                               capture_output=True, text=True, timeout=600)
-                d = json.loads((od / "judge.json").read_text())
-                per.append({"run": r.name, "score": float(d["score"]), "criteria": d.get("criteria"),
-                            "notes": str(d.get("notes", ""))[:800], "cost_usd": d.get("cost_usd")})
-            except Exception as e:
-                per.append({"run": r.name, "score": 0.0, "reason": f"uijudge_error {e!r}"[:300]})
-        res = {"score": round(sum(x["score"] for x in per) / max(1, len(per)), 4), "per_run": per}
+            od.mkdir(parents=True, exist_ok=True)
+            d, err = run_tool_twice([sys.executable, str(UIJUDGE), str(r / "app"), "--out", str(od)], od / "judge.json", 600)
+            if d is None:
+                per.append({"run": r.name, "score": 0.0, "reason": f"uijudge_error {err}"[:500], "infra_error": True})
+                continue
+            per.append({"run": r.name, "score": float(d["score"]), "criteria": d.get("criteria"),
+                        "notes": str(d.get("notes", ""))[:800], "cost_usd": d.get("cost_usd")})
+        res = {"score": mean_scored(per), "per_run": per}
         f.write_text(json.dumps(res, indent=1, ensure_ascii=False))
         return res
 
     def run_usersim(self, out: Path) -> dict:
         """LLM user simulator (builds/usersim) on every team run's app, fresh random seeds each evaluation (recorded),
-        so a team cannot memorize it. Score = share of episodes with zero invariant violations, averaged over runs;
+        so a team cannot memorize it. Score = share of episodes with zero invariant violations, averaged over runs (a run whose simulator failed twice, an infra error, is left out);
         a run without app.py scores 0."""
         f = out / "sim.json"
         if f.exists():
@@ -338,10 +362,12 @@ class BuildTask(Task):
             base = random.SystemRandom().randrange(10**6, 10**7)
             rf = r / "sim.json"
             try:
-                subprocess.run([sys.executable, str(USERSIM), str(app), "--split", "holdout", "--episodes", str(n),
-                                "--seed-base", str(base), "--parallel", "5", "--out", str(rf)],
-                               capture_output=True, text=True, timeout=900)
-                d = json.loads(rf.read_text())
+                d, err = run_tool_twice([sys.executable, str(USERSIM), str(app), "--split", "holdout", "--episodes", str(n),
+                                         "--seed-base", str(base), "--parallel", "5", "--out", str(rf)], rf, 900)
+                if d is None:
+                    per.append({"run": r.name, "score": 0.0, "reason": f"usersim_error {err}"[:500], "seed_base": base,
+                                "infra_error": True})
+                    continue
                 eps = d.get("episodes") or []
                 # clean-episode rate: the invariant pass rate sits at 0.98-1.0 for every app (too compressed to rank);
                 # the share of episodes with zero violations spreads apps 0.3-0.8 (noise sd ~0.06 at 20 episodes)
@@ -352,7 +378,7 @@ class BuildTask(Task):
                                            if isinstance(v, dict) and v.get("violations")}})
             except Exception as e:
                 per.append({"run": r.name, "score": 0.0, "reason": f"usersim_error {e!r}"[:300], "seed_base": base})
-        res = {"score": round(sum(x["score"] for x in per) / max(1, len(per)), 4), "per_run": per, "episodes_per_run": n}
+        res = {"score": mean_scored(per), "per_run": per, "episodes_per_run": n}
         f.write_text(json.dumps(res, indent=1, ensure_ascii=False))
         return res
 

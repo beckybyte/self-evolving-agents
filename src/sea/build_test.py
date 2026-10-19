@@ -307,3 +307,22 @@ def test_usersim_examples_distinct_first(tmp_path):
     ex = json.loads(usersim_examples(tmp_path))
     assert [e["invariant"] for e in ex] == ["undo_exact", "needs_yes", "undo_exact"]
     assert ex[0]["action"] == {"action": "undo"} and ex[1]["action"] == {"action": "command"}
+
+
+def test_scorer_infra_failure_retried_then_left_out(tmp_path):
+    from sea.tasks.build import mean_scored, run_tool_twice
+    flaky = tmp_path / "flaky.py"
+    marker, out = tmp_path / "ran_once", tmp_path / "res.json"
+    flaky.write_text(f"import sys, pathlib\nm = pathlib.Path({str(marker)!r})\n"
+                     f"if not m.exists():\n    m.write_text('x'); print('boom', file=sys.stderr); sys.exit(1)\n"
+                     f"pathlib.Path({str(out)!r}).write_text('{{\"score\": 0.8}}')\n")
+    import sys as _s
+    d, err = run_tool_twice([_s.executable, str(flaky)], out, 30)
+    assert d == {"score": 0.8} and err == ""  # first attempt died, the retry worked
+    dead = tmp_path / "dead.py"
+    dead.write_text("import sys; print('no luck', file=sys.stderr); sys.exit(3)\n")
+    d, err = run_tool_twice([_s.executable, str(dead)], tmp_path / "none.json", 30)
+    assert d is None and "exit 3" in err and "no luck" in err
+    assert mean_scored([{"score": 0.0, "infra_error": True}, {"score": 0.8}]) == 0.8
+    assert mean_scored([{"score": 0.0, "reason": "no_app_py"}, {"score": 0.8}]) == 0.4  # a missing app still counts
+    assert mean_scored([{"score": 0.0, "infra_error": True}]) == 0.0
