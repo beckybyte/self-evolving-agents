@@ -631,3 +631,11 @@ def test_smoke_render_screenshot():
     path = next(l.split(": ", 1)[1] for l in rep.splitlines() if l.startswith("screenshot: "))
     assert ok and Path(path).read_bytes()[:4] == b"\x89PNG"
     assert app_smoke({"app_py": page_app(PAGE)}, render="screenshot")[1] == rep  # same page -> byte-identical report
+
+
+def test_acceptance_expect_not_fails_the_smoke():
+    steps = json.dumps([{"method": "GET", "path": "/api/state", "expect_not": ["call mom"]},
+                        {"method": "GET", "path": "/api/state", "expect_not": ["breakdown"]}])
+    ok, rep = app_smoke({"app_py": good(), "t_json": steps}, acceptance="t_json")
+    assert not ok and rep.startswith("SMOKE: FAIL") and "must not contain ['call mom']" in rep
+    assert "acceptance step 2 GET /api/state: ok" in rep

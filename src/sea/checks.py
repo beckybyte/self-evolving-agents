@@ -400,7 +400,8 @@ def acceptance_steps(do_raw, spec_text: str, lines: list) -> int:
             lines.append(f"acceptance step {i}: malformed (needs method and a path starting with /)")
             problems += 1
             continue
-        st = {**st, "path": subst(st["path"]), "body": subst(st.get("body")), "expect": subst(st.get("expect"))}
+        st = {**st, "path": subst(st["path"]), "body": subst(st.get("body")), "expect": subst(st.get("expect")),
+              "expect_not": subst(st.get("expect_not"))}
         res = do_raw(st.get("method", "GET").upper(), st["path"], st.get("body"))
         if res is None:
             lines.append(f"acceptance step {i} {st.get('method', 'GET')} {st['path']}: no answer")
@@ -419,10 +420,12 @@ def acceptance_steps(do_raw, spec_text: str, lines: list) -> int:
                 else:
                     saved[name] = v
         miss = [x for x in st.get("expect") or [] if str(x) not in text]
-        if status != int(st.get("status", 200)) or miss:
+        present = [x for x in st.get("expect_not") or [] if str(x) in text]
+        if status != int(st.get("status", 200)) or miss or present:
             problems += 1
             lines.append(f"acceptance step {i} {st.get('method', 'GET')} {st['path']}: FAIL (status {status}, want "
-                         f"{st.get('status', 200)}; missing {miss}); body: {text[:200]}")
+                         f"{st.get('status', 200)}; missing {miss}" + (f"; must not contain {present}" if present else "")
+                         + f"); body: {text[:200]}")
         else:
             lines.append(f"acceptance step {i} {st.get('method', 'GET')} {st['path']}: ok")
     if len(steps) > ACCEPT_MAX_STEPS:

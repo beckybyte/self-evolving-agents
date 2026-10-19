@@ -61,7 +61,8 @@ genome.yaml (schema: 2)
       acceptance: <artifact name>   app_smoke option: that artifact is a team-written JSON list of HTTP steps
                                     [{method, path, body?, status? (200), expect?: [substrings of the body],
                                     save?: {name: "created.0" | "plan.id" | "messages.-1.id"}}] (<= 30); later steps
-                                    use ${name} in path, body or expect,
+                                    use ${name} in path, body or expect; expect_not: [substrings that must NOT be in
+                                    the body]; every failed step is a problem, so the report says SMOKE: FAIL,
                                     run in order on the started app after the basic calls; failed steps are reported
       selftest: true                app_smoke option: first runs `python app.py --selftest --data <tmp>` (<= 12 s, must
                                     exit) and reports its exit code and output; nonzero exit = a problem. The team
