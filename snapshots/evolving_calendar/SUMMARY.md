@@ -4,7 +4,13 @@ The goal was the web app described in the design doc "Evolving Calendar" (person
 evolved agent teams. The evolver (Claude Opus) designs the team (roles, models, workflow) and never writes product code.
 Tool roles and code pasted into genomes are rejected. Every app in `snapshots/` was written by the team's models.
 
-## Best result
+## Overnight update (2026-10-18, 22:16 PDT)
+Best is now `v3_3_best_8835/` (evo_v33 gen01 child_3): screenshot UI judge 0.68 / 0.71 (2 builds), above the hand-written
+reference (0.68). Harness v3.2 fit 0.998, LLM user simulator clean-episode rate 1.0 (40 episodes, fresh seeds), holdout 0.934.
+Fitness was 0.4 fit + 0.3 sim + 0.3 UI − 0.0001·tokens. The UI weight was raised from 0.2 after the human's preference
+for the reference UI. Path: evo_v32 gen02 child_6 (sim 0.975, UI 0.59) → evo_v33 gen01 (UI 0.70).
+
+## Best result (end of 2026-10-17)
 `v3_2_best_ui_8833/` (evo_v32 gen01 child_4; written by DeepSeek-V4.1-Flash + gpt-oss + Claude Haiku roles on Crusoe):
 - harness v3.2 fit 1.0 / 0.92 (2 builds), holdout 0.93 / 0.85
 - LLM user simulator: clean-episode rate 0.875 (40 episodes, fresh seeds)

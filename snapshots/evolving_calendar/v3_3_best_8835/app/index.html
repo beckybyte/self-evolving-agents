@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evolving Calendar</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { display: grid; grid-template-rows: 56px minmax(0, 1fr); height: 100vh; overflow: hidden; background: #f7f6f2; color: #2f3a33; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.45; }
+header { height: 56px; background: #ffffff; border-bottom: 1px solid #e6e3da; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+header .brand { font-size: 17px; font-weight: 600; }
+header .clock-wrap { display: flex; align-items: center; gap: 8px; }
+header .clock { background: #eef4ef; color: #2f3a33; padding: 5px 12px; border-radius: 999px; font-size: 13.5px; }
+header button { font: inherit; cursor: pointer; padding: 5px 11px; border-radius: 10px; border: 1px solid #6f9a7a; background: #ffffff; color: #6f9a7a; font-size: 13px; }
+header button:hover { background: #eef4ef; }
+header button.accent { background: #6f9a7a; color: #ffffff; border-color: #6f9a7a; }
+header button.accent:hover { background: #5d8668; }
+main { display: grid; grid-template-columns: minmax(0, 9fr) minmax(0, 11fr); gap: 20px; padding: 16px 24px; min-height: 0; height: 100%; max-width: 1440px; margin: 0 auto; width: 100%; }
+main > .col { min-height: 0; height: 100%; }
+.card { background: #ffffff; border: 1px solid #e6e3da; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+.muted { color: #7a807b; font-size: 13px; }
+#chat-card { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+#chat-log { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; scrollbar-width: thin; }
+.msg { max-width: 82%; padding: 9px 13px; border-radius: 14px; font-size: 14px; overflow-wrap: anywhere; }
+.msg .time { display: block; font-size: 11px; color: #7a807b; margin-top: 3px; }
+.agent { align-self: flex-start; background: #eef4ef; color: #2f3a33; }
+.person { align-self: flex-end; background: #e8eef7; color: #2f3a33; }
+.question { border-left: 3px solid #6f9a7a; }
+.breakdown { border-left: 3px solid #6f9a7a; }
+.reminder { border-left: 3px solid #b8c9b9; }
+.postponed { border-left: 3px solid #b8c9b9; }
+.checkin { border-left: 3px solid #6f9a7a; }
+.steps { margin: 6px 0 0 0; padding-left: 18px; font-size: 13px; }
+.steps li { margin: 2px 0; }
+.chip { display: inline-block; font: inherit; font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid #6f9a7a; background: #ffffff; color: #6f9a7a; cursor: pointer; margin: 4px 4px 0 0; }
+.chip:hover { background: #eef4ef; }
+.undo { border-color: #b8c9b9; color: #5d8668; }
+.plan { border: 1px dashed #b8c9b9; background: #f7faf7; border-radius: 12px; padding: 10px 12px; font-size: 13px; align-self: flex-start; max-width: 90%; }
+.plan .plan-title { font-weight: 600; margin-bottom: 4px; }
+.composer { flex: none; margin-top: 10px; border: 1px solid #e6e3da; border-radius: 12px; padding: 10px; background: #fbfaf7; }
+#chat-input { width: 100%; resize: none; border: none; background: transparent; font: inherit; font-size: 14px; color: #2f3a33; outline: none; padding: 2px 0; }
+textarea { font: inherit; }
+.composer-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid #6f9a7a; border-radius: 999px; overflow: hidden; }
+.seg button { font: inherit; font-size: 12.5px; padding: 4px 12px; border: none; background: #ffffff; color: #6f9a7a; cursor: pointer; }
+.seg button.active { background: #6f9a7a; color: #ffffff; }
+.file-label { font-size: 12.5px; color: #7a807b; cursor: pointer; }
+.file-label input { display: inline-block; width: 0; height: 0; opacity: 0; position: absolute; }
+.send-btn { margin-left: auto; }
+button { font: inherit; cursor: pointer; padding: 6px 13px; border-radius: 10px; border: 1px solid #6f9a7a; background: #ffffff; color: #6f9a7a; }
+button:hover { background: #eef4ef; }
+button.accent { background: #6f9a7a; color: #ffffff; border-color: #6f9a7a; }
+button.accent:hover { background: #5d8668; }
+button:disabled { opacity: 0.4; cursor: default; }
+.right-col { display: grid; grid-template-rows: auto minmax(0, 1fr) 190px; gap: 14px; height: 100%; min-height: 0; }
+.top-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+#focus { border-left: 4px solid #6f9a7a; padding: 16px 18px; }
+#focus-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
+#focus-goal { margin-bottom: 2px; }
+#focus-est { margin-bottom: 10px; }
+#focus button { margin-right: 8px; }
+#proposal { background: #f3f6fb; border: 1px solid #d9e2ef; padding: 16px 18px; display: none; }
+#proposal .p-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+#proposal .p-reason { font-size: 13.5px; color: #4a5560; margin-bottom: 10px; }
+#proposal button { margin-right: 8px; }
+#calendar-card { display: flex; flex-direction: column; min-height: 0; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+#view-switcher { display: inline-flex; gap: 4px; }
+#view-switcher button { font-size: 12.5px; padding: 4px 11px; border-radius: 999px; }
+#view-switcher button.active { background: #6f9a7a; color: #ffffff; }
+#view { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; }
+.hidden-note { font-size: 13px; color: #7a807b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 6px; }
+.week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.week-grid.workweek { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.day-col { min-width: 0; background: #fbfaf7; border-radius: 10px; padding: 6px; }
+.day-col.today { background: #eef4ef; }
+.day-head { font-size: 12px; font-weight: 600; color: #4a5560; margin-bottom: 6px; }
+.day-col.today .day-head { color: #5d8668; }
+.block { padding: 4px 7px; font-size: 12.5px; line-height: 1.3; margin-bottom: 5px; border-radius: 8px; overflow-wrap: normal; word-break: normal; }
+.block .b-time { font-size: 11.5px; opacity: 0.8; display: block; }
+.block .b-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.soft { background: #eef4ef; border: 1px dashed #6f9a7a; color: #2f3a33; border-radius: 10px; }
+.solid { background: #6f9a7a; color: #ffffff; border-radius: 8px; }
+.done { opacity: 0.5; }
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.month-cell { min-width: 0; min-height: 62px; background: #fbfaf7; border-radius: 8px; padding: 4px; font-size: 12px; }
+.month-cell .m-num { font-weight: 600; color: #4a5560; font-size: 11.5px; }
+.month-chip { font-size: 11px; padding: 1px 5px; border-radius: 6px; background: #eef4ef; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.month-more { font-size: 10.5px; color: #7a807b; margin-top: 2px; }
+.day-rows { display: flex; flex-direction: column; gap: 2px; }
+.hour-row { display: flex; gap: 8px; min-height: 26px; align-items: flex-start; }
+.hour-label { width: 56px; flex: none; font-size: 11.5px; color: #7a807b; padding-top: 3px; }
+.hour-items { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.agenda-row { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid #f0ede4; font-size: 13px; }
+.agenda-date { width: 90px; flex: none; color: #7a807b; font-size: 12px; }
+.lane { border-radius: 10px; background: #fbfaf7; padding: 6px; margin-bottom: 6px; }
+.lane-head { font-size: 12px; font-weight: 600; color: #5d8668; margin-bottom: 4px; }
+.bucket { border-radius: 10px; background: #fbfaf7; padding: 6px; margin-bottom: 6px; }
+.bucket-head { font-size: 12px; font-weight: 600; color: #5d8668; margin-bottom: 4px; }
+.unknown-el { font-size: 12px; color: #7a807b; }
+.bottom-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; height: 190px; min-height: 0; }
+.bottom-row .card { padding: 12px 14px; font-size: 13.5px; overflow-y: auto; scrollbar-width: thin; }
+.bottom-row h2 { font-size: 14px; margin-bottom: 6px; }
+#timeline ul { list-style: none; margin: 0; padding: 0; }
+#timeline li { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; font-size: 13px; }
+#timeline .t-time { width: 62px; flex: none; color: #7a807b; font-size: 12px; }
+#timeline .t-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#timeline .t-group { font-size: 12px; font-weight: 600; color: #5d8668; margin: 6px 0 2px; }
+#timeline .t-empty { font-size: 12.5px; color: #7a807b; }
+#learned ul { list-style: none; margin: 0; padding: 0; }
+#learned li { display: flex; gap: 6px; align-items: baseline; padding: 3px 0; font-size: 13px; }
+#learned .b-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#learned .b-conf { font-size: 11.5px; color: #7a807b; }
+#learned .b-forget { font-size: 11px; padding: 2px 8px; }
+#learned .meta-line { font-size: 12px; color: #7a807b; margin-top: 6px; }
+#activity ul { list-style: none; margin: 0; padding: 0; }
+#activity li { display: flex; gap: 8px; padding: 2px 0; font-size: 12.5px; }
+#activity .a-time { width: 58px; flex: none; color: #7a807b; font-size: 11.5px; }
+#activity .a-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+[data-day], [data-item] { transition: opacity 300ms ease, transform 300ms ease; }
+@media (prefers-reduced-motion: reduce) { *, [data-day], [data-item] { transition: none !important; animation: none !important; } }
+@media (max-width: 1000px), (max-height: 640px) {
+  body { height: auto; overflow: auto; display: block; }
+  main { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .right-col { height: auto; grid-template-rows: auto auto auto; }
+  .bottom-row { height: auto; grid-template-columns: minmax(0, 1fr); }
+  #chat-log { height: 420px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Evolving Calendar</div>
+  <div class="clock-wrap">
+    <span class="clock" id="clock">Mon, Oct 19, 7:50 PM</span>
+    <button id="btn-30">+30 min</button>
+    <button id="btn-1h">+1 h</button>
+    <button id="btn-morning">Next morning</button>
+    <button class="accent" id="btn-iris">Start as Iris</button>
+  </div>
+</header>
+<main>
+  <div class="col">
+    <div class="card" id="chat-card">
+      <h2>Talk to me</h2>
+      <div id="chat-log"></div>
+      <div class="composer">
+        <textarea id="chat-input" rows="2" placeholder="Tell me what's on your mind..."></textarea>
+        <div class="composer-row">
+          <div class="seg" id="mode-seg">
+            <button data-mode="dump" class="active">Brain dump</button>
+            <button data-mode="command">One thing</button>
+          </div>
+          <label class="file-label">Import .ics or note<input type="file" id="file-input" accept=".ics,.txt"></label>
+          <button class="accent send-btn" id="send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col right-col">
+    <div class="top-row">
+      <div class="card" id="focus">
+        <h2>Right now, just this</h2>
+        <div id="focus-title"></div>
+        <div id="focus-goal" class="muted"></div>
+        <div id="focus-est" class="muted"></div>
+        <div>
+          <button id="focus-start" class="accent">Start 5 minutes</button>
+          <button id="focus-done">I did it</button>
+        </div>
+      </div>
+      <div class="card" id="proposal">
+        <h2>An idea</h2>
+        <div class="p-title" id="proposal-title"></div>
+        <div class="p-reason" id="proposal-reason"></div>
+        <div>
+          <button id="proposal-try" class="accent">Try it</button>
+          <button id="proposal-dismiss">Not now</button>
+          <button id="proposal-undo" disabled>Undo</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="calendar-card">
+      <div class="cal-head">
+        <h2>Your calendar</h2>
+        <div id="view-switcher">
+          <button data-view="month">month</button>
+          <button data-view="week">week</button>
+          <button data-view="workweek">workweek</button>
+          <button data-view="day">day</button>
+        </div>
+      </div>
+      <section id="view"></section>
+      <div class="hidden-note" id="hidden-note"></div>
+    </div>
+    <div class="bottom-row">
+      <div class="card" id="timeline">
+        <h2>Today and tomorrow</h2>
+        <div id="timeline-body"></div>
+      </div>
+      <div class="card" id="learned">
+        <h2>What I've learned</h2>
+        <ul id="learned-list"></ul>
+        <div class="meta-line" id="learned-meta"></div>
+      </div>
+      <div class="card" id="activity">
+        <h2>Activity</h2>
+        <ul id="activity-list"></ul>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function ymd(iso) { return iso ? iso.slice(0, 10) : ''; }
+function hm(iso) { return iso ? iso.slice(11, 16) : ''; }
+function addDays(ymdStr, n) {
+  const y = parseInt(ymdStr.slice(0,4),10), m = parseInt(ymdStr.slice(5,7),10), d = parseInt(ymdStr.slice(8,10),10);
+  const dt = new Date(Date.UTC(y, m-1, d + n));
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth()+1).padStart(2,'0');
+  const dd = String(dt.getUTCDate()).padStart(2,'0');
+  return yy + '-' + mm + '-' + dd;
+}
+function weekday(ymdStr) {
+  const y = parseInt(ymdStr.slice(0,4),10), m = parseInt(ymdStr.slice(5,7),10), d = parseInt(ymdStr.slice(8,10),10);
+  return new Date(Date.UTC(y, m-1, d)).getUTCDay();
+}
+function fmtTime(iso) {
+  if (!iso) return '';
+  const h = parseInt(iso.slice(11,13),10), mi = iso.slice(14,16);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  let hh = h % 12; if (hh === 0) hh = 12;
+  return hh + ':' + mi + ' ' + ampm;
+}
+function fmtClock(now) {
+  if (!now) return '';
+  const d = ymd(now);
+  const wd = DAYS[weekday(d)];
+  const mo = MONTHS[parseInt(d.slice(5,7),10)-1];
+  const day = parseInt(d.slice(8,10),10);
+  return wd + ', ' + mo + ' ' + day + ', ' + fmtTime(now);
+}
+function fmtDayShort(d) {
+  const wd = DAYS[weekday(d)];
+  const mo = MONTHS[parseInt(d.slice(5,7),10)-1];
+  const day = parseInt(d.slice(8,10),10);
+  return wd + ' ' + day;
+}
+function fmtDayLong(d) {
+  const wd = DAYS[weekday(d)];
+  const mo = MONTHS[parseInt(d.slice(5,7),10)-1];
+  const day = parseInt(d.slice(8,10),10);
+  return wd + ', ' + mo + ' ' + day;
+}
+
+async function api(method, path, body) {
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    const r = await fetch(path, opts);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) { return null; }
+}
+
+let state = { now: '', items: [], messages: [], view: { type: 'week', params: {}, hidden_counts: {} }, meta: {} };
+let focusData = null;
+let beliefs = [];
+let proposal = null;
+let activity = [];
+let openPlans = [];
+let mode = 'dump';
+let lastChatItemId = null;
+let lastChatKind = null;
+let countdownTimer = null;
+
+const IRIS = {
+  now: "2026-10-19T19:50",
+  items: [
+    { id: "h1", kind: "task", title: "Reply to emails", start: "2026-10-11T20:15", end: "2026-10-11T20:45", status: "done" },
+    { id: "h2", kind: "task", title: "Pay bills", start: "2026-10-12T20:15", end: "2026-10-12T20:45", status: "done" },
+    { id: "h3", kind: "task", title: "Tidy desk", start: "2026-10-13T20:15", end: "2026-10-13T20:45", status: "done" },
+    { id: "h4", kind: "task", title: "Read article", start: "2026-10-14T20:15", end: "2026-10-14T20:45", status: "done" },
+    { id: "h5", kind: "task", title: "Water plants", start: "2026-10-15T20:15", end: "2026-10-15T20:45", status: "done" },
+    { id: "h6", kind: "task", title: "Sort photos", start: "2026-10-16T20:15", end: "2026-10-16T20:45", status: "done" },
+    { id: "h7", kind: "task", title: "Plan meals", start: "2026-10-17T20:15", end: "2026-10-17T20:45", status: "done" },
+    { id: "h8", kind: "task", title: "Call bank", start: "2026-10-18T20:15", end: "2026-10-18T20:45", status: "done" },
+    { id: "e1", kind: "event", title: "Call with Priya", start: "2026-10-20T18:00", end: "2026-10-20T19:00", status: "open" },
+    { id: "t1", kind: "task", title: "Write cover letter", start: "2026-10-19T21:00", end: "2026-10-19T21:45", window: "this evening", status: "open" },
+    { id: "goal1", kind: "task", title: "Get my portfolio together", why: "I want to feel proud of my work", status: "open" },
+    { id: "s1", kind: "task", title: "List the projects you are proudest of", parent_id: "goal1", estimate_min: 10, start: "2026-10-19T20:15", end: "2026-10-19T20:25", status: "open" },
+    { id: "e2", kind: "event", title: "Lunch with Ana", start: "2026-10-20T12:00", end: "2026-10-20T13:00", window: "around noon", status: "open" },
+    { id: "e3", kind: "event", title: "Dentist", start: "2026-10-22T15:00", end: "2026-10-22T16:00", status: "open" }
+  ]
+};
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderChat() {
+  const log = document.getElementById('chat-log');
+  const msgs = (state.messages || []).slice(-40);
+  const frag = document.createDocumentFragment();
+  let prevPerson = null;
+  let lastAgentQ = null;
+  for (const m of msgs) {
+    if (m.role === 'person') {
+      if (prevPerson && prevPerson.text === m.text && prevPerson.item_id === m.item_id && prevPerson.at === m.at) continue;
+      prevPerson = m;
+    }
+    const div = document.createElement('div');
+    div.className = 'msg ' + (m.role === 'person' ? 'person' : 'agent');
+    if (m.kind) div.classList.add(m.kind);
+    const text = document.createElement('div');
+    text.textContent = m.text || '';
+    div.appendChild(text);
+    if (m.kind === 'breakdown' && Array.isArray(m.steps) && m.steps.length) {
+      const ol = document.createElement('ol');
+      ol.className = 'steps';
+      for (const s of m.steps) {
+        const li = document.createElement('li');
+        li.textContent = s.title + (s.estimate_min ? ' (about ' + s.estimate_min + ' min)' : '');
+        ol.appendChild(li);
+      }
+      div.appendChild(ol);
+    }
+    const t = document.createElement('span');
+    t.className = 'time';
+    t.textContent = fmtTime(m.at);
+    div.appendChild(t);
+    if (m.undo_id) {
+      const u = document.createElement('button');
+      u.className = 'chip undo';
+      u.textContent = 'Undo';
+      u.onclick = async () => { await api('POST', '/api/undo', { undo_id: m.undo_id }); refresh(); };
+      div.appendChild(u);
+    }
+    frag.appendChild(div);
+    if (m.role === 'agent' && (m.kind === 'question' || m.kind === 'breakdown' || m.kind === 'checkin') && m.item_id) {
+      lastAgentQ = m;
+    }
+  }
+  if (lastAgentQ) {
+    const chipWrap = document.createElement('div');
+    chipWrap.className = 'msg agent';
+    let opts = [];
+    if (lastAgentQ.kind === 'question') opts = ['Yes please', 'Not now'];
+    else if (lastAgentQ.kind === 'breakdown') opts = ['Looks good', 'Smaller steps'];
+    else if (lastAgentQ.kind === 'checkin') opts = ['Too big', 'Wrong time', 'Not needed'];
+    for (const o of opts) {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = o;
+      b.onclick = async () => { await api('POST', '/api/chat', { item_id: lastAgentQ.item_id, text: o }); refresh(); };
+      chipWrap.appendChild(b);
+    }
+    frag.appendChild(chipWrap);
+    lastChatItemId = lastAgentQ.item_id;
+    lastChatKind = lastAgentQ.kind;
+  } else {
+    lastChatItemId = null;
+    lastChatKind = null;
+  }
+  for (const p of openPlans) {
+    const div = document.createElement('div');
+    div.className = 'plan';
+    const title = document.createElement('div');
+    title.className = 'plan-title';
+    title.textContent = 'Plan: ' + (p.ops ? p.ops.length : 0) + ' change(s)';
+    div.appendChild(title);
+    const sum = document.createElement('div');
+    const titles = (p.affected || []).map(id => {
+      const it = (state.items || []).find(x => x.id === id);
+      return it ? it.title : id;
+    }).slice(0, 4).join(', ');
+    sum.textContent = titles || 'No items affected';
+    div.appendChild(sum);
+    if (p.status === 'preview') {
+      const a = document.createElement('button');
+      a.className = 'chip';
+      a.textContent = 'Apply';
+      a.onclick = async () => { await api('POST', '/api/plan/' + p.id + '/apply', {}); openPlans = openPlans.filter(x => x.id !== p.id); refresh(); };
+      div.appendChild(a);
+    }
+    if (p.status === 'applied') {
+      const u = document.createElement('button');
+      u.className = 'chip undo';
+      u.textContent = 'Undo';
+      u.onclick = async () => { await api('POST', '/api/plan/' + p.id + '/undo', {}); openPlans = openPlans.filter(x => x.id !== p.id); refresh(); };
+      div.appendChild(u);
+    }
+    frag.appendChild(div);
+  }
+  log.innerHTML = '';
+  log.appendChild(frag);
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderFocus() {
+  const f = focusData;
+  const titleEl = document.getElementById('focus-title');
+  const goalEl = document.getElementById('focus-goal');
+  const estEl = document.getElementById('focus-est');
+  if (!f || !f.item) {
+    titleEl.textContent = 'Nothing to do right now';
+    goalEl.textContent = '';
+    estEl.textContent = '';
+    return;
+  }
+  titleEl.textContent = f.item.title || '';
+  let goal = '';
+  if (f.parent && f.parent.title) goal += 'For: ' + f.parent.title;
+  if (f.why) goal += (goal ? ' · ' : '') + 'because: ' + f.why;
+  goalEl.textContent = goal;
+  estEl.textContent = f.item.estimate_min ? 'about ' + f.item.estimate_min + ' min' : '';
+}
+
+function renderProposal() {
+  const card = document.getElementById('proposal');
+  if (!proposal) { card.style.display = 'none'; return; }
+  if (proposal.status === 'dismissed' || proposal.status === 'reverted') { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  document.getElementById('proposal-title').textContent = proposal.title || '';
+  document.getElementById('proposal-reason').textContent = proposal.reason || '';
+  const undoBtn = document.getElementById('proposal-undo');
+  if (proposal.status === 'accepted') { undoBtn.disabled = false; undoBtn.style.opacity = '1'; }
+  else { undoBtn.disabled = true; undoBtn.style.opacity = '0.4'; }
+}
+
+function itemBlock(item, opts) {
+  const el = document.createElement('div');
+  el.setAttribute('data-item', item.id);
+  const isSoft = !!item.window;
+  el.className = 'block ' + (isSoft ? 'soft' : 'solid') + (item.status === 'done' ? ' done' : '');
+  const timeLine = document.createElement('span');
+  timeLine.className = 'b-time';
+  if (item.window) timeLine.textContent = item.window;
+  else if (item.start) timeLine.textContent = fmtTime(item.start);
+  else timeLine.textContent = '';
+  el.appendChild(timeLine);
+  const titleLine = document.createElement('span');
+  titleLine.className = 'b-title';
+  titleLine.textContent = item.title || '';
+  el.appendChild(titleLine);
+  el.title = item.title || '';
+  return el;
+}
+
+function itemsForDay(items, d) {
+  return items.filter(it => it.start && ymd(it.start) === d).sort((a,b) => (a.start||'').localeCompare(b.start||''));
+}
+
+function unscheduledOpenItems(items) {
+  return (items || []).filter(it => !it.start && it.status !== 'done' && it.kind !== 'event');
+}
+
+function renderWeek(view, items, now) {
+  const today = ymd(now);
+  const wd = weekday(today);
+  const mondayOffset = (wd + 6) % 7;
+  const monday = addDays(today, -mondayOffset);
+  const days = view.type === 'workweek' ? 5 : 7;
+  const grid = document.createElement('div');
+  grid.className = 'week-grid' + (view.type === 'workweek' ? ' workweek' : '');
+  for (let i = 0; i < days; i++) {
+    const d = addDays(monday, i);
+    const col = document.createElement('div');
+    col.className = 'day-col' + (d === today ? ' today' : '');
+    col.setAttribute('data-day', d);
+    const head = document.createElement('div');
+    head.className = 'day-head';
+    head.textContent = fmtDayShort(d);
+    col.appendChild(head);
+    for (const it of itemsForDay(items, d)) col.appendChild(itemBlock(it));
+    grid.appendChild(col);
+  }
+  return grid;
+}
+
+function renderDay(view, items, now) {
+  const d = ymd(now);
+  const wrap = document.createElement('div');
+  wrap.className = 'day-rows';
+  const dayItems = itemsForDay(items, d);
+  for (let h = 7; h <= 23; h++) {
+    const row = document.createElement('div');
+    row.className = 'hour-row';
+    row.setAttribute('data-day', d + 'T' + String(h).padStart(2,'0'));
+    const lab = document.createElement('div');
+    lab.className = 'hour-label';
+    lab.textContent = fmtTime(d + 'T' + String(h).padStart(2,'0') + ':00');
+    row.appendChild(lab);
+    const itemsWrap = document.createElement('div');
+    itemsWrap.className = 'hour-items';
+    for (const it of dayItems) {
+      if (it.start && parseInt(it.start.slice(11,13),10) === h) itemsWrap.appendChild(itemBlock(it));
+    }
+    row.appendChild(itemsWrap);
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
+function renderMonth(view, items, now) {
+  const d = ymd(now);
+  const y = parseInt(d.slice(0,4),10), m = parseInt(d.slice(5,7),10);
+  const first = y + '-' + String(m).padStart(2,'0') + '-01';
+  const firstWd = weekday(first);
+  const startOffset = (firstWd + 6) % 7;
+  const grid = document.createElement('div');
+  grid.className = 'month-grid';
+  const start = addDays(first, -startOffset);
+  for (let i = 0; i < 42; i++) {
+    const dd = addDays(start, i);
+    const cell = document.createElement('div');
+    cell.className = 'month-cell';
+    cell.setAttribute('data-day', dd);
+    const num = document.createElement('div');
+    num.className = 'm-num';
+    num.textContent = String(parseInt(dd.slice(8,10),10));
+    cell.appendChild(num);
+    const dayItems = itemsForDay(items, dd);
+    for (let j = 0; j < Math.min(2, dayItems.length); j++) {
+      const chip = document.createElement('div');
+      chip.className = 'month-chip';
+      chip.setAttribute('data-item', dayItems[j].id);
+      chip.textContent = dayItems[j].title || '';
+      cell.appendChild(chip);
+    }
+    if (dayItems.length > 2) {
+      const more = document.createElement('div');
+      more.className = 'month-more';
+      more.textContent = '+' + (dayItems.length - 2) + ' more';
+      cell.appendChild(more);
+    }
+    grid.appendChild(cell);
+  }
+  return grid;
+}
+
+function filterItems(items, filter) {
+  if (!filter) return items;
+  return items.filter(it => {
+    if (filter.kind && it.kind !== filter.kind) return false;
+    if (filter.window && it.window !== filter.window) return false;
+    if (filter.category && it.category !== filter.category) return false;
+    if (filter.hour_from != null && it.start && parseInt(it.start.slice(11,13),10) < filter.hour_from) return false;
+    if (filter.hour_to != null && it.start && parseInt(it.start.slice(11,13),10) > filter.hour_to) return false;
+    return true;
+  });
+}
+
+function renderEl(id, spec, items, now) {
+  const el = spec.elements[id];
+  if (!el) return document.createElement('div');
+  const wrap = document.createElement('div');
+  const type = el.type;
+  const props = el.props || {};
+  if (type === 'MonthGrid') {
+    const fakeView = { type: 'month' };
+    const d = props.month || ymd(now);
+    const fakeNow = d + 'T12:00';
+    wrap.appendChild(renderMonth(fakeView, items, fakeNow));
+  } else if (type === 'WeekColumns') {
+    const start = props.start || ymd(now);
+    const days = props.days || 7;
+    const grid = document.createElement('div');
+    grid.className = 'week-grid' + (days === 5 ? ' workweek' : '');
+    for (let i = 0; i < days; i++) {
+      const d = addDays(start, i);
+      const col = document.createElement('div');
+      col.className = 'day-col';
+      col.setAttribute('data-day', d);
+      const head = document.createElement('div');
+      head.className = 'day-head';
+      head.textContent = fmtDayShort(d);
+      col.appendChild(head);
+      for (const it of itemsForDay(items, d)) col.appendChild(itemBlock(it));
+      grid.appendChild(col);
+    }
+    wrap.appendChild(grid);
+  } else if (type === 'DayTimeline') {
+    const d = props.date || ymd(now);
+    const from = props.from_hour != null ? props.from_hour : 7;
+    const to = props.to_hour != null ? props.to_hour : 23;
+    const rows = document.createElement('div');
+    rows.className = 'day-rows';
+    const dayItems = itemsForDay(items, d);
+    for (let h = from; h <= to; h++) {
+      const row = document.createElement('div');
+      row.className = 'hour-row';
+      row.setAttribute('data-day', d + 'T' + String(h).padStart(2,'0'));
+      const lab = document.createElement('div');
+      lab.className = 'hour-label';
+      lab.textContent = fmtTime(d + 'T' + String(h).padStart(2,'0') + ':00');
+      row.appendChild(lab);
+      const itemsWrap = document.createElement('div');
+      itemsWrap.className = 'hour-items';
+      for (const it of dayItems) {
+        if (it.start && parseInt(it.start.slice(11,13),10) === h) itemsWrap.appendChild(itemBlock(it));
+      }
+      row.appendChild(itemsWrap);
+      rows.appendChild(row);
+    }
+    wrap.appendChild(rows);
+  } else if (type === 'AgendaList') {
+    const from = props.from || ymd(now);
+    const to = props.to || addDays(from, 6);
+    let cur = from;
+    let guard = 0;
+    while (cur <= to && guard < 60) {
+      const row = document.createElement('div');
+      row.className = 'agenda-row';
+      row.setAttribute('data-day', cur);
+      const dateEl = document.createElement('div');
+      dateEl.className = 'agenda-date';
+      dateEl.textContent = fmtDayLong(cur);
+      row.appendChild(dateEl);
+      const itemsWrap = document.createElement('div');
+      itemsWrap.style.flex = '1';
+      itemsWrap.style.minWidth = '0';
+      for (const it of itemsForDay(items, cur)) itemsWrap.appendChild(itemBlock(it));
+      row.appendChild(itemsWrap);
+      wrap.appendChild(row);
+      cur = addDays(cur, 1);
+      guard++;
+    }
+  } else if (type === 'Lane') {
+    wrap.className = 'lane';
+    const head = document.createElement('div');
+    head.className = 'lane-head';
+    head.textContent = props.label || 'Lane';
+    wrap.appendChild(head);
+    if (el.children && el.children.length) {
+      for (const cid of el.children) wrap.appendChild(renderEl(cid, spec, items, now));
+    } else {
+      const filtered = filterItems(items, props.filter);
+      for (const it of filtered) wrap.appendChild(itemBlock(it));
+    }
+  } else if (type === 'Bucket') {
+    wrap.className = 'bucket';
+    const head = document.createElement('div');
+    head.className = 'bucket-head';
+    head.textContent = props.label || 'Bucket';
+    wrap.appendChild(head);
+    const filtered = filterItems(items, props.filter);
+    for (const it of filtered) wrap.appendChild(itemBlock(it));
+  } else {
+    wrap.className = 'unknown-el';
+    wrap.textContent = 'Unknown view element';
+  }
+  return wrap;
+}
+
+function renderView(view, items, now) {
+  const container = document.getElementById('view');
+  const oldRects = {};
+  container.querySelectorAll('[data-day], [data-item]').forEach(el => {
+    const key = el.getAttribute('data-day') || el.getAttribute('data-item');
+    if (key) oldRects[key] = el.getBoundingClientRect();
+  });
+  container.innerHTML = '';
+  let content;
+  if (view.type === 'month') content = renderMonth(view, items, now);
+  else if (view.type === 'week' || view.type === 'workweek') content = renderWeek(view, items, now);
+  else if (view.type === 'day') content = renderDay(view, items, now);
+  else if (view.type === 'custom' && view.spec && view.spec.elements && view.spec.root) {
+    content = renderEl(view.spec.root, view.spec, items, now);
+  } else {
+    content = renderWeek({ type: 'week' }, items, now);
+  }
+  container.appendChild(content);
+  if (!reduceMotion) {
+    container.querySelectorAll('[data-day], [data-item]').forEach(el => {
+      const key = el.getAttribute('data-day') || el.getAttribute('data-item');
+      if (key && oldRects[key]) {
+        const nr = el.getBoundingClientRect();
+        const dx = oldRects[key].left - nr.left;
+        const dy = oldRects[key].top - nr.top;
+        if (dx || dy) {
+          el.animate([{ transform: 'translate(' + dx + 'px, ' + dy + 'px)' }, { transform: 'none' }], { duration: 300, easing: 'ease-out' });
+        }
+      } else {
+        el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
+      }
+    });
+  }
+  const hidden = view.hidden_counts || {};
+  const note = document.getElementById('hidden-note');
+  const keys = Object.keys(hidden).filter(k => hidden[k] > 0);
+  if (keys.length) {
+    const total = keys.reduce((s, k) => s + hidden[k], 0);
+    const dates = keys.slice(0, 3).map(k => fmtDayShort(k)).join(', ');
+    note.textContent = total + ' more outside this view (' + dates + ')';
+  } else {
+    note.textContent = '';
+  }
+  const sw = document.getElementById('view-switcher');
+  sw.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-view') === view.type);
+  });
+}
+
+function renderTimeline() {
+  const body = document.getElementById('timeline-body');
+  body.innerHTML = '';
+  const today = ymd(state.now);
+  const tomorrow = addDays(today, 1);
+  const groups = [['Today', today], ['Tomorrow', tomorrow]];
+  for (const [label, d] of groups) {
+    const g = document.createElement('div');
+    g.className = 't-group';
+    g.textContent = label;
+    body.appendChild(g);
+    const items = itemsForDay(state.items || [], d);
+    if (!items.length) {
+      const e = document.createElement('div');
+      e.className = 't-empty';
+      e.textContent = 'Nothing planned, enjoy the space';
+      body.appendChild(e);
+    } else {
+      const ul = document.createElement('ul');
+      for (const it of items) {
+        const li = document.createElement('li');
+        li.setAttribute('data-item', it.id);
+        const t = document.createElement('span');
+        t.className = 't-time';
+        t.textContent = it.window ? it.window : fmtTime(it.start);
+        li.appendChild(t);
+        const ti = document.createElement('span');
+        ti.className = 't-title';
+        ti.textContent = it.title || '';
+        li.appendChild(ti);
+        if (it.status === 'done') {
+          const c = document.createElement('span');
+          c.className = 'chip';
+          c.textContent = 'Done';
+          li.appendChild(c);
+        }
+        ul.appendChild(li);
+      }
+      body.appendChild(ul);
+    }
+  }
+  const unsched = unscheduledOpenItems(state.items || []);
+  if (unsched.length) {
+    const g = document.createElement('div');
+    g.className = 't-group';
+    g.textContent = 'Unscheduled';
+    body.appendChild(g);
+    const ul = document.createElement('ul');
+    for (const it of unsched) {
+      const li = document.createElement('li');
+      li.setAttribute('data-item', it.id);
+      const t = document.createElement('span');
+      t.className = 't-time';
+      t.textContent = 'anytime';
+      li.appendChild(t);
+      const ti = document.createElement('span');
+      ti.className = 't-title';
+      ti.textContent = it.title || '';
+      li.appendChild(ti);
+      ul.appendChild(li);
+    }
+    body.appendChild(ul);
+  }
+}
+
+function renderLearned() {
+  const list = document.getElementById('learned-list');
+  list.innerHTML = '';
+  if (!beliefs.length) {
+    const li = document.createElement('li');
+    li.textContent = "Nothing yet. I'll learn as we go.";
+    list.appendChild(li);
+  } else {
+    for (const b of beliefs) {
+      const li = document.createElement('li');
+      const t = document.createElement('span');
+      t.className = 'b-text';
+      t.textContent = b.statement || '';
+      li.appendChild(t);
+      const c = document.createElement('span');
+      c.className = 'b-conf';
+      c.textContent = Math.round((b.confidence || 0) * 100) + '% sure';
+      li.appendChild(c);
+      const f = document.createElement('button');
+      f.className = 'chip b-forget';
+      f.textContent = 'Forget';
+      f.onclick = async () => { await api('DELETE', '/api/beliefs/' + encodeURIComponent(b.key)); refresh(); };
+      li.appendChild(f);
+      list.appendChild(li);
+    }
+  }
+  const meta = state.meta || {};
+  const parts = [];
+  if (meta.novelty != null) parts.push('New ideas: ' + Math.round(meta.novelty * 100) + '%');
+  if (meta.cadence_hours != null) parts.push('check-ins every ' + meta.cadence_hours + ' h');
+  if (meta.tone) parts.push('tone ' + meta.tone);
+  document.getElementById('learned-meta').textContent = parts.join(' · ');
+}
+
+function renderActivity() {
+  const list = document.getElementById('activity-list');
+  list.innerHTML = '';
+  const evs = (activity || []).slice(-6).reverse();
+  if (!evs.length) {
+    const li = document.createElement('li');
+    li.textContent = 'Quiet so far';
+    list.appendChild(li);
+    return;
+  }
+  for (const e of evs) {
+    const li = document.createElement('li');
+    const t = document.createElement('span');
+    t.className = 'a-time';
+    t.textContent = fmtTime(e.at);
+    li.appendChild(t);
+    const x = document.createElement('span');
+    x.className = 'a-text';
+    x.textContent = e.text || '';
+    li.appendChild(x);
+    list.appendChild(li);
+  }
+}
+
+async function refresh() {
+  try { const s = await api('GET', '/api/state'); if (s) state = s; } catch (e) {}
+  try { const f = await api('GET', '/api/focus'); if (f) focusData = f; } catch (e) {}
+  try { const b = await api('GET', '/api/beliefs'); if (b) beliefs = b.beliefs || []; } catch (e) {}
+  try { const p = await api('GET', '/api/proposal'); if (p) proposal = p.proposal; } catch (e) {}
+  try { const a = await api('GET', '/api/activity'); if (a) activity = a.events || []; } catch (e) {}
+  try { document.getElementById('clock').textContent = fmtClock(state.now); } catch (e) {}
+  try { renderChat(); } catch (e) {}
+  try { renderFocus(); } catch (e) {}
+  try { renderProposal(); } catch (e) {}
+  try { renderView(state.view || { type: 'week', params: {}, hidden_counts: {} }, state.items || [], state.now); } catch (e) {}
+  try { renderTimeline(); } catch (e) {}
+  try { renderLearned(); } catch (e) {}
+  try { renderActivity(); } catch (e) {}
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  let res;
+  if (lastChatItemId) {
+    res = await api('POST', '/api/chat', { item_id: lastChatItemId, text });
+  } else {
+    res = await api('POST', '/api/command', { text, mode });
+  }
+  if (res && res.plan) {
+    openPlans.push(res.plan);
+  }
+  await refresh();
+}
+
+function setupHandlers() {
+  document.getElementById('send-btn').onclick = sendMessage;
+  document.getElementById('chat-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  document.querySelectorAll('#mode-seg button').forEach(b => {
+    b.onclick = () => {
+      mode = b.getAttribute('data-mode');
+      document.querySelectorAll('#mode-seg button').forEach(x => x.classList.toggle('active', x === b));
+    };
+  });
+  document.getElementById('file-input').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const content = await file.text();
+    const res = await api('POST', '/api/import', { filename: file.name, content });
+    if (res && res.plan) openPlans.push(res.plan);
+    e.target.value = '';
+    await refresh();
+  });
+  document.getElementById('btn-30').onclick = async () => {
+    const now = state.now;
+    const d = ymd(now);
+    const h = parseInt(now.slice(11,13),10), mi = parseInt(now.slice(14,16),10);
+    let total = h * 60 + mi + 30;
+    let nd = d;
+    if (total >= 24*60) { total -= 24*60; nd = addDays(d, 1); }
+    const hh = String(Math.floor(total/60)).padStart(2,'0');
+    const mm = String(total%60).padStart(2,'0');
+    await api('POST', '/api/clock', { now: nd + 'T' + hh + ':' + mm });
+    await refresh();
+  };
+  document.getElementById('btn-1h').onclick = async () => {
+    const now = state.now;
+    const d = ymd(now);
+    const h = parseInt(now.slice(11,13),10), mi = parseInt(now.slice(14,16),10);
+    let total = h * 60 + mi + 60;
+    let nd = d;
+    if (total >= 24*60) { total -= 24*60; nd = addDays(d, 1); }
+    const hh = String(Math.floor(total/60)).padStart(2,'0');
+    const mm = String(total%60).padStart(2,'0');
+    await api('POST', '/api/clock', { now: nd + 'T' + hh + ':' + mm });
+    await refresh();
+  };
+  document.getElementById('btn-morning').onclick = async () => {
+    const nd = addDays(ymd(state.now), 1);
+    await api('POST', '/api/clock', { now: nd + 'T08:00' });
+    await refresh();
+  };
+  document.getElementById('btn-iris').onclick = async () => {
+    await api('POST', '/api/reset', IRIS);
+    openPlans = [];
+    await refresh();
+  };
+  document.getElementById('focus-start').onclick = () => {
+    const btn = document.getElementById('focus-start');
+    if (countdownTimer) clearInterval(countdownTimer);
+    let secs = 300;
+    btn.textContent = '5:00';
+    countdownTimer = setInterval(() => {
+      secs--;
+      if (secs <= 0) { clearInterval(countdownTimer); countdownTimer = null; btn.textContent = 'Start 5 minutes'; return; }
+      const m = Math.floor(secs/60), s = secs % 60;
+      btn.textContent = m + ':' + String(s).padStart(2,'0');
+    }, 1000);
+  };
+  document.getElementById('focus-done').onclick = async () => {
+    if (!focusData || !focusData.item) return;
+    await api('POST', '/api/items/' + focusData.item.id + '/done', {});
+    await refresh();
+  };
+  document.getElementById('proposal-try').onclick = async () => {
+    if (!proposal) return;
+    await api('POST', '/api/proposals/' + proposal.id + '/accept', {});
+    await refresh();
+  };
+  document.getElementById('proposal-dismiss').onclick = async () => {
+    if (!proposal) return;
+    await api('POST', '/api/proposals/' + proposal.id + '/dismiss', {});
+    await refresh();
+  };
+  document.getElementById('proposal-undo').onclick = async () => {
+    if (!proposal) return;
+    await api('POST', '/api/proposals/' + proposal.id + '/undo', {});
+    await refresh();
+  };
+  document.querySelectorAll('#view-switcher button').forEach(b => {
+    b.onclick = async () => {
+      await api('POST', '/api/view', { type: b.getAttribute('data-view') });
+      await refresh();
+    };
+  });
+}
+
+setupHandlers();
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
