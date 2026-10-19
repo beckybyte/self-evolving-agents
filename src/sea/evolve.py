@@ -141,11 +141,15 @@ class Evolution:
                 self.log_hist({"event": "ceiling_reached", "parent_fit": st["parent_fit"], "margin": self.margin,
                                "max_fitness": cap, "gen": st["gen"]})
                 st["done"] = True
+                st["stop_reason"] = "ceiling_reached"
                 self.save()
                 self.framework_signals()
                 break
             if st["gen"] >= self.gens or st["stale"] >= self.patience or st["evolver_calls"] >= MAX_EVOLVER_CALLS:
                 st["done"] = True
+                st["stop_reason"] = ("max_gens" if st["gen"] >= self.gens else
+                                     "no_progress" if st["stale"] >= self.patience else "max_evolver_calls")
+                self.log_hist({"event": "stop", "reason": st["stop_reason"], "gen": st["gen"]})
                 self.save()
                 self.framework_signals()
                 break

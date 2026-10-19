@@ -249,6 +249,7 @@ def test_run_stops_at_the_fitness_ceiling(tmp_path, monkeypatch):
     st = Evolution(task, tmp_path / "evo", "fake:dev", ROOT / "genomes/v2/build_P0", gens=3, k=1, margin=0.01).run()
     hist = [json.loads(l) for l in open(tmp_path / "evo" / "history.jsonl")]
     assert st["done"] and not calls and any(h.get("event") == "ceiling_reached" for h in hist)
+    assert st["stop_reason"] == "ceiling_reached"
 
 
 def test_usersim_term_in_fitness(tmp_path, monkeypatch):
