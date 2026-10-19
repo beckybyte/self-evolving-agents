@@ -639,3 +639,12 @@ def test_acceptance_expect_not_fails_the_smoke():
     ok, rep = app_smoke({"app_py": good(), "t_json": steps}, acceptance="t_json")
     assert not ok and rep.startswith("SMOKE: FAIL") and "must not contain ['call mom']" in rep
     assert "acceptance step 2 GET /api/state: ok" in rep
+
+
+def test_unchanged_reemits_recorded(tmp_path):
+    register_fake("w5", lambda m: '<artifact name="a_py">a = 1</artifact><artifact name="b_py">b = 1</artifact>')
+    register_fake("f5", lambda m: '<artifact name="a_py">a = 1</artifact><artifact name="b_py">b = 2</artifact>')
+    roles = [{"name": "w", "kind": "llm", "model": "fake:w5", "prompt": "w", "reads": []},
+             {"name": "fix", "kind": "llm", "model": "fake:f5", "prompt": "f", "reads": []}]
+    res = run_team(load_genome(_genome(tmp_path, roles, ["w", "fix"])), {"id": "e", "input": {"text": "x"}}, "fake:w5")
+    assert "unchanged_reemits" not in res["trace"][0] and res["trace"][1]["unchanged_reemits"] == ["a_py"]

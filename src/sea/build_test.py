@@ -215,9 +215,11 @@ def test_trace_health_flags_truncation_empty_and_retries():
              {"role": "ui", "kind": "llm", "chars": 0, "finish": "stop", "model": "crusoe:b", "retries": 1},
              {"role": "ask", "kind": "human", "tokens": 0}]
     h = trace_health(trace)
-    assert h == {"truncated_roles": ["backend"], "empty_roles": ["ui"], "failed_roles": [],
+    assert h == {"truncated_roles": ["backend"], "empty_roles": ["ui"], "failed_roles": [], "unchanged_reemits": {},
                  "model_retries": {"crusoe:a": 2, "crusoe:b": 1}}
-    assert trace_health([]) == {"truncated_roles": [], "empty_roles": [], "failed_roles": [], "model_retries": {}}
+    assert trace_health([]) == {"truncated_roles": [], "empty_roles": [], "failed_roles": [], "unchanged_reemits": {},
+                                "model_retries": {}}
+    assert trace_health([{"role": "fixer", "kind": "llm", "chars": 9, "unchanged_reemits": ["a_py", "b_py"]}])["unchanged_reemits"] == {"fixer": 2}
     assert trace_health([{"role": "app", "kind": "llm", "chars": 0, "error": "TimeoutExpired"}])["failed_roles"] == ["app"]
 
 

@@ -225,6 +225,7 @@ def trace_health(trace: list[dict]) -> dict:
     return {"truncated_roles": [t["role"] for t in llm if t.get("finish") == "length"],
             "empty_roles": [t["role"] for t in llm if not t.get("chars")],
             "failed_roles": [t["role"] for t in llm if t.get("error")],
+            "unchanged_reemits": {t["role"]: len(t["unchanged_reemits"]) for t in llm if t.get("unchanged_reemits")},
             "model_retries": retries}
 
 
@@ -551,6 +552,7 @@ class BuildTask(Task):
                     "truncated_roles": [x.get("truncated_roles") for x in reps],
                     "empty_roles": [x.get("empty_roles") for x in reps],
                     "failed_roles": [x.get("failed_roles") for x in reps],
+                    "unchanged_reemits": [x.get("unchanged_reemits") for x in reps],
                     "model_retries": [x.get("model_retries") for x in reps]})
         (out / split).mkdir(parents=True, exist_ok=True)
         with open(out / split / "rows.jsonl", "w") as f:
@@ -605,6 +607,8 @@ class BuildTask(Task):
                 + (f"; roles cut off at max_tokens per run {r['truncated_roles']}" if any(r.get("truncated_roles") or []) else "")
                 + (f"; roles that emitted nothing per run {r['empty_roles']}" if any(r.get("empty_roles") or []) else "")
                 + (f"; roles whose model call failed (timeout/error) per run {r['failed_roles']}" if any(r.get("failed_roles") or []) else "")
+                + (f"; files re-emitted UNCHANGED (wasted output tokens) per run {r['unchanged_reemits']}"
+                   if any(r.get("unchanged_reemits") or []) else "")
                 + (f"; user simulator clean-episode rate {ev['sim']['score']} (violated invariants per run: "
                    f"{[{k: v.get('violations') for k, v in (x.get('violations') or {}).items()} or x.get('reason', {}) for x in ev['sim'].get('per_run', [])]})"
                    if ev.get("sim") else "")

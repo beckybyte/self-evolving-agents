@@ -113,7 +113,8 @@ class _Run:
         self.trace: list = []
         self.messages = episode["input"].get("messages", [])
         self._finish: dict = {}  # role -> finish of its latest model call
-        self._seen_calls: set = set()  # (role, hash of messages) already sent in this run
+        self._seen_calls: set = set()
+        self._unchanged: list = []  # (role, hash of messages) already sent in this run
         self._lock = threading.RLock()  # parallel steps: state updates after each role's call are serialized
 
     # ------------------------------------------------------------ context selectors
@@ -184,6 +185,9 @@ class _Run:
         name = role["name"]
         self.bb[name] = text
         found = parse_artifacts(text, self.artifacts)
+        # files re-emitted byte-identical cost output tokens for nothing (evo_v33 gen02 child_5: a fixer re-wrote all
+        # 5 files, 32000 tokens, cut off in the 5th); recorded per call for the trace / evolver feedback
+        self._unchanged = [n for n, body in found.items() if n in self.artifacts and self.artifacts[n].strip() == body.strip()]
         self.artifacts.update(found)
         w = role.get("writes", "blackboard")
         if w.startswith("artifact:"):
@@ -261,6 +265,7 @@ class _Run:
             self._finish[name] = u.get("finish", "")
             self.trace.append({"role": name, "kind": "llm", "tokens": u["prompt"] + u["completion"], "chars": len(text),
                                "model": model, "completion": u["completion"],
+                               **({"unchanged_reemits": self._unchanged} if self._unchanged else {}),
                                # what a non-file role (reviewer, planner) said, for the evolver's team traces
                                **({"output_head": ART_RE.sub("", text).strip()[:1500]} if not ART_RE.search(text) else {}),
                                **{k: u[k] for k in ("finish", "retries", "secs", "fallback") if k in u},
