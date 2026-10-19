@@ -30,6 +30,11 @@ genome.yaml (schema: 2)
                                     {"ok": true}, is left as written (no str.format); soul is never templated
       writes: blackboard | artifact:<name> | message:<role>       (default blackboard; always also blackboard[name])
       max_tokens: int = 2048, temperature: float = 0.0
+      when: {on: <role>, contains: <text>} | {on: <role>, not_contains: <text>}   any role kind: run only if that
+                                    role's latest output contains (does not contain) the text, else skip (0 tokens);
+                                    e.g. a fixer for v2.py with when: {on: smoke, contains: "v2.py"}
+      images: [<check role>]        llm role: attach the screenshot(s) a check took (app_smoke render: screenshot)
+                                    as images; Crusoe vision models only (e.g. Nemotron-3.5-Super-VL), else a note
       soul: false                   this role does not get the shared soul (e.g. a UI writer that needs none of it)
       expects: [artifact names]     the role must emit these artifacts in its own answer; if one is missing (empty or
                                     cut-short answer) the role is run once more (both calls counted)
@@ -51,7 +56,7 @@ genome.yaml (schema: 2)
                                     -> undo (when a message has an undo_id); still crash/shape problems only, and a
                                     slow deep call (timeout, budget used up) is a note, not a failure.
       selftest_secs: 12 | 20        time limit of that self-test (default 12)
-      render: true                  app_smoke option: headless Chrome renders the app's own page after the basic calls;
+      render: true | screenshot     app_smoke option (screenshot also saves a 1440x900 PNG for an `images:` role): headless Chrome renders the app's own page after the basic calls;
                                     the report lists missing contract element ids and the visible text (<= 25 s)
       acceptance: <artifact name>   app_smoke option: that artifact is a team-written JSON list of HTTP steps
                                     [{method, path, body?, status? (200), expect?: [substrings of the body],
@@ -100,6 +105,7 @@ import yaml
 from .llm import known_model
 
 KINDS = ("llm", "tool", "human", "check")
+MAX_PARALLEL = 8  # roles in one {parallel: [...]} step
 BASE_SELECTORS = ("input", "blackboard", "artifacts", "inbox", "memory")
 
 
@@ -126,7 +132,7 @@ def normalize(raw: dict) -> dict:
                      max_tokens=int(r.get("max_tokens", 2048)), temperature=float(r.get("temperature", 0.0)),
                      native=native, writes=r.get("writes", "blackboard"),
                      reads=list(r.get("reads") or (["input", "blackboard"])), expects=list(r.get("expects") or []),
-                     soul=bool(r.get("soul", True)))
+                     soul=bool(r.get("soul", True)), images=list(r.get("images") or []))
             if legacy:
                 n["_v1_input"] = r.get("input", "native")
         elif kind == "tool":
@@ -137,6 +143,8 @@ def normalize(raw: dict) -> dict:
         elif kind == "human":
             n.update(question=r.get("question", ""), default=r.get("default", ""), writes=r.get("writes", "blackboard"),
                      reads=list(r.get("reads") or ["blackboard"]))
+        if r.get("when"):
+            n["when"] = dict(r["when"])
         roles.append(n)
     if legacy:
         outputs = {"answer": f"blackboard.{raw.get('final')}"}
@@ -189,7 +197,15 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
             assert r.get("tool") and (Path(g["_dir"]) / r["tool"]).exists(), f"missing tool file {r.get('tool')}"
         w = r.get("writes", "blackboard")
         assert w == "blackboard" or re.fullmatch(r"(artifact|message):[A-Za-z0-9_\-]+", w), f"bad writes {w!r}"
+        if r.get("when"):
+            wh = r["when"]
+            assert isinstance(wh, dict) and wh.get("on") and (("contains" in wh) ^ ("not_contains" in wh)), \
+                f"role {r['name']}: when needs {{on: <role>, contains: <text>}} or {{on: <role>, not_contains: <text>}}"
     for r in g["roles"]:
+        if r.get("when"):
+            assert r["when"]["on"] in names, f"role {r['name']}: when.on {r['when']['on']!r} is not a role"
+        for src in r.get("images") or []:
+            assert src in names, f"role {r['name']}: images source {src!r} is not a role"
         w = r.get("writes", "")
         if w.startswith("message:"):
             assert g["channels"] == "messages", "writes: message:<role> needs channels: messages"
@@ -197,15 +213,15 @@ def validate(g: dict, context_keys: tuple[str, ...] = ()):
     for step in g["workflow"]:
         if isinstance(step, dict) and "parallel" in step:
             par = step["parallel"]
-            assert isinstance(par, list) and 2 <= len(par) <= 6 and len(set(par)) == len(par), \
-                f"parallel needs 2..6 distinct roles: {step}"
+            assert isinstance(par, list) and 2 <= len(par) <= MAX_PARALLEL and len(set(par)) == len(par), \
+                f"parallel needs 2..{MAX_PARALLEL} distinct roles: {step}"
             assert all(p in names for p in par), f"bad parallel step {step}"
         elif isinstance(step, dict):
             lp = step.get("loop") or {}
             def _body_ok(b):
                 if isinstance(b, dict):  # {parallel: [names]} inside a loop body
                     par = b.get("parallel")
-                    return isinstance(par, list) and 2 <= len(par) <= 6 and len(set(par)) == len(par) and all(p in names for p in par)
+                    return isinstance(par, list) and 2 <= len(par) <= MAX_PARALLEL and len(set(par)) == len(par) and all(p in names for p in par)
                 return b in names
             assert lp.get("body") and all(_body_ok(b) for b in lp["body"]), f"bad loop {step}"
             assert 1 <= int(lp.get("max_rounds", 2)) <= 6, "loop max_rounds must be 1..6"

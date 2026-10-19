@@ -304,7 +304,34 @@ CHROME = os.environ.get("SEA_CHROME", "/usr/bin/google-chrome")
 UI_IDS = ("chat-input", "chat-log", "focus", "timeline")  # element ids every contract version requires
 
 
-def render_page(base: str, wait: float) -> tuple[int, list[str]]:
+SHOT_DIR = Path(tempfile.gettempdir()) / "sea_shots"  # screenshots by content hash: same page -> same path
+
+
+def screenshot(base: str, wait: float) -> str | None:
+    """1440x900 PNG of the app's own page; returns its path (named by content hash) or None."""
+    import hashlib
+    SHOT_DIR.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="sea_render_") as prof:
+        out = Path(prof) / "shot.png"
+        p = subprocess.Popen([CHROME, "--headless=new", "--no-sandbox", "--disable-gpu", "--no-first-run", "--hide-scrollbars",
+                              f"--user-data-dir={prof}", "--virtual-time-budget=5000", "--window-size=1440,900",
+                              f"--screenshot={out}", base + "/"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             stdin=subprocess.DEVNULL, start_new_session=True)
+        try:
+            p.wait(timeout=min(wait, 25))
+        except subprocess.TimeoutExpired:
+            _kill_tree(p)
+            return None
+        if not out.exists() or out.stat().st_size < 1000:
+            return None
+        data = out.read_bytes()
+    dst = SHOT_DIR / f"{hashlib.sha256(data).hexdigest()[:20]}.png"
+    if not dst.exists():
+        dst.write_bytes(data)
+    return str(dst)
+
+
+def render_page(base: str, wait: float, shot: bool = False) -> tuple[int, list[str]]:
     """render: true -- headless Chrome renders the team's own page (after the basic calls seeded an item) and the
     report shows what a person would see: contract element ids present or missing, and the visible text. Returns
     (problems, lines). Only the team's own app is looked at; Chrome missing or slow is a note, not a problem."""
@@ -331,6 +358,9 @@ def render_page(base: str, wait: float) -> tuple[int, list[str]]:
              f"render: visible text ({len(text)} chars): {text[:700]}"]
     if len(text) < 20:
         lines.append("render: the rendered page shows almost no text (empty panels? a script error before render?)")
+    if shot:
+        path = screenshot(base, wait)
+        lines.append(f"screenshot: {path}" if path else "render: screenshot failed")
     return int(bool(missing)) + int(len(text) < 20), lines
 
 
@@ -506,7 +536,7 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
             if calls == "v3" and proc.poll() is None:
                 v3_calls(do, lines)
             if render and proc.poll() is None:
-                rp, rl = render_page(base, budget + 15 - (time.time() - t0))  # rendering gets 15 s on top of the budget
+                rp, rl = render_page(base, budget + 15 - (time.time() - t0), shot=(render == "screenshot"))
                 problems += rp
                 lines.extend(rl)
             if acceptance and proc.poll() is None:
@@ -535,7 +565,7 @@ def app_smoke(artifacts: dict[str, str], budget: float = SMOKE_BUDGET, calls: st
 
 CHECKS = {"app_smoke": app_smoke}
 CHECK_OPTIONS = {"app_smoke": {"calls": ("basic", "deep", "v2", "v3"), "selftest": (False, True), "selftest_secs": (12, 20),
-                               "acceptance": "artifact", "render": (False, True)}}  # "artifact" = any artifact name  # option -> allowed values (first = default)
+                               "acceptance": "artifact", "render": (False, True, "screenshot")}}  # "artifact" = any artifact name  # option -> allowed values (first = default)
 
 
 def stable_report(text: str) -> str:

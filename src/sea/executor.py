@@ -241,6 +241,8 @@ class _Run:
             repeat = key in self._seen_calls
             self._seen_calls.add(key)
         temperature = max(r["temperature"], REPEAT_TEMPERATURE) if repeat else r["temperature"]
+        if r.get("images"):
+            msgs = self.with_images(msgs, r, model)
         try:
             text, u = chat(model, msgs, max_tokens=r["max_tokens"], temperature=temperature)
         except Exception as e:  # a model call that times out or errors fails this role, not the whole team run
@@ -278,6 +280,25 @@ class _Run:
         self.store(r, text)
         self.trace.append({"role": r["name"], "kind": "tool", "tokens": 0, "chars": len(text)})
 
+    def with_images(self, msgs: list, r: dict, model: str) -> list:
+        """Attach the screenshots named by `images:` roles (lines 'screenshot: <path>' in their output) to the last
+        user message, OpenAI style; Crusoe models only (a Claude CLI worker gets a text note instead)."""
+        import base64
+        paths = [l.split(":", 1)[1].strip() for src in r["images"] for l in str(self.bb.get(src, "")).splitlines()
+                 if l.startswith("screenshot: ") and Path(l.split(":", 1)[1].strip()).is_file()]
+        last = dict(msgs[-1])
+        if not paths:  # say so: a vision model asked about "the screenshot" otherwise describes one it never saw
+            last["content"] += ("\n\n(NO screenshot is attached: the check took none, e.g. the app did not start. "
+                                "Do not describe the page.)")
+            return msgs[:-1] + [last]
+        if not model.startswith("crusoe:"):
+            last["content"] += f"\n\n({len(paths)} screenshot(s) of the page exist, but this model cannot see images.)"
+            return msgs[:-1] + [last]
+        last["content"] = [{"type": "text", "text": last["content"]}] + [
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(Path(p).read_bytes()).decode()}}
+            for p in paths[:3]]
+        return msgs[:-1] + [last]
+
     def run_check_role(self, r: dict):
         """Framework check (sea.checks): runs outside the lock on a snapshot of the artifacts."""
         with self._lock:
@@ -304,8 +325,22 @@ class _Run:
         self.store(r, text)
         self.trace.append({"role": r["name"], "kind": "human", "tokens": 0, "answered": res["answered"]})
 
+    def skip(self, r: dict) -> bool:
+        """when: {on, contains | not_contains}: False = run the role, True = skip it (0 tokens, trace kind skip)."""
+        wh = r.get("when")
+        if not wh:
+            return False
+        out = str(self.bb.get(wh["on"], ""))
+        run = (wh["contains"] in out) if "contains" in wh else (wh["not_contains"] not in out)
+        if not run:
+            with self._lock:
+                self.trace.append({"role": r["name"], "kind": "skip", "tokens": 0, "when": wh})
+        return not run
+
     def step(self, name: str):
         r = next(x for x in self.g["roles"] if x["name"] == name)
+        if self.skip(r):
+            return
         if r["kind"] == "llm":
             self.run_llm(r)  # takes the lock itself, after the model call
             missing = [a for a in r.get("expects") or [] if a not in parse_artifacts(str(self.bb.get(name, "")))]

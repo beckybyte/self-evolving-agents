@@ -585,3 +585,49 @@ def test_smoke_render_shows_the_page():
     assert "required ids all present" in rep and "Call mom today" in rep  # script-rendered text is visible
     ok, rep = app_smoke({"app_py": page_app('<html><body><div id="chat-log"></div></body></html>')}, render=True)
     assert not ok and "MISSING ['chat-input', 'focus', 'timeline']" in rep and "almost no text" in rep
+
+
+def test_when_skips_a_role_and_parallel_up_to_eight(tmp_path):
+    calls = []
+    register_fake("sk", lambda m: calls.append(m[-1]["content"][:4]) or "SMOKE: FAIL\napp.py: NameError")
+    roles = [{"name": "smoke", "kind": "llm", "model": "fake:sk", "prompt": "smok", "reads": []},
+             {"name": "fix_v2", "kind": "llm", "model": "fake:sk", "prompt": "fxv2", "reads": [], "when": {"on": "smoke", "contains": "v2.py"}},
+             {"name": "fix_app", "kind": "llm", "model": "fake:sk", "prompt": "fxap", "reads": [], "when": {"on": "smoke", "contains": "app.py"}}]
+    res = run_team(load_genome(_genome(tmp_path, roles, ["smoke", "fix_v2", "fix_app"])), {"id": "e", "input": {"text": "x"}}, "fake:sk")
+    assert calls == ["smok", "fxap"] and [t["kind"] for t in res["trace"]] == ["llm", "skip", "llm"]
+    with pytest.raises(AssertionError, match="when"):
+        load_genome(_genome(tmp_path, [{"name": "a", "kind": "llm", "prompt": "p", "when": {"on": "nobody", "contains": "x"}}], ["a"]))
+    eight = [{"name": f"w{i}", "kind": "llm", "model": "fake:sk", "prompt": "p", "reads": []} for i in range(8)]
+    load_genome(_genome(tmp_path, eight, [{"parallel": [f"w{i}" for i in range(8)]}]))
+
+
+def test_images_attach_screenshots_for_crusoe_models_only(tmp_path, monkeypatch):
+    import sea.executor as ex
+    shot = tmp_path / "s.png"
+    shot.write_bytes(b"\x89PNG fake")
+    seen = []
+
+    def chat(model, msgs, max_tokens=2048, temperature=0.0):
+        seen.append((model, msgs[-1]["content"]))
+        return (f"render: ok\nscreenshot: {shot}" if model == "fake:sh" else "ok"), {"prompt": 1, "completion": 1, "calls": 1}
+    monkeypatch.setattr(ex, "chat", chat)
+    roles = [{"name": "smoke", "kind": "llm", "model": "fake:sh", "prompt": "s", "reads": []},
+             {"name": "look", "kind": "llm", "model": "crusoe:nvidia/NVIDIA-Nemotron-3.5-Super-VL#nothink", "prompt": "look", "reads": [], "images": ["smoke"]},
+             {"name": "look2", "kind": "llm", "model": "claude:haiku", "prompt": "look", "reads": [], "images": ["smoke"]}]
+    ex.run_team(load_genome(_genome(tmp_path, roles, ["smoke", "look", "look2"])), {"id": "e", "input": {"text": "x"}}, "fake:sh")
+    vl = seen[1][1]
+    assert isinstance(vl, list) and vl[0]["type"] == "text" and vl[1]["image_url"]["url"].startswith("data:image/png;base64,")
+    assert isinstance(seen[2][1], str) and "cannot see images" in seen[2][1]
+    # no screenshot taken -> the vision role is told so instead of describing an imagined page
+    seen.clear()
+    shot.unlink()
+    ex.run_team(load_genome(_genome(tmp_path, roles, ["smoke", "look"])), {"id": "e", "input": {"text": "x"}}, "fake:sh")
+    assert isinstance(seen[1][1], str) and "NO screenshot is attached" in seen[1][1]
+
+
+@pytest.mark.skipif(not os.access("/usr/bin/google-chrome", os.X_OK), reason="no Chrome")
+def test_smoke_render_screenshot():
+    ok, rep = app_smoke({"app_py": page_app(PAGE)}, render="screenshot")
+    path = next(l.split(": ", 1)[1] for l in rep.splitlines() if l.startswith("screenshot: "))
+    assert ok and Path(path).read_bytes()[:4] == b"\x89PNG"
+    assert app_smoke({"app_py": page_app(PAGE)}, render="screenshot")[1] == rep  # same page -> byte-identical report
