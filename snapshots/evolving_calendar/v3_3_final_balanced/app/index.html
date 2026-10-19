@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evolving Calendar</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { display: grid; grid-template-rows: 56px minmax(0, 1fr); height: 100vh; overflow: hidden; background: #f7f6f2; color: #2f3a33; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.45; }
+header { background: #ffffff; border-bottom: 1px solid #e6e3da; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+header .brand { font-size: 17px; font-weight: 600; }
+header .clock-area { display: flex; align-items: center; gap: 8px; }
+header .clock-pill { background: #eef4ef; color: #2f3a33; padding: 5px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 500; }
+header button { font: inherit; cursor: pointer; padding: 5px 11px; border-radius: 10px; font-size: 13px; }
+header .outline { background: #ffffff; border: 1px solid #6f9a7a; color: #6f9a7a; }
+header .outline:hover { background: #eef4ef; }
+header .accent { background: #6f9a7a; border: 1px solid #6f9a7a; color: #ffffff; }
+header .accent:hover { background: #5d8668; }
+main { display: grid; grid-template-columns: minmax(0, 9fr) minmax(0, 11fr); gap: 20px; padding: 16px 24px; min-height: 0; height: 100%; max-width: 1440px; margin: 0 auto; width: 100%; }
+main > * { min-height: 0; height: 100%; }
+.card { background: #ffffff; border: 1px solid #e6e3da; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+.muted { color: #7a807b; }
+#chat-card { display: flex; flex-direction: column; height: 100%; }
+#chat-log { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; scrollbar-width: thin; }
+.msg { max-width: 82%; padding: 9px 13px; border-radius: 14px; font-size: 14px; overflow-wrap: anywhere; }
+.msg .time { font-size: 11px; color: #7a807b; margin-top: 3px; }
+.agent { align-self: flex-start; background: #eef4ef; }
+.person { align-self: flex-end; background: #e8eef7; }
+.question, .breakdown, .checkin { background: #eef4ef; }
+.reminder, .postponed { background: #f1f5fb; }
+.msg .undo { display: inline-block; margin-top: 6px; font-size: 12px; padding: 3px 9px; border-radius: 999px; border: 1px solid #6f9a7a; color: #6f9a7a; background: #ffffff; cursor: pointer; }
+.msg .undo:hover { background: #eef4ef; }
+.steps { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.steps li { margin-bottom: 2px; }
+.chip { display: inline-block; margin: 6px 6px 0 0; padding: 4px 11px; border-radius: 999px; border: 1px solid #6f9a7a; color: #6f9a7a; background: #ffffff; font-size: 12.5px; cursor: pointer; }
+.chip:hover { background: #eef4ef; }
+.plan { background: #f6f8f5; border: 1px dashed #b9c9bd; border-radius: 12px; padding: 10px 12px; font-size: 13px; align-self: flex-start; max-width: 90%; }
+.plan .chip { margin-top: 8px; }
+#composer { flex: none; margin-top: 10px; border: 1px solid #e6e3da; border-radius: 12px; padding: 10px; background: #ffffff; }
+#chat-input { width: 100%; border: none; outline: none; resize: none; font: inherit; font-size: 14px; background: transparent; color: #2f3a33; }
+#composer-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+#mode-toggle { display: inline-flex; border: 1px solid #e6e3da; border-radius: 999px; overflow: hidden; }
+#mode-toggle button { border: none; background: #ffffff; color: #7a807b; padding: 4px 11px; font-size: 12.5px; cursor: pointer; }
+#mode-toggle button.active { background: #6f9a7a; color: #ffffff; }
+#import-label { font-size: 12px; color: #7a807b; cursor: pointer; }
+#import-label input { display: none; }
+#send-btn { margin-left: auto; background: #6f9a7a; color: #ffffff; border: 1px solid #6f9a7a; border-radius: 10px; padding: 6px 15px; font: inherit; font-size: 13.5px; cursor: pointer; }
+#send-btn:hover { background: #5d8668; }
+#right-col { display: grid; grid-template-rows: auto minmax(0, 1fr) 236px; gap: 14px; height: 100%; min-height: 0; }
+.top-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+#focus { border-left: 4px solid #6f9a7a; padding: 16px 18px; }
+#focus-title { font-size: 21px; font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
+#focus-goal { font-size: 13px; margin-bottom: 10px; }
+#focus button { font: inherit; cursor: pointer; padding: 6px 13px; border-radius: 10px; }
+#focus-start { background: #6f9a7a; color: #ffffff; border: 1px solid #6f9a7a; }
+#focus-start:hover { background: #5d8668; }
+#focus-done { background: transparent; border: none; color: #7a807b; padding: 6px 4px; text-decoration: underline; }
+#focus-done:hover { color: #2f3a33; }
+#proposal { display: none; background: #f1f5fb; border: 1px solid #d6e0ee; border-left: 4px solid #8aa6c8; padding: 16px 18px; }
+#proposal h2 { color: #3a4a5e; }
+#proposal-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+#proposal-reason { font-size: 13px; color: #5a6a7e; margin-bottom: 10px; }
+#proposal button { font: inherit; cursor: pointer; padding: 6px 13px; border-radius: 10px; margin-right: 6px; }
+#proposal .accent { background: #6f9a7a; color: #ffffff; border: 1px solid #6f9a7a; }
+#proposal .accent:hover { background: #5d8668; }
+#proposal .outline { background: #ffffff; border: 1px solid #8aa6c8; color: #5a6a7e; }
+#proposal .outline:hover { background: #e8eef7; }
+#calendar-card { display: flex; flex-direction: column; min-height: 0; }
+#calendar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+#view-switcher { display: inline-flex; gap: 4px; }
+#view-switcher button { font: inherit; cursor: pointer; padding: 4px 11px; border-radius: 999px; border: 1px solid #e6e3da; background: #ffffff; color: #7a807b; font-size: 12.5px; }
+#view-switcher button.active { background: #6f9a7a; color: #ffffff; border-color: #6f9a7a; }
+#timeline { background: #f6f8f5; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-size: 12.5px; }
+#timeline .tl-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+#timeline .tl-label { width: 70px; flex: none; color: #7a807b; font-size: 12px; padding-top: 2px; }
+#timeline .tl-items { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; min-width: 0; }
+#timeline li { list-style: none; display: inline-block; background: #ffffff; border: 1px solid #e6e3da; border-radius: 8px; padding: 2px 8px; font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#timeline .tl-empty { color: #7a807b; font-size: 12px; font-style: italic; }
+#view { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; }
+.hidden-note { font-size: 13px; color: #7a807b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 6px; }
+.bottom-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; min-height: 0; }
+.bottom-row .card { padding: 12px 14px; font-size: 13.5px; overflow-y: auto; scrollbar-width: thin; }
+.bottom-row h2 { font-size: 14px; }
+#learned li { list-style: none; margin-bottom: 8px; overflow-wrap: anywhere; }
+#learned ul { padding: 0; margin: 0; }
+#learned .forget { background: none; border: none; color: #7a807b; text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; padding: 0; }
+#learned .forget:hover { color: #2f3a33; }
+#learned .meta-line { color: #7a807b; font-size: 12px; margin-top: 8px; }
+#activity ul { padding: 0; margin: 0; }
+#activity li { list-style: none; margin-bottom: 6px; overflow-wrap: anywhere; font-size: 12.5px; }
+#activity .act-time { color: #7a807b; font-size: 11.5px; margin-right: 6px; }
+#activity .empty, #learned .empty { color: #7a807b; font-style: italic; }
+.week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; height: 100%; align-items: stretch; }
+.week-grid.workweek { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.week-col { display: flex; flex-direction: column; min-width: 0; background: #fbfaf7; border-radius: 8px; padding: 6px; }
+.week-col.today { background: #eef4ef; }
+.week-col .col-head { font-size: 12px; font-weight: 600; color: #7a807b; margin-bottom: 6px; }
+.week-col.today .col-head { color: #6f9a7a; }
+.week-col .col-items { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.month-cell { min-height: 60px; background: #fbfaf7; border-radius: 6px; padding: 4px; font-size: 11.5px; min-width: 0; }
+.month-cell .day-num { font-weight: 600; color: #7a807b; font-size: 11px; margin-bottom: 2px; }
+.month-cell.today { background: #eef4ef; }
+.month-cell .m-item { background: #eef4ef; border-radius: 4px; padding: 1px 4px; margin-bottom: 2px; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.month-cell .m-more { color: #7a807b; font-size: 10px; }
+.day-rows { display: flex; flex-direction: column; gap: 2px; }
+.day-row { display: flex; gap: 8px; min-height: 26px; align-items: flex-start; }
+.day-row .hour-label { width: 56px; flex: none; font-size: 11.5px; color: #7a807b; padding-top: 4px; }
+.day-row .hour-items { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0; }
+.item-block { padding: 4px 7px; font-size: 12.5px; line-height: 1.3; margin-bottom: 5px; border-radius: 8px; min-width: 0; overflow-wrap: normal; word-break: normal; }
+.item-block .ib-time { font-size: 11.5px; opacity: 0.8; margin-bottom: 1px; }
+.item-block .ib-title { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.item-block.soft { background: #eef4ef; border: 1px dashed #6f9a7a; color: #2f3a33; border-radius: 10px; }
+.item-block.solid { background: #6f9a7a; color: #ffffff; border-radius: 8px; }
+.item-block.done { opacity: 0.5; }
+.lane { border-radius: 10px; background: #f6f8f5; padding: 8px; margin-bottom: 8px; }
+.lane-head { font-size: 12px; font-weight: 600; color: #6f9a7a; margin-bottom: 6px; }
+.bucket { border-radius: 10px; background: #fbfaf7; padding: 8px; margin-bottom: 8px; }
+.bucket-head { font-size: 12px; font-weight: 600; color: #7a807b; margin-bottom: 4px; }
+.agenda-row { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid #f0ede4; font-size: 12.5px; }
+.agenda-date { width: 80px; flex: none; color: #7a807b; font-size: 11.5px; }
+.agenda-items { flex: 1; min-width: 0; }
+.unknown-el { font-size: 12px; color: #7a807b; font-style: italic; }
+[data-day], [data-item] { transition: opacity 300ms ease, transform 300ms ease; }
+button { font: inherit; cursor: pointer; padding: 6px 13px; border-radius: 10px; }
+button:hover { opacity: 0.92; }
+textarea { font: inherit; }
+@media (prefers-reduced-motion: reduce) { *, [data-day], [data-item] { transition: none !important; animation: none !important; } }
+@media (max-width: 1000px), (max-height: 640px) {
+  body { height: auto; overflow: auto; display: block; }
+  main { grid-template-columns: minmax(0, 1fr); height: auto; }
+  #right-col { height: auto; grid-template-rows: auto auto auto; }
+  #chat-log { height: 420px; }
+  .bottom-row { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Evolving Calendar</div>
+  <div class="clock-area">
+    <span class="clock-pill" id="clock-pill">Mon, Oct 19, 7:50 PM</span>
+    <button class="outline" id="btn-30">+30 min</button>
+    <button class="outline" id="btn-60">+1 h</button>
+    <button class="outline" id="btn-morning">Next morning</button>
+    <button class="accent" id="btn-iris">Start as Iris</button>
+  </div>
+</header>
+<main>
+  <section class="card" id="chat-card">
+    <h2>Talk to me</h2>
+    <div id="chat-log"></div>
+    <div id="composer">
+      <textarea id="chat-input" rows="2" placeholder="Tell me what's on your mind..."></textarea>
+      <div id="composer-row">
+        <div id="mode-toggle">
+          <button data-mode="dump" class="active">Brain dump</button>
+          <button data-mode="command">One thing</button>
+        </div>
+        <label id="import-label">Import .ics or note<input type="file" id="import-file" accept=".ics,.txt"></label>
+        <button id="send-btn">Send</button>
+      </div>
+    </div>
+  </section>
+  <div id="right-col">
+    <div class="top-row">
+      <div class="card" id="focus">
+        <h2>Right now, just this</h2>
+        <div id="focus-title"></div>
+        <div id="focus-goal" class="muted"></div>
+        <div>
+          <button id="focus-start">Start 5 minutes</button>
+          <button id="focus-done" class="link">I did it</button>
+        </div>
+      </div>
+      <div class="card" id="proposal">
+        <h2>An idea</h2>
+        <div id="proposal-title"></div>
+        <div id="proposal-reason"></div>
+        <div id="proposal-actions"></div>
+      </div>
+    </div>
+    <div class="card" id="calendar-card">
+      <div id="calendar-head">
+        <h2>Your calendar</h2>
+        <div id="view-switcher">
+          <button data-view="month">month</button>
+          <button data-view="week">week</button>
+          <button data-view="workweek">workweek</button>
+          <button data-view="day">day</button>
+        </div>
+      </div>
+      <div id="timeline"></div>
+      <section id="view"></section>
+      <div class="hidden-note" id="hidden-note"></div>
+    </div>
+    <div class="bottom-row">
+      <div class="card" id="learned">
+        <h2>What I've learned</h2>
+        <ul id="learned-list"></ul>
+        <div class="meta-line" id="learned-meta"></div>
+      </div>
+      <div class="card" id="activity">
+        <h2>Activity</h2>
+        <ul id="activity-list"></ul>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+const IRIS = {
+  now: "2026-10-19T19:50",
+  items: [
+    {id:"d1",kind:"task",title:"Reply to emails",start:"2026-10-11T20:15",end:"2026-10-11T20:45",status:"done"},
+    {id:"d2",kind:"task",title:"Pay bills",start:"2026-10-12T20:15",end:"2026-10-12T20:45",status:"done"},
+    {id:"d3",kind:"task",title:"Tidy desk",start:"2026-10-13T20:15",end:"2026-10-13T20:45",status:"done"},
+    {id:"d4",kind:"task",title:"Read article",start:"2026-10-14T20:15",end:"2026-10-14T20:45",status:"done"},
+    {id:"d5",kind:"task",title:"Water plants",start:"2026-10-15T20:15",end:"2026-10-15T20:45",status:"done"},
+    {id:"d6",kind:"task",title:"Sort photos",start:"2026-10-16T20:15",end:"2026-10-16T20:45",status:"done"},
+    {id:"d7",kind:"task",title:"Plan meals",start:"2026-10-17T20:15",end:"2026-10-17T20:45",status:"done"},
+    {id:"d8",kind:"task",title:"Call bank",start:"2026-10-18T20:15",end:"2026-10-18T20:45",status:"done"},
+    {id:"ev1",kind:"event",title:"Call with Priya",start:"2026-10-20T18:00",end:"2026-10-20T19:00",status:"open"},
+    {id:"t1",kind:"task",title:"Write cover letter",start:"2026-10-19T21:00",end:"2026-10-19T21:45",window:"this evening",status:"open"},
+    {id:"goal1",kind:"task",title:"Get my portfolio together",why:"I want to feel proud of my work",status:"open"},
+    {id:"s1",kind:"task",title:"List the projects you are proudest of",parent_id:"goal1",estimate_min:10,start:"2026-10-19T20:15",end:"2026-10-19T20:25",status:"open"},
+    {id:"ev2",kind:"event",title:"Lunch with Ana",start:"2026-10-20T12:00",end:"2026-10-20T13:00",window:"around noon",status:"open"},
+    {id:"ev3",kind:"event",title:"Dentist",start:"2026-10-22T15:00",end:"2026-10-22T16:00",status:"open"}
+  ]
+};
+
+let state = { now: IRIS.now, items: [], messages: [], view: {type:"week", params:{}, hidden_counts:{}}, meta: {novelty:0.5, cadence_hours:24, breakdown_appetite:0.5, tone:"gentle", threshold:0.7} };
+let openPlans = [];
+let currentMode = "dump";
+let focusTimer = null;
+let lastProposal = null;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function pad(n){ return String(n).padStart(2,"0"); }
+function parseISO(s){ if(!s) return null; const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); if(!m) return null; return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]); }
+function fmtISO(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes()); }
+function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function ymdOf(s){ const d = parseISO(s); return d ? ymd(d) : null; }
+function fmtTime(s){ const d = parseISO(s); if(!d) return ""; let h = d.getHours(); const m = d.getMinutes(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12; if(h === 0) h = 12; return h+":"+pad(m)+" "+ap; }
+function fmtClock(s){ const d = parseISO(s); if(!d) return ""; const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]; const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return days[d.getDay()]+", "+months[d.getMonth()]+" "+d.getDate()+", "+fmtTime(s); }
+function addDays(d, n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+function startOfWeek(d){ const r = new Date(d); const day = r.getDay(); const diff = (day === 0 ? -6 : 1 - day); r.setDate(r.getDate()+diff); r.setHours(0,0,0,0); return r; }
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+
+async function api(path, body, method){
+  const opts = { method: method || (body ? "POST" : "GET"), headers: {"Content-Type":"application/json"} };
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  return r.json();
+}
+
+async function refresh(){
+  try {
+    const s = await api("/api/state");
+    state = s;
+    renderAll();
+  } catch(e){ console.error(e); }
+}
+
+function renderAll(){
+  document.getElementById("clock-pill").textContent = fmtClock(state.now);
+  renderChat();
+  renderFocus();
+  renderProposal();
+  renderTimeline();
+  renderView(state.view, state.items, state.now);
+  renderHiddenNote();
+  renderLearned();
+  renderActivity();
+  renderViewSwitcher();
+}
+
+function renderViewSwitcher(){
+  document.querySelectorAll("#view-switcher button").forEach(b => {
+    b.classList.toggle("active", b.dataset.view === state.view.type);
+  });
+}
+
+function renderChat(){
+  const log = document.getElementById("chat-log");
+  const msgs = state.messages.slice(-40);
+  log.innerHTML = "";
+  let prevPerson = null;
+  for(const m of msgs){
+    if(m.role === "person"){
+      if(prevPerson && prevPerson.text === m.text && prevPerson.item_id === m.item_id && prevPerson.at === m.at) continue;
+      prevPerson = m;
+    }
+    const div = document.createElement("div");
+    div.className = "msg " + m.role + " " + (m.kind || "");
+    const txt = document.createElement("div");
+    txt.textContent = m.text;
+    div.appendChild(txt);
+    if(m.kind === "breakdown" && m.steps && m.steps.length){
+      const ol = document.createElement("ol");
+      ol.className = "steps";
+      for(const st of m.steps){
+        const li = document.createElement("li");
+        li.textContent = st.title + (st.estimate_min ? " (about " + st.estimate_min + " min)" : "");
+        ol.appendChild(li);
+      }
+      div.appendChild(ol);
+    }
+    const t = document.createElement("div");
+    t.className = "time";
+    t.textContent = fmtTime(m.at);
+    div.appendChild(t);
+    if(m.undo_id){
+      const u = document.createElement("button");
+      u.className = "undo";
+      u.textContent = "Undo";
+      u.onclick = async () => { await api("/api/undo", {undo_id: m.undo_id}); refresh(); };
+      div.appendChild(u);
+    }
+    log.appendChild(div);
+  }
+  // quick reply chips on newest agent question/breakdown/checkin
+  const newest = [...msgs].reverse().find(m => m.role === "agent" && ["question","breakdown","checkin"].includes(m.kind) && m.item_id);
+  if(newest){
+    const chips = document.createElement("div");
+    let labels = [];
+    if(newest.kind === "question") labels = ["Yes please","Not now"];
+    else if(newest.kind === "breakdown") labels = ["Looks good","Smaller steps"];
+    else if(newest.kind === "checkin") labels = ["Too big","Wrong time","Not needed"];
+    for(const l of labels){
+      const c = document.createElement("button");
+      c.className = "chip";
+      c.textContent = l;
+      c.onclick = async () => { await api("/api/chat", {item_id: newest.item_id, text: l}); refresh(); };
+      chips.appendChild(c);
+    }
+    log.appendChild(chips);
+  }
+  // plan bubbles
+  for(const p of openPlans){
+    const div = document.createElement("div");
+    div.className = "plan";
+    const titles = (p.affected || []).map(id => { const it = state.items.find(x => x.id === id); return it ? it.title : id; }).slice(0,3).join(", ");
+    div.textContent = "Plan: " + (p.ops ? p.ops.length : 0) + " change(s)" + (titles ? " — " + titles : "") + " (" + p.status + ")";
+    if(p.status === "preview"){
+      const a = document.createElement("button"); a.className = "chip"; a.textContent = "Apply";
+      a.onclick = async () => { await api("/api/plan/"+p.id+"/apply", {}); p.status = "applied"; refresh(); };
+      const u = document.createElement("button"); u.className = "chip"; u.textContent = "Undo";
+      u.onclick = async () => { await api("/api/plan/"+p.id+"/undo", {}); p.status = "undone"; refresh(); };
+      div.appendChild(a); div.appendChild(u);
+    } else if(p.status === "applied"){
+      const u = document.createElement("button"); u.className = "chip"; u.textContent = "Undo";
+      u.onclick = async () => { await api("/api/plan/"+p.id+"/undo", {}); p.status = "undone"; refresh(); };
+      div.appendChild(u);
+    }
+    log.appendChild(div);
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+async function renderFocus(){
+  try {
+    const f = await api("/api/focus");
+    const titleEl = document.getElementById("focus-title");
+    const goalEl = document.getElementById("focus-goal");
+    if(!f.item){ titleEl.textContent = "Nothing to do right now"; goalEl.textContent = ""; return; }
+    titleEl.textContent = f.item.title;
+    const parts = [];
+    if(f.item.estimate_min) parts.push("about " + f.item.estimate_min + " min");
+    if(f.parent) parts.push("for: " + f.parent.title);
+    if(f.why) parts.push("because: " + f.why);
+    goalEl.textContent = parts.join(" · ");
+    document.getElementById("focus-start").onclick = () => startCountdown(f.item.id);
+    document.getElementById("focus-done").onclick = async () => { await api("/api/items/"+f.item.id+"/done", {}); refresh(); };
+  } catch(e){ console.error(e); }
+}
+
+function startCountdown(itemId){
+  const btn = document.getElementById("focus-start");
+  if(focusTimer) clearInterval(focusTimer);
+  let secs = 300;
+  btn.textContent = "5:00";
+  focusTimer = setInterval(() => {
+    secs--;
+    if(secs <= 0){ clearInterval(focusTimer); focusTimer = null; btn.textContent = "Start 5 minutes"; return; }
+    btn.textContent = Math.floor(secs/60) + ":" + pad(secs%60);
+  }, 1000);
+}
+
+async function renderProposal(){
+  try {
+    const r = await api("/api/proposal");
+    const p = r.proposal;
+    const card = document.getElementById("proposal");
+    if(!p){ card.style.display = "none"; return; }
+    lastProposal = p;
+    card.style.display = "block";
+    document.getElementById("proposal-title").textContent = p.title;
+    document.getElementById("proposal-reason").textContent = p.reason;
+    const actions = document.getElementById("proposal-actions");
+    actions.innerHTML = "";
+    if(p.status === "shown"){
+      const t = document.createElement("button"); t.className = "accent"; t.textContent = "Try it";
+      t.onclick = async () => { await api("/api/proposals/"+p.id+"/accept", {}); refresh(); };
+      const n = document.createElement("button"); n.className = "outline"; n.textContent = "Not now";
+      n.onclick = async () => { await api("/api/proposals/"+p.id+"/dismiss", {}); refresh(); };
+      actions.appendChild(t); actions.appendChild(n);
+    } else if(p.status === "accepted"){
+      const line = document.createElement("div"); line.className = "muted"; line.style.fontSize = "13px"; line.style.marginBottom = "8px"; line.textContent = "You're trying this view.";
+      actions.appendChild(line);
+      const u = document.createElement("button"); u.className = "outline"; u.textContent = "Undo";
+      u.onclick = async () => { await api("/api/proposals/"+p.id+"/undo", {}); refresh(); };
+      actions.appendChild(u);
+    } else {
+      card.style.display = "none";
+    }
+  } catch(e){ console.error(e); }
+}
+
+function renderTimeline(){
+  const tl = document.getElementById("timeline");
+  tl.innerHTML = "";
+  const now = parseISO(state.now);
+  const today = new Date(now); today.setHours(0,0,0,0);
+  const tomorrow = addDays(today, 1);
+  const days = [{label:"Today", d: today}, {label:"Tomorrow", d: tomorrow}];
+  for(const day of days){
+    const row = document.createElement("div");
+    row.className = "tl-row";
+    const lab = document.createElement("div");
+    lab.className = "tl-label";
+    lab.textContent = day.label;
+    row.appendChild(lab);
+    const items = state.items.filter(it => it.start && sameDay(parseISO(it.start), day.d)).sort((a,b) => (a.start||"").localeCompare(b.start||""));
+    const wrap = document.createElement("div");
+    wrap.className = "tl-items";
+    if(items.length === 0){
+      const e = document.createElement("span");
+      e.className = "tl-empty";
+      e.textContent = "Nothing planned, enjoy the space";
+      wrap.appendChild(e);
+    } else {
+      const shown = items.slice(0,4);
+      for(const it of shown){
+        const li = document.createElement("li");
+        li.setAttribute("data-item", it.id);
+        li.textContent = fmtTime(it.start) + " " + it.title;
+        li.title = it.title;
+        wrap.appendChild(li);
+      }
+      if(items.length > 4){
+        const more = document.createElement("li");
+        more.textContent = "+" + (items.length - 4) + " more";
+        wrap.appendChild(more);
+      }
+    }
+    row.appendChild(wrap);
+    tl.appendChild(row);
+  }
+}
+
+function itemBlock(it){
+  const div = document.createElement("div");
+  div.setAttribute("data-item", it.id);
+  const isSoft = !!it.window;
+  div.className = "item-block " + (isSoft ? "soft" : "solid") + (it.status === "done" ? " done" : "");
+  const timeLine = document.createElement("div");
+  timeLine.className = "ib-time";
+  timeLine.textContent = isSoft ? it.window : (it.start ? fmtTime(it.start) : "");
+  const titleLine = document.createElement("div");
+  titleLine.className = "ib-title";
+  titleLine.textContent = it.title;
+  div.title = it.title;
+  div.appendChild(timeLine);
+  div.appendChild(titleLine);
+  return div;
+}
+
+function renderView(view, items, nowISO){
+  const viewEl = document.getElementById("view");
+  const before = {};
+  viewEl.querySelectorAll("[data-day],[data-item]").forEach(el => {
+    const k = el.getAttribute("data-day") ? "d:"+el.getAttribute("data-day") : "i:"+el.getAttribute("data-item");
+    before[k] = el.getBoundingClientRect();
+  });
+  viewEl.innerHTML = "";
+  const now = parseISO(nowISO);
+  if(view.type === "month"){
+    renderMonth(viewEl, items, now);
+  } else if(view.type === "week" || view.type === "workweek"){
+    renderWeek(viewEl, items, now, view.type === "workweek");
+  } else if(view.type === "day"){
+    renderDay(viewEl, items, now);
+  } else if(view.type === "custom" && view.spec){
+    renderCustom(viewEl, view.spec, items, now);
+  } else {
+    renderWeek(viewEl, items, now, false);
+  }
+  if(!reduceMotion){
+    viewEl.querySelectorAll("[data-day],[data-item]").forEach(el => {
+      const k = el.getAttribute("data-day") ? "d:"+el.getAttribute("data-day") : "i:"+el.getAttribute("data-item");
+      const b = before[k];
+      if(b){
+        const a = el.getBoundingClientRect();
+        const dx = b.left - a.left, dy = b.top - a.top;
+        if(dx || dy){
+          el.animate([{transform:"translate("+dx+"px,"+dy+"px)"},{transform:"none"}], {duration:300, easing:"ease-out"});
+        }
+      } else {
+        el.animate([{opacity:0},{opacity:1}], {duration:300, easing:"ease-out"});
+      }
+    });
+  }
+}
+
+function renderMonth(container, items, now){
+  const grid = document.createElement("div");
+  grid.className = "month-grid";
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const start = startOfWeek(first);
+  for(let i=0;i<42;i++){
+    const d = addDays(start, i);
+    const cell = document.createElement("div");
+    cell.className = "month-cell" + (sameDay(d, now) ? " today" : "");
+    cell.setAttribute("data-day", ymd(d));
+    const num = document.createElement("div");
+    num.className = "day-num";
+    num.textContent = d.getDate();
+    cell.appendChild(num);
+    const dayItems = items.filter(it => it.start && sameDay(parseISO(it.start), d)).sort((a,b) => (a.start||"").localeCompare(b.start||""));
+    for(const it of dayItems.slice(0,2)){
+      const m = document.createElement("div");
+      m.className = "m-item";
+      m.setAttribute("data-item", it.id);
+      m.textContent = it.title;
+      m.title = it.title;
+      cell.appendChild(m);
+    }
+    if(dayItems.length > 2){
+      const more = document.createElement("div");
+      more.className = "m-more";
+      more.textContent = "+" + (dayItems.length - 2) + " more";
+      cell.appendChild(more);
+    }
+    grid.appendChild(cell);
+  }
+  container.appendChild(grid);
+}
+
+function renderWeek(container, items, now, workweek){
+  const grid = document.createElement("div");
+  grid.className = "week-grid" + (workweek ? " workweek" : "");
+  const start = startOfWeek(now);
+  const days = workweek ? 5 : 7;
+  const dayNames = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  for(let i=0;i<days;i++){
+    const d = addDays(start, i);
+    const col = document.createElement("div");
+    col.className = "week-col" + (sameDay(d, now) ? " today" : "");
+    col.setAttribute("data-day", ymd(d));
+    const head = document.createElement("div");
+    head.className = "col-head";
+    head.textContent = dayNames[i] + " " + d.getDate();
+    col.appendChild(head);
+    const colItems = document.createElement("div");
+    colItems.className = "col-items";
+    const dayItems = items.filter(it => it.start && sameDay(parseISO(it.start), d)).sort((a,b) => (a.start||"").localeCompare(b.start||""));
+    for(const it of dayItems) colItems.appendChild(itemBlock(it));
+    col.appendChild(colItems);
+    grid.appendChild(col);
+  }
+  container.appendChild(grid);
+}
+
+function renderDay(container, items, now){
+  const rows = document.createElement("div");
+  rows.className = "day-rows";
+  const dayItems = items.filter(it => it.start && sameDay(parseISO(it.start), now));
+  for(let h=7; h<=23; h++){
+    const row = document.createElement("div");
+    row.className = "day-row";
+    row.setAttribute("data-day", ymd(now) + "-" + pad(h));
+    const lab = document.createElement("div");
+    lab.className = "hour-label";
+    lab.textContent = fmtTime(ymd(now)+"T"+pad(h)+":00");
+    row.appendChild(lab);
+    const wrap = document.createElement("div");
+    wrap.className = "hour-items";
+    const hourItems = dayItems.filter(it => parseISO(it.start).getHours() === h);
+    for(const it of hourItems) wrap.appendChild(itemBlock(it));
+    row.appendChild(wrap);
+    rows.appendChild(row);
+  }
+  container.appendChild(rows);
+}
+
+function renderCustom(container, spec, items, now){
+  if(!spec || !spec.elements || !spec.root) return;
+  const el = renderEl(spec.root, spec, items, now);
+  if(el) container.appendChild(el);
+}
+
+function renderEl(id, spec, items, now){
+  const el = spec.elements[id];
+  if(!el) return null;
+  const type = el.type;
+  const props = el.props || {};
+  const children = el.children || [];
+  switch(type){
+    case "MonthGrid": {
+      const wrap = document.createElement("div");
+      wrap.className = "month-grid";
+      const base = props.month ? parseISO(props.month + "-01T00:00") : now;
+      const first = new Date(base.getFullYear(), base.getMonth(), 1);
+      const start = startOfWeek(first);
+      for(let i=0;i<42;i++){
+        const d = addDays(start, i);
+        const cell = document.createElement("div");
+        cell.className = "month-cell" + (sameDay(d, now) ? " today" : "");
+        cell.setAttribute("data-day", ymd(d));
+        const num = document.createElement("div");
+        num.className = "day-num";
+        num.textContent = d.getDate();
+        cell.appendChild(num);
+        const dayItems = items.filter(it => it.start && sameDay(parseISO(it.start), d));
+        for(const it of dayItems.slice(0,2)){
+          const m = document.createElement("div");
+          m.className = "m-item";
+          m.setAttribute("data-item", it.id);
+          m.textContent = it.title;
+          cell.appendChild(m);
+        }
+        wrap.appendChild(cell);
+      }
+      return wrap;
+    }
+    case "WeekColumns": {
+      const wrap = document.createElement("div");
+      wrap.className = "week-grid";
+      const start = props.start ? parseISO(props.start + "T00:00") : startOfWeek(now);
+      const days = props.days || 7;
+      const dayNames = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+      for(let i=0;i<days;i++){
+        const d = addDays(start, i);
+        const col = document.createElement("div");
+        col.className = "week-col" + (sameDay(d, now) ? " today" : "");
+        col.setAttribute("data-day", ymd(d));
+        const head = document.createElement("div");
+        head.className = "col-head";
+        head.textContent = dayNames[i % 7] + " " + d.getDate();
+        col.appendChild(head);
+        const colItems = document.createElement("div");
+        colItems.className = "col-items";
+        const dayItems = items.filter(it => it.start && sameDay(parseISO(it.start), d));
+        for(const it of dayItems) colItems.appendChild(itemBlock(it));
+        col.appendChild(colItems);
+        wrap.appendChild(col);
+      }
+      return wrap;
+    }
+    case "DayTimeline": {
+      const wrap = document.createElement("div");
+      wrap.className = "day-rows";
+      const date = props.date ? parseISO(props.date + "T00:00") : now;
+      const from = props.from_hour != null ? props.from_hour : 7;
+      const to = props.to_hour != null ? props.to_hour : 23;
+      const dayItems = items.filter(it => it.start && sameDay(parseISO(it.start), date));
+      for(let h=from; h<=to; h++){
+        const row = document.createElement("div");
+        row.className = "day-row";
+        row.setAttribute("data-day", ymd(date) + "-" + pad(h));
+        const lab = document.createElement("div");
+        lab.className = "hour-label";
+        lab.textContent = fmtTime(ymd(date)+"T"+pad(h)+":00");
+        row.appendChild(lab);
+        const wrap2 = document.createElement("div");
+        wrap2.className = "hour-items";
+        const hourItems = dayItems.filter(it => parseISO(it.start).getHours() === h);
+        for(const it of hourItems) wrap2.appendChild(itemBlock(it));
+        row.appendChild(wrap2);
+        wrap.appendChild(row);
+      }
+      return wrap;
+    }
+    case "AgendaList": {
+      const wrap = document.createElement("div");
+      const from = props.from ? parseISO(props.from + "T00:00") : now;
+      const to = props.to ? parseISO(props.to + "T00:00") : addDays(now, 7);
+      let d = new Date(from);
+      while(d <= to){
+        const row = document.createElement("div");
+        row.className = "agenda-row";
+        row.setAttribute("data-day", ymd(d));
+        const dateEl = document.createElement("div");
+        dateEl.className = "agenda-date";
+        dateEl.textContent = ymd(d);
+        row.appendChild(dateEl);
+        const itemsEl = document.createElement("div");
+        itemsEl.className = "agenda-items";
+        const dayItems = items.filter(it => it.start && sameDay(parseISO(it.start), d));
+        for(const it of dayItems) itemsEl.appendChild(itemBlock(it));
+        row.appendChild(itemsEl);
+        wrap.appendChild(row);
+        d = addDays(d, 1);
+      }
+      return wrap;
+    }
+    case "Lane": {
+      const wrap = document.createElement("div");
+      wrap.className = "lane";
+      const head = document.createElement("div");
+      head.className = "lane-head";
+      head.textContent = props.label || "Lane";
+      wrap.appendChild(head);
+      if(children.length){
+        for(const cid of children){
+          const c = renderEl(cid, spec, items, now);
+          if(c) wrap.appendChild(c);
+        }
+      } else if(props.filter){
+        const filtered = items.filter(it => matchFilter(it, props.filter));
+        for(const it of filtered) wrap.appendChild(itemBlock(it));
+      }
+      return wrap;
+    }
+    case "Bucket": {
+      const wrap = document.createElement("div");
+      wrap.className = "bucket";
+      const head = document.createElement("div");
+      head.className = "bucket-head";
+      head.textContent = props.label || "Bucket";
+      wrap.appendChild(head);
+      const filtered = items.filter(it => matchFilter(it, props.filter || {}));
+      for(const it of filtered) wrap.appendChild(itemBlock(it));
+      return wrap;
+    }
+    default: {
+      const wrap = document.createElement("div");
+      wrap.className = "unknown-el";
+      wrap.textContent = "Unknown view element: " + type;
+      return wrap;
+    }
+  }
+}
+
+function matchFilter(it, f){
+  if(!f) return true;
+  if(f.kind && it.kind !== f.kind) return false;
+  if(f.window && it.window !== f.window) return false;
+  if(f.category && it.category !== f.category) return false;
+  if(f.hour_from != null || f.hour_to != null){
+    if(!it.start) return false;
+    const h = parseISO(it.start).getHours();
+    if(f.hour_from != null && h < f.hour_from) return false;
+    if(f.hour_to != null && h > f.hour_to) return false;
+  }
+  return true;
+}
+
+function renderHiddenNote(){
+  const el = document.getElementById("hidden-note");
+  const hc = state.view && state.view.hidden_counts ? state.view.hidden_counts : {};
+  const keys = Object.keys(hc).filter(k => hc[k] > 0);
+  if(keys.length === 0){ el.textContent = ""; return; }
+  const total = keys.reduce((s,k) => s + hc[k], 0);
+  const dates = keys.slice(0,3).map(k => { const d = parseISO(k+"T00:00"); return d ? (["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()] + " " + d.getDate()) : k; }).join(", ");
+  el.textContent = total + " more outside this view (" + dates + ")";
+}
+
+async function renderLearned(){
+  try {
+    const r = await api("/api/beliefs");
+    const list = document.getElementById("learned-list");
+    list.innerHTML = "";
+    if(!r.beliefs || r.beliefs.length === 0){
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "Nothing yet. I'll learn as we go.";
+      list.appendChild(li);
+    } else {
+      for(const b of r.beliefs){
+        const li = document.createElement("li");
+        const st = document.createElement("div");
+        st.textContent = b.statement;
+        li.appendChild(st);
+        const meta = document.createElement("div");
+        meta.className = "muted";
+        meta.style.fontSize = "12px";
+        meta.textContent = Math.round((b.confidence||0)*100) + "% sure";
+        li.appendChild(meta);
+        const f = document.createElement("button");
+        f.className = "forget";
+        f.textContent = "Forget";
+        f.onclick = async () => { await api("/api/beliefs/"+encodeURIComponent(b.key), null, "DELETE"); refresh(); };
+        li.appendChild(f);
+        list.appendChild(li);
+      }
+    }
+    const m = state.meta || {};
+    document.getElementById("learned-meta").textContent = "New ideas: " + Math.round((m.novelty||0)*100) + "% · check-ins every " + (m.cadence_hours||24) + " h · tone " + (m.tone||"gentle");
+  } catch(e){ console.error(e); }
+}
+
+async function renderActivity(){
+  try {
+    const r = await api("/api/activity");
+    const list = document.getElementById("activity-list");
+    list.innerHTML = "";
+    const events = (r.events || []).slice(-6).reverse();
+    if(events.length === 0){
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "Quiet so far";
+      list.appendChild(li);
+      return;
+    }
+    for(const ev of events){
+      const li = document.createElement("li");
+      const t = document.createElement("span");
+      t.className = "act-time";
+      t.textContent = fmtTime(ev.at);
+      li.appendChild(t);
+      const txt = document.createElement("span");
+      txt.textContent = ev.text;
+      li.appendChild(txt);
+      list.appendChild(li);
+    }
+  } catch(e){ console.error(e); }
+}
+
+async function sendMessage(){
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if(!text) return;
+  const newest = [...state.messages].reverse().find(m => m.role === "agent" && ["question","breakdown","checkin"].includes(m.kind) && m.item_id);
+  try {
+    if(newest){
+      await api("/api/chat", {item_id: newest.item_id, text: text});
+    } else {
+      const r = await api("/api/command", {text: text, mode: currentMode});
+      if(r.plan) openPlans.push(r.plan);
+    }
+    input.value = "";
+    await refresh();
+  } catch(e){ console.error(e); }
+}
+
+document.getElementById("send-btn").onclick = sendMessage;
+document.getElementById("chat-input").addEventListener("keydown", (e) => {
+  if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+});
+document.querySelectorAll("#mode-toggle button").forEach(b => {
+  b.onclick = () => {
+    currentMode = b.dataset.mode;
+    document.querySelectorAll("#mode-toggle button").forEach(x => x.classList.toggle("active", x === b));
+  };
+});
+document.getElementById("import-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const content = await file.text();
+  try {
+    const r = await api("/api/import", {filename: file.name, content: content});
+    if(r.plan) openPlans.push(r.plan);
+    await refresh();
+  } catch(err){ console.error(err); }
+});
+document.querySelectorAll("#view-switcher button").forEach(b => {
+  b.onclick = async () => { await api("/api/view", {type: b.dataset.view}); refresh(); };
+});
+document.getElementById("btn-30").onclick = async () => {
+  const d = parseISO(state.now); d.setMinutes(d.getMinutes()+30);
+  await api("/api/clock", {now: fmtISO(d)}); refresh();
+};
+document.getElementById("btn-60").onclick = async () => {
+  const d = parseISO(state.now); d.setHours(d.getHours()+1);
+  await api("/api/clock", {now: fmtISO(d)}); refresh();
+};
+document.getElementById("btn-morning").onclick = async () => {
+  const d = parseISO(state.now); const n = addDays(d, 1); n.setHours(8,0,0,0);
+  await api("/api/clock", {now: fmtISO(n)}); refresh();
+};
+document.getElementById("btn-iris").onclick = async () => {
+  await api("/api/reset", {now: IRIS.now, items: IRIS.items});
+  openPlans = [];
+  refresh();
+};
+
+refresh();
+setInterval(refresh, 15000);
+</script>
+</body>
+</html>

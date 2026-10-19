@@ -4,6 +4,12 @@ The goal was the web app described in the design doc "Evolving Calendar" (person
 evolved agent teams. The evolver (Claude Opus) designs the team (roles, models, workflow) and never writes product code.
 Tool roles and code pasted into genomes are rejected. Every app in `snapshots/` was written by the team's models.
 
+## Overnight update 2 (2026-10-18, 23:10 PDT): evo_v33 finished 4 generations
+Best balanced build: `v3_3_final_balanced/` (evo_v33 gen03 child_5): fit 0.997, holdout 0.934, user simulator 0.975,
+screenshot UI judge 0.77 (hand-written reference 0.68). Its fitness of 0.910 fell just short of the 0.915 acceptance bar, so the
+run's official parent stays gen01 child_3 (UI 0.70, sim 1.0). Picked by hand as the best overall build.
+Next run evo_v34 (3 gens, from this build, with P058/P060/copy roles active) started 23:10.
+
 ## Overnight update (2026-10-18, 22:16 PDT)
 Best is now `v3_3_best_8835/` (evo_v33 gen01 child_3): screenshot UI judge 0.68 / 0.71 (2 builds), above the hand-written
 reference (0.68). Harness v3.2 fit 0.998, LLM user simulator clean-episode rate 1.0 (40 episodes, fresh seeds), holdout 0.934.
